@@ -1,0 +1,28 @@
+
+> madrasa-system@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.1.4
+   - Environments: .env
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/22) ...
+   Generating static pages (5/22) 
+prisma:query SELECT "public"."SiteSettings"."id", "public"."SiteSettings"."madrasaName", "public"."SiteSettings"."madrasaAddress", "public"."SiteSettings"."madrasaLogo", "public"."SiteSettings"."contactEmail", "public"."SiteSettings"."contactPhone", "public"."SiteSettings"."siteActive" FROM "public"."SiteSettings" WHERE "public"."SiteSettings"."id" = $1 LIMIT $2 OFFSET $3
+Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
+PrismaClientKnownRequestError: 
+Invalid `prisma.siteSettings.findFirst()` invocation:
+
+
+The table `public.SiteSettings` does not exist in the current database.
+    at $n.handleRequestError (C:\Users\USER\Downloads\Project\Internet Madrasha\node_modules\@prisma\client\runtime\library.js:121:7315)
+    at $n.handleAndLogRequestError (C:\Users\USER\Downloads\Project\Internet Madrasha\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\USER\Downloads\Project\Internet Madrasha\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\USER\Downloads\Project\Internet Madrasha\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async h (C:\Users\USER\Downloads\Project\Internet Madrasha\.next\server\app\page.js:2:1328)
+Export encountered an error on /page: /, exiting the build.
+ Γ¿» Static worker exited with code: 1 and signal: null

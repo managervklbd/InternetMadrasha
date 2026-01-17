@@ -1,0 +1,126 @@
+
+> madrasa-system@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.1.4
+   - Environments: .env
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./src/app/(dashboard)/admin/academics/page.tsx
+23:5  Warning: 'Plus' is defined but never used.  @typescript-eslint/no-unused-vars
+24:5  Warning: 'Layers' is defined but never used.  @typescript-eslint/no-unused-vars
+32:5  Warning: 'createBatch' is defined but never used.  @typescript-eslint/no-unused-vars
+37:48  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+64:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+78:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+115:72  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/(dashboard)/admin/billing/page.tsx
+3:20  Warning: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+20:10  Warning: 'Badge' is defined but never used.  @typescript-eslint/no-unused-vars
+32:12  Warning: 'loading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+32:21  Warning: 'setLoading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+108:64  Error: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/app/(dashboard)/admin/settings/page.tsx
+21:46  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+46:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/admin/students/page.tsx
+38:5  Warning: 'Phone' is defined but never used.  @typescript-eslint/no-unused-vars
+47:10  Warning: 'useToast' is defined but never used.  @typescript-eslint/no-unused-vars
+50:46  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+74:64  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+80:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/admin/teachers/page.tsx
+30:10  Warning: 'inviteUser' is defined but never used.  @typescript-eslint/no-unused-vars
+33:46  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/(dashboard)/student/billing/page.tsx
+20:5  Warning: 'CreditCard' is defined but never used.  @typescript-eslint/no-unused-vars
+28:13  Warning: 'profile' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/student/homework/page.tsx
+15:5  Warning: 'CheckCircle2' is defined but never used.  @typescript-eslint/no-unused-vars
+16:5  Warning: 'MessageSquare' is defined but never used.  @typescript-eslint/no-unused-vars
+17:5  Warning: 'ArrowRight' is defined but never used.  @typescript-eslint/no-unused-vars
+20:8  Warning: 'Link' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/student/overview/page.tsx
+42:105  Error: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+100:87  Error: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/app/(dashboard)/student/results/page.tsx
+18:10  Warning: 'Badge' is defined but never used.  @typescript-eslint/no-unused-vars
+19:18  Warning: 'BookOpen' is defined but never used.  @typescript-eslint/no-unused-vars
+19:28  Warning: 'GraduationCap' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/teacher/attendance/page.tsx
+27:5  Warning: 'CheckCircle2' is defined but never used.  @typescript-eslint/no-unused-vars
+28:5  Warning: 'XCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+40:44  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+56:57  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+58:66  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+67:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+139:52  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/(dashboard)/teacher/homework/page.tsx
+25:5  Warning: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+38:44  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+39:48  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+76:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/(dashboard)/teacher/marks/page.tsx
+34:5  Warning: 'GraduationCap' is defined but never used.  @typescript-eslint/no-unused-vars
+37:10  Warning: 'createAssessment' is defined but never used.  @typescript-eslint/no-unused-vars
+40:44  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+42:12  Warning: 'loading' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+45:12  Warning: 'assessmentName' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+59:57  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+163:64  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/(dashboard)/teacher/overview/page.tsx
+1:10  Warning: 'auth' is defined but never used.  @typescript-eslint/no-unused-vars
+45:87  Error: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+71:64  Error: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/app/auth/invite/page.tsx
+53:23  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/auth/layout.tsx
+32:29  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+32:139  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+
+./src/app/auth/login/page.tsx
+17:10  Warning: 'Tabs' is defined but never used.  @typescript-eslint/no-unused-vars
+17:16  Warning: 'TabsContent' is defined but never used.  @typescript-eslint/no-unused-vars
+17:29  Warning: 'TabsList' is defined but never used.  @typescript-eslint/no-unused-vars
+17:39  Warning: 'TabsTrigger' is defined but never used.  @typescript-eslint/no-unused-vars
+51:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/page.tsx
+4:8  Warning: 'Link' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/auth.ts
+58:39  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+65:51  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/hooks/use-toast.ts
+21:7  Warning: 'actionTypes' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+
+./src/lib/actions/teacher-academic-actions.ts
+77:11  Warning: 'operations' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/actions/teacher-portal-actions.ts
+5:10  Warning: 'redirect' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/services/billing-service.ts
+58:23  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules

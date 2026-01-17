@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 176 80% 10%;
+    /* Very dark teal for text */
+    --card: 0 0% 100%;
+    --card-foreground: 176 80% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 176 80% 10%;
+
+    /* Madrasha Primary: Deep Teal #0f766e -> 176 77% 26% */
+    --primary: 176 77% 26%;
+    --primary-foreground: 45 100% 96%;
+    /* Ivory/Gold-ish white */
+
+    --secondary: 176 30% 96%;
+    /* Very light teal */
+    --secondary-foreground: 176 77% 26%;
+
+    --muted: 176 20% 96%;
+    --muted-foreground: 176 20% 40%;
+
+    --accent: 45 93% 47%;
+    /* Gold #d97706 -> 38 93% 47% approx (using 45 for warmer gold) */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 176 20% 90%;
+    --input: 176 20% 90%;
+    --ring: 176 77% 26%;
+    --radius: 0.5rem;
+
+    --chart-1: 176 77% 26%;
+    --chart-2: 45 93% 47%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --background: 176 50% 5%;
+    /* Very dark teal/black */
+    --foreground: 45 20% 96%;
+    /* Off-white */
+    --card: 176 50% 8%;
+    --card-foreground: 45 20% 96%;
+    --popover: 176 50% 5%;
+    --popover-foreground: 45 20% 96%;
+
+    --primary: 176 60% 50%;
+    /* Lighter teal for dark mode */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 176 30% 15%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 176 30% 15%;
+    --muted-foreground: 176 20% 65%;
+
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 176 30% 15%;
+    --input: 176 30% 15%;
+    --ring: 176 60% 50%;
+
+    --chart-1: 176 60% 50%;
+    --chart-2: 45 93% 47%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+/* Islamic Geometric Pattern Utility */
+@layer utilities {
+  .bg-pattern-islamic {
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+}
