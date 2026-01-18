@@ -9,24 +9,8 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
     Plus,
@@ -34,8 +18,7 @@ import {
     Search,
     Filter,
     GraduationCap,
-    Globe,
-    Phone
+    Globe
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -44,7 +27,8 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { provisionStudent, getStudents } from "@/lib/actions/student-actions";
-import { useToast } from "@/hooks/use-toast"; // assuming use-toast is installed or will be
+import { useToast } from "@/hooks/use-toast";
+import { ProvisionStudentModal } from "@/components/admin/students/ProvisionStudentModal";
 
 export default function StudentsPage() {
     const [students, setStudents] = useState<any[]>([]);
@@ -86,119 +70,40 @@ export default function StudentsPage() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Student Directory</h1>
-                    <p className="text-zinc-500 text-lg">Manage all enrolled students, their modes, and residency status.</p>
+                    <h1 className="text-3xl font-bold tracking-tight font-bengali">ছাত্র তালিকা</h1>
+                    <p className="text-zinc-500 text-lg font-bengali">সমস্ত ভর্তি করা ছাত্র, তাদের মোড এবং আবাসিক অবস্থা পরিচালনা করুন।</p>
                 </div>
 
-                <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="gap-2 bg-teal-600 hover:bg-teal-700 h-11 px-6">
-                            <Plus className="w-5 h-5" />
-                            Provision New Student
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[550px]">
-                        <DialogHeader>
-                            <DialogTitle className="text-2xl">Provision New Student</DialogTitle>
-                            <DialogDescription>
-                                This will create a user account and trigger an invitation link.
-                                Fields for Probashi students are mandatory if residency is set to Probashi.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form onSubmit={handleCreateStudent} className="space-y-6 pt-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="fullName">Full Name</Label>
-                                    <Input id="fullName" name="fullName" placeholder="Abdullah Al-Mamun" required />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email address</Label>
-                                    <Input id="email" name="email" type="email" placeholder="abdullah@example.com" required />
-                                </div>
-                            </div>
+                <div className="flex items-center gap-2">
+                    <Button
+                        onClick={() => setOpen(true)}
+                        className="gap-2 bg-teal-600 hover:bg-teal-700 h-11 px-6 shadow-sm ring-1 ring-teal-600/20 font-bengali"
+                    >
+                        <Plus className="w-5 h-5" />
+                        নতুন ছাত্র যোগ করুন
+                    </Button>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="studentID">Madrasa Student ID</Label>
-                                    <Input id="studentID" name="studentID" placeholder="IM-2024-001" required />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="gender">Gender</Label>
-                                    <Select name="gender" defaultValue="MALE">
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Gender" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="MALE">Male</SelectItem>
-                                            <SelectItem value="FEMALE">Female</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="mode">Student Mode</Label>
-                                    <Select name="mode" defaultValue="OFFLINE">
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Mode" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="ONLINE">Online</SelectItem>
-                                            <SelectItem value="OFFLINE">Offline</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="residency">Residency</Label>
-                                    <Select name="residency" defaultValue="LOCAL">
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select Residency" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="LOCAL">Local (Bangladesh)</SelectItem>
-                                            <SelectItem value="PROBASHI">Probashi (International)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="rounded-lg bg-zinc-50 p-4 border border-zinc-200 dark:bg-zinc-900 dark:border-zinc-800 space-y-4">
-                                <p className="text-sm font-medium text-zinc-500">Probashi Specific (Optional if Local)</p>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="country">Country</Label>
-                                        <Input id="country" name="country" placeholder="United Arab Emirates" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-                                        <Input id="whatsappNumber" name="whatsappNumber" placeholder="+971..." />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-4">
-                                <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                                <Button type="submit" className="bg-teal-600 hover:bg-teal-700 px-8">Create Profile</Button>
-                            </div>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                    <ProvisionStudentModal
+                        open={open}
+                        onOpenChange={setOpen}
+                        onSuccess={refreshStudents}
+                    />
+                </div>
             </div>
 
             <div className="flex items-center gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                     <Input
-                        placeholder="Search students by name, ID or email..."
-                        className="pl-10 h-11"
+                        placeholder="নাম, আইডি বা ইমেইল দিয়ে ছাত্র খুঁজুন..."
+                        className="pl-10 h-11 font-bengali"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button variant="outline" className="gap-2 h-11 px-4">
+                <Button variant="outline" className="gap-2 h-11 px-4 font-bengali">
                     <Filter className="w-4 h-4" />
-                    Filters
+                    ফিল্টার
                 </Button>
             </div>
 
@@ -206,25 +111,25 @@ export default function StudentsPage() {
                 <Table>
                     <TableHeader className="bg-zinc-50 dark:bg-zinc-900/50">
                         <TableRow>
-                            <TableHead className="w-[100px]">ID</TableHead>
-                            <TableHead>Student Name</TableHead>
-                            <TableHead>Mode & Status</TableHead>
-                            <TableHead>Residency</TableHead>
-                            <TableHead>Account</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead className="w-[100px] font-bengali">আইডি</TableHead>
+                            <TableHead className="font-bengali">ছাত্রের নাম</TableHead>
+                            <TableHead className="font-bengali">মোড এবং স্ট্যাটাস</TableHead>
+                            <TableHead className="font-bengali">আবাসিক অবস্থা</TableHead>
+                            <TableHead className="font-bengali">অ্যাকাউন্ট</TableHead>
+                            <TableHead className="text-right font-bengali">অ্যাকশন</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {loading ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center text-zinc-500 italic">
-                                    Loading students...
+                                <TableCell colSpan={6} className="h-24 text-center text-zinc-500 italic font-bengali">
+                                    ছাত্রদের তথ্য লোড হচ্ছে...
                                 </TableCell>
                             </TableRow>
                         ) : students.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center text-zinc-500 italic">
-                                    No students found. Provision your first student to get started.
+                                <TableCell colSpan={6} className="h-24 text-center text-zinc-500 italic font-bengali">
+                                    কোন ছাত্র পাওয়া যায়নি। শুরু করতে আপনার প্রথম ছাত্র যোগ করুন।
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -233,7 +138,7 @@ export default function StudentsPage() {
                                     <TableCell className="font-mono text-sm font-medium text-zinc-500">{student.studentID}</TableCell>
                                     <TableCell>
                                         <div className="flex flex-col">
-                                            <span className="font-semibold text-zinc-900 dark:text-zinc-100">{student.fullName}</span>
+                                            <span className="font-semibold text-zinc-900 dark:text-zinc-100 font-bengali">{student.fullName}</span>
                                             <span className="text-xs text-zinc-500">{student.user.email}</span>
                                         </div>
                                     </TableCell>
@@ -275,9 +180,9 @@ export default function StudentsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                                <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                                                <DropdownMenuItem className="text-red-500">Deactivate</DropdownMenuItem>
+                                                <DropdownMenuItem className="font-bengali">প্রোফাইল দেখুন</DropdownMenuItem>
+                                                <DropdownMenuItem className="font-bengali">তথ্য সম্পাদনা করুন</DropdownMenuItem>
+                                                <DropdownMenuItem className="text-red-500 font-bengali">নিষ্ক্রিয় করুন</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

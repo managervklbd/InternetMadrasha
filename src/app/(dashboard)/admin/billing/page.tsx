@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     Card,
     CardContent,
@@ -17,7 +17,6 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import {
     CreditCard,
     Wallet,
@@ -28,9 +27,9 @@ import {
     AlertCircle
 } from "lucide-react";
 
-export default function BillingPage() {
-    const [loading, setLoading] = useState(false);
+import { FeePlansManager } from "@/components/admin/billing/FeePlansManager";
 
+export default function BillingPage() {
     const funds = [
         { name: "Monthly Fee Fund", amount: "৳45,200", icon: Wallet, color: "teal" },
         { name: "Admission Fund", amount: "৳12,000", icon: CreditCard, color: "blue" },
@@ -102,43 +101,47 @@ export default function BillingPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
-                    <CardHeader>
-                        <CardTitle>Fee Collection Analytics</CardTitle>
-                        <CardDescription>Overview of this month&apos;s collection status.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span>Targets Met</span>
-                                <span className="font-bold">65%</span>
-                            </div>
-                            <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-teal-600 w-[65%]" />
-                            </div>
-                        </div>
+                <div className="space-y-8">
+                    <FeePlansManager />
 
-                        <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-zinc-500">Collected</span>
-                                <span className="font-semibold">৳28,400</span>
+                    <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
+                        <CardHeader>
+                            <CardTitle>Fee Collection Analytics</CardTitle>
+                            <CardDescription>Overview of this month&apos;s collection status.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span>Targets Met</span>
+                                    <span className="font-bold">65%</span>
+                                </div>
+                                <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                    <div className="h-full bg-teal-600 w-[65%]" />
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-zinc-500">Pending</span>
-                                <span className="font-semibold">৳15,200</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-zinc-500">Total Projected</span>
-                                <span className="font-bold text-teal-600">৳43,600</span>
-                            </div>
-                        </div>
 
-                        <Button variant="outline" className="w-full mt-4 gap-2">
-                            Re-scan Invoice Status
-                            <ArrowUpRight className="w-4 h-4" />
-                        </Button>
-                    </CardContent>
-                </Card>
+                            <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-zinc-500">Collected</span>
+                                    <span className="font-semibold">৳28,400</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-zinc-500">Pending</span>
+                                    <span className="font-semibold">৳15,200</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-zinc-500">Total Projected</span>
+                                    <span className="font-bold text-teal-600">৳43,600</span>
+                                </div>
+                            </div>
+
+                            <Button variant="outline" className="w-full mt-4 gap-2">
+                                Re-scan Invoice Status
+                                <ArrowUpRight className="w-4 h-4" />
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );

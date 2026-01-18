@@ -45,40 +45,43 @@
   }
 
   .dark {
-    --background: 176 50% 5%;
-    /* Very dark teal/black */
-    --foreground: 45 20% 96%;
-    /* Off-white */
-    --card: 176 50% 8%;
-    --card-foreground: 45 20% 96%;
-    --popover: 176 50% 5%;
-    --popover-foreground: 45 20% 96%;
+    --background: 176 80% 3%;
+    /* Extremely dark teal/black */
+    --foreground: 45 100% 98%;
+    /* Bright ivory for high contrast */
+    --card: 176 80% 5%;
+    /* Deep teal card */
+    --card-foreground: 45 100% 98%;
+    --popover: 176 80% 4%;
+    --popover-foreground: 45 100% 98%;
 
-    --primary: 176 60% 50%;
-    /* Lighter teal for dark mode */
-    --primary-foreground: 0 0% 100%;
+    --primary: 176 100% 45%;
+    /* Vibrant teal for primary actions */
+    --primary-foreground: 176 80% 5%;
 
-    --secondary: 176 30% 15%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 176 80% 12%;
+    --secondary-foreground: 176 100% 90%;
 
-    --muted: 176 30% 15%;
-    --muted-foreground: 176 20% 65%;
+    --muted: 176 40% 12%;
+    --muted-foreground: 176 20% 75%;
+    /* Increased brightness for better readability */
 
-    --accent: 45 93% 47%;
+    --accent: 45 93% 55%;
+    /* Brighter gold for dark mode */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 176 30% 15%;
-    --input: 176 30% 15%;
-    --ring: 176 60% 50%;
+    --border: 176 40% 18%;
+    --input: 176 40% 18%;
+    --ring: 176 100% 45%;
 
-    --chart-1: 176 60% 50%;
-    --chart-2: 45 93% 47%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --chart-1: 176 100% 45%;
+    --chart-2: 45 93% 55%;
+    --chart-3: 197 50% 60%;
+    --chart-4: 43 80% 75%;
+    --chart-5: 27 90% 75%;
   }
 }
 

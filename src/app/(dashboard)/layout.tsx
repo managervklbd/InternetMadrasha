@@ -12,11 +12,14 @@ import {
     UserCircle,
     PieChart,
     ShieldAlert,
-    CalendarCheck
+    CalendarCheck,
+    Video
 } from "lucide-react";
 
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { SidebarContent } from "@/components/layout/SidebarContent";
+import { ModeToggle } from "@/components/layout/ModeToggle";
+import { getSiteSettings } from "@/lib/actions/settings-actions";
 
 export default async function DashboardLayout({
     children,
@@ -25,6 +28,7 @@ export default async function DashboardLayout({
 }) {
     const session = await auth();
     const role = session?.user?.role || "GUEST";
+    const settings = await getSiteSettings();
 
     const adminLinks = [
         { href: "/admin/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
@@ -35,6 +39,7 @@ export default async function DashboardLayout({
         { href: "/admin/reports/financial", label: "আর্থিক প্রতিবেদন", iconName: "PieChart" },
         { href: "/admin/reports/students", label: "ছাত্র পরিসংখ্যান", iconName: "Users" },
         { href: "/admin/reports/attendance", label: "হাজিরা রিপোর্ট", iconName: "CalendarCheck" },
+        { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
         { href: "/admin/audit", label: "অডিট লগ", iconName: "ShieldAlert" },
         { href: "/admin/settings", label: "সেটিংস", iconName: "Settings" },
     ];
@@ -43,11 +48,13 @@ export default async function DashboardLayout({
         { href: "/teacher/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
         { href: "/teacher/batches", label: "আমার ক্লাস", iconName: "BookOpen" },
         { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
+        { href: "/teacher/live-classes", label: "আমার লাইভ ক্লাস", iconName: "Video" },
     ];
 
     const studentLinks = [
         { href: "/student/profile", label: "আমার প্রোফাইল", iconName: "UserCircle" },
         { href: "/student/attendance", label: "হাজিরা রিপোর্ট", iconName: "Calendar" },
+        { href: "/student/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },
         { href: "/student/billing", label: "পেমেন্ট হিস্ট্রি", iconName: "CreditCard" },
     ];
 
@@ -62,14 +69,26 @@ export default async function DashboardLayout({
         <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans">
             {/* Desktop Sidebar */}
             <aside className="w-72 hidden md:flex border-r border-teal-800 flex-col relative overflow-hidden shadow-2xl">
-                <SidebarContent role={role} links={links} signOutAction={handleSignOut} />
+                <SidebarContent
+                    role={role}
+                    links={links}
+                    signOutAction={handleSignOut}
+                    brandName={settings?.madrasaName || "ইন্টারনেট মাদ্রাসা"}
+                    brandLogo={settings?.madrasaLogo}
+                />
             </aside>
 
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-950">
                 <header className="h-20 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-20 flex items-center justify-between px-4 md:px-8 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <MobileSidebar role={role} links={links} signOutAction={handleSignOut} />
+                        <MobileSidebar
+                            role={role}
+                            links={links}
+                            signOutAction={handleSignOut}
+                            brandName={settings?.madrasaName || "ইন্টারনেট মাদ্রাসা"}
+                            brandLogo={settings?.madrasaLogo}
+                        />
 
                         <div>
                             <h2 className="text-xl md:text-2xl font-bold font-bengali text-teal-900 dark:text-teal-50">
@@ -80,6 +99,7 @@ export default async function DashboardLayout({
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <ModeToggle />
                         <div className="text-sm text-right hidden md:block">
                             <p className="font-bold text-zinc-800 dark:text-zinc-200">{session?.user?.email}</p>
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-500 uppercase tracking-widest border border-amber-200 dark:border-amber-800">

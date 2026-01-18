@@ -13,11 +13,23 @@ const geistMono = Geist_Mono({
 });
 
 import { Providers } from "@/components/providers";
+import { getSiteSettings } from "@/lib/actions/settings-actions";
 
-export const metadata: Metadata = {
-  title: "Internet Madrasha | Management System",
-  description: "Advanced management system for online and offline Madrasa students.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSiteSettings();
+  return {
+    title: {
+      default: settings?.madrasaName || "মাদ্রাসা ম্যানেজমেন্ট সিস্টেম",
+      template: `%s | ${settings?.madrasaName || "Madrasa System"}`,
+    },
+    description: "আধুনিক মাদ্রাসা ম্যানেজমেন্ট সিস্টেম",
+    icons: {
+      icon: settings?.madrasaLogo || "/favicon.ico",
+    }
+  };
+}
+
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,
@@ -25,12 +37,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning={true}
+        suppressHydrationWarning
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );

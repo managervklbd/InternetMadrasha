@@ -1,0 +1,16 @@
+
+Error: Prisma schema validation - (validate wasm)
+Error code: P1012
+error: Error validating field `department` in model `StudentProfile`: The relation field `department` on model `StudentProfile` is missing an opposite relation field on the model `Department`. Either run `prisma format` or add it manually.
+  -->  prisma\schema.prisma:106
+   | 
+105 |   departmentId     String?
+106 |   department       Department?  @relation(fields: [departmentId], references: [id])
+
+107 | 
+   | 
+
+Validation Error Count: 1
+[Context: validate]
+
+Prisma CLI Version : 5.22.0

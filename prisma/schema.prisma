@@ -62,6 +62,12 @@ enum AttendanceStatus {
   EXCUSED
 }
 
+enum LiveClassSession {
+  MORNING
+  NOON
+  NIGHT
+}
+
 // --- Models ---
 
 // A) AUTH & USERS
@@ -92,16 +98,21 @@ model StudentProfile {
   mode             StudentMode  @default(OFFLINE)
   residency        Residency    @default(LOCAL)
   country          String?      // Required if residency == PROBASHI
+  phoneNumber      String?      // General contact number
   whatsappNumber   String?      // Required if residency == PROBASHI
   photoUrl         String?
   activeStatus     Boolean      @default(true)
   
+  departmentId     String?
+  department       Department?  @relation(fields: [departmentId], references: [id])
+
   enrollments      Enrollment[]
   planHistory      StudentPlanHistory[]
   invoices         MonthlyInvoice[]
   attendance       Attendance[]
-  submissions      HomeworkSubmission[]
+  homeworkSubmissions HomeworkSubmission[]
   marks            Mark[]
+  liveClassAttendance LiveClassAttendance[]
 
   @@index([activeStatus])
   @@index([studentID])
@@ -118,22 +129,26 @@ model TeacherProfile {
   
   assignedBatches Batch[]   @relation("TeacherBatches")
   homeworks       Homework[]
+  liveClasses     MonthlyLiveClass[]
 }
 
 // C) ACADEMIC STRUCTURE
 model Course {
   id          String       @id @default(cuid())
   name        String       @unique
+  code        String?      // e.g. "HFZ"
   departments Department[]
 }
 
 model Department {
   id        String     @id @default(cuid())
   name      String
+  code      String?    // e.g. "MZN"
   courseId  String
   course    Course     @relation(fields: [courseId], references: [id])
   batches   Batch[]
   subjects  Subject[]
+  students  StudentProfile[]
 }
 
 model Subject {
@@ -161,6 +176,7 @@ model Batch {
   batchSubjects BatchSubject[]
   homeworks     Homework[]
   sessions      ClassSession[]
+  liveClasses   MonthlyLiveClass[]
 }
 
 model BatchSubject {
@@ -364,4 +380,43 @@ model AdminActionLog {
   details    Json?
   ipAddress  String?
   createdAt  DateTime @default(now())
+}
+
+model MonthlyLiveClass {
+  id              String             @id @default(cuid())
+  title           String             // e.g., "January 2026 – Live Classes"
+  month           Int                // 1-12
+  year            Int
+  gender          Gender
+  studentMode     StudentMode        @default(ONLINE)
+  
+  teacherId       String
+  teacher         TeacherProfile     @relation(fields: [teacherId], references: [id])
+  
+  batchId         String
+  batch           Batch              @relation(fields: [batchId], references: [id])
+
+  sessions        LiveClassSession[] // [MORNING, NOON, NIGHT]
+  liveLink        String             // Zoom/Meet URL
+  active          Boolean            @default(true)
+  
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  attendance      LiveClassAttendance[]
+  
+  @@index([month, year, gender, active])
+}
+
+model LiveClassAttendance {
+  id               String           @id @default(cuid())
+  studentId        String
+  student          StudentProfile   @relation(fields: [studentId], references: [id])
+  liveClassId      String
+  liveClass        MonthlyLiveClass @relation(fields: [liveClassId], references: [id])
+  session          LiveClassSession
+  date             DateTime         @default(now())
+  joinTime         DateTime         @default(now())
+
+  @@index([studentId, date])
 }

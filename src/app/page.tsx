@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getSiteSettings } from "@/lib/actions/settings-actions";
 import LoginForm from "@/components/auth/LoginForm";
+import { ModeToggle } from "@/components/layout/ModeToggle";
 
 export default async function LoginPage() {
   const settings = await getSiteSettings();
@@ -26,12 +27,15 @@ export default async function LoginPage() {
 
         <div className="relative z-10 flex flex-col items-center text-center">
           {/* Logo Icon */}
-          <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-3xl bg-teal-500/50 shadow-inner">
-            <GraduationCap className="h-14 w-14 text-white" />
+          <div className="mb-10 flex h-28 w-28 items-center justify-center rounded-[32px] bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl overflow-hidden p-4 hover:scale-105 transition-transform duration-500 group">
+            {settings?.madrasaLogo ? (
+              <img src={settings.madrasaLogo} alt="Logo" className="h-full w-full object-contain group-hover:scale-110 transition-transform duration-500" />
+            ) : (
+              <GraduationCap className="h-16 w-16 text-white" />
+            )}
           </div>
 
-          <h1 className="mb-2 text-4xl font-extrabold text-white lg:text-5xl">{madrasaName}</h1>
-          <p className="mb-12 text-lg font-medium text-teal-100/90 tracking-wide uppercase">মাদ্রাসা ম্যানেজমেন্ট সিস্টেম</p>
+          <h1 className="mb-4 text-5xl font-black text-white lg:text-6xl tracking-tight font-bengali">{madrasaName}</h1>
 
           {/* Feature Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-xl">
@@ -58,16 +62,24 @@ export default async function LoginPage() {
       </div>
 
       {/* Right Section: Login Form */}
-      <div className="relative flex w-full flex-col items-center justify-center p-8 lg:w-1/2 lg:p-12 bg-zinc-50 dark:bg-zinc-950">
+      <div className="relative flex w-full flex-col items-center justify-center p-8 lg:w-1/2 lg:p-12 bg-background">
+        <div className="absolute top-8 right-8 z-50">
+          <ModeToggle />
+        </div>
+
         <LoginForm />
 
         {/* Footer Info */}
-        <div className="flex flex-col items-center gap-2 pt-4 mt-8">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-            <Clock className="w-4 h-4" />
-            <span className="text-sm font-medium">রিয়েল-টাইম ডেটা সিঙ্ক</span>
+        <div className="flex flex-col items-center gap-3 pt-8 mt-12 border-t border-border/40 w-full max-w-[440px]">
+          <div className="flex items-center gap-2 text-muted-foreground/80">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm font-semibold">রিয়েল-টাইম ডেটা সিঙ্ক</span>
           </div>
-          <p className="text-xs text-zinc-400 dark:text-zinc-600">Developed By <span className="font-bold text-zinc-500 dark:text-zinc-400">Maxtechbd.com</span></p>
+          <p className="text-xs text-muted-foreground/60 tracking-wider uppercase font-medium">
+            Developed By <span className="font-bold text-foreground/80 hover:text-primary transition-colors cursor-pointer">Maxtechbd.com</span>
+          </p>
         </div>
       </div>
     </div>

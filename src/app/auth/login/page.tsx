@@ -1,119 +1,39 @@
-"use client";
+import LoginForm from "@/components/auth/LoginForm";
+import { getSiteSettings } from "@/lib/actions/settings-actions";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
-
-export default function LoginPage() {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
-
-    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setLoading(true);
-        setError(null);
-
-        const formData = new FormData(e.currentTarget);
-        const email = formData.get("email") as string;
-        const password = formData.get("password") as string;
-
-        try {
-            const result = await signIn("credentials", {
-                email,
-                password,
-                redirect: false,
-            });
-
-            if (result?.error) {
-                if (result.error === "ACCOUNT_NOT_ACTIVE") {
-                    setError("Your account is not activated. Please check your email for the invitation.");
-                } else {
-                    setError("Invalid email or password.");
-                }
-            } else {
-                router.push("/dashboard");
-                router.refresh();
-            }
-        } catch (err) {
-            setError("Something went wrong. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
+export default async function LoginPage() {
+    const settings = await getSiteSettings();
 
     return (
-        <Card className="border-none shadow-none bg-transparent">
-            <CardHeader className="space-y-1 p-0 pb-8">
-                <CardTitle className="text-3xl font-bold tracking-tight">Login</CardTitle>
-                <CardDescription className="text-zinc-500 text-lg">
-                    Enter your credentials to access your portal.
-                </CardDescription>
-            </CardHeader>
+        <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+            {/* Left Side - Hero/Branding */}
+            <div className="relative hidden lg:flex flex-col bg-teal-900 text-white overflow-hidden">
+                <div className="absolute inset-0 bg-pattern-islamic opacity-10 pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-teal-900/90 to-emerald-900/90 z-0"></div>
 
-            <CardContent className="p-0">
-                <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
-                        <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            placeholder="name@example.com"
-                            required
-                            className="h-12 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-                        />
+                <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-12 text-center space-y-6">
+                    <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-2xl border border-white/20 overflow-hidden p-3">
+                        {settings?.madrasaLogo ? (
+                            <img src={settings.madrasaLogo} alt="Logo" className="w-full h-full object-contain" />
+                        ) : (
+                            <span className="text-4xl font-bold font-bengali text-teal-900">{settings?.madrasaName?.charAt(0) || 'M'}</span>
+                        )}
                     </div>
                     <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="password">Password</Label>
-                            <Button
-                                variant="link"
-                                className="px-0 font-normal text-zinc-500"
-                                type="button"
-                            >
-                                Forgot password?
-                            </Button>
-                        </div>
-                        <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            className="h-12 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800"
-                        />
+                        <h1 className="text-4xl font-bold font-bengali tracking-wide leading-tight">{settings?.madrasaName || "ইন্টারনেট মাদ্রাসা"}</h1>
+                        <p className="text-teal-100 text-lg max-w-md mx-auto">আধুনিক প্রযুক্তি ও ইসলামী শিক্ষার সমন্বয়</p>
                     </div>
-
-                    {error && (
-                        <div className="text-red-500 text-sm font-medium bg-red-50 p-3 rounded-lg border border-red-100 italic">
-                            {error}
-                        </div>
-                    )}
-
-                    <Button type="submit" className="w-full h-12 text-lg font-semibold" disabled={loading}>
-                        {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Sign In"}
-                    </Button>
-                </form>
-            </CardContent>
-
-            <CardFooter className="flex flex-col gap-4 p-0 pt-8 border-t border-zinc-100 dark:border-zinc-800 mt-8">
-                <div className="text-sm text-center text-zinc-500">
-                    No self-registration available. Accounts are managed by administration.
                 </div>
-            </CardFooter>
-        </Card>
+
+                <div className="relative z-10 p-8 text-center text-teal-200/60 text-sm">
+                    &copy; {new Date().getFullYear()} {settings?.madrasaName || "Internet Madrasah"}. All rights reserved.
+                </div>
+            </div>
+
+            {/* Right Side - Login Form */}
+            <div className="flex items-center justify-center p-8 lg:p-12 bg-zinc-50 dark:bg-black">
+                <LoginForm />
+            </div>
+        </div>
     );
 }

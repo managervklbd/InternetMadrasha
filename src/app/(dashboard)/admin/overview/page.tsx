@@ -53,7 +53,7 @@ export default async function AdminOverview() {
                         <Users className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono text-emerald-900 dark:text-emerald-50">{stats?.totalStudents || 0}</div>
+                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">{stats?.totalStudents || 0}</div>
                         <p className="text-xs text-muted-foreground">
                             রেজিস্ট্রারকৃত সকল শিক্ষার্থী
                         </p>
@@ -65,7 +65,7 @@ export default async function AdminOverview() {
                         <UserCircle className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono text-emerald-900 dark:text-emerald-50">{stats?.totalTeachers || 0}</div>
+                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">{stats?.totalTeachers || 0}</div>
                         <p className="text-xs text-muted-foreground">
                             নিয়োগপ্রাপ্ত শিক্ষক
                         </p>
@@ -77,7 +77,7 @@ export default async function AdminOverview() {
                         <CreditCard className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono text-emerald-900 dark:text-emerald-50">৳ {stats?.totalRevenue?.toLocaleString('bn-BD') || 0}</div>
+                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">৳ {stats?.totalRevenue?.toLocaleString('bn-BD') || 0}</div>
                         <p className="text-xs text-muted-foreground">
                             চলতি মাসের মোট কালেকশন
                         </p>
@@ -89,7 +89,7 @@ export default async function AdminOverview() {
                         <BookOpen className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono text-emerald-900 dark:text-emerald-50">{stats?.activeBatches || 0}</div>
+                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">{stats?.activeBatches || 0}</div>
                         <p className="text-xs text-muted-foreground">
                             একাডেমিক কোর্স সমূহ
                         </p>

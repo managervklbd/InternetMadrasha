@@ -13,6 +13,14 @@ import { logAdminAction } from "../audit";
  * In a real app, this would also trigger an email.
  */
 export async function inviteUser(email: string, role: Role, fullName: string) {
+    const existingUser = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (existingUser) {
+        throw new Error("এই ইমেল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট বিদ্যমান।");
+    }
+
     const invitationToken = uuidv4();
 
     const user = await prisma.user.create({
@@ -78,8 +86,9 @@ export async function login(formData: FormData) {
     try {
         await signIn("credentials", {
             ...Object.fromEntries(formData),
-            redirectTo: "/dashboard",
+            redirect: false,
         });
+        return { success: true };
     } catch (error) {
         if (error instanceof AuthError) {
             switch (error.type) {
