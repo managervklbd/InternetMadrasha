@@ -15,7 +15,7 @@ export default async function DashboardPage() {
     } else if (role === "TEACHER") {
         redirect("/teacher/overview");
     } else {
-        redirect("/student/profile");
+        redirect("/student/overview");
     }
 
     return null;

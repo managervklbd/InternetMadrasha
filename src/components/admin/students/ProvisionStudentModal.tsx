@@ -253,7 +253,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
 
                     {step === 3 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider font-bengali">ধাপ ৩: একাডেমিক এবং বিলিং</h3>
+                            <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider font-bengali">ধাপ ৩: একাডেমিক তথ্য</h3>
                             <div className="grid gap-4 py-2">
 
                                 {/* 1. Course (Marhala) Selection */}
@@ -349,23 +349,6 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                                     />
                                     <p className="text-xs text-zinc-500 font-bengali">অটোমেটিক তৈরি হয়েছে, প্রয়োজনে পরিবর্তন করতে পারেন।</p>
                                 </div>
-
-                                <div className="grid gap-2">
-                                    <Label className="font-bengali">মাসিক ফি প্ল্যান</Label>
-                                    <Select
-                                        value={formData.planId}
-                                        onValueChange={(val) => setFormData({ ...formData, planId: val })}
-                                    >
-                                        <SelectTrigger className="font-bengali"><SelectValue placeholder="ফি প্ল্যান নির্বাচন করুন" /></SelectTrigger>
-                                        <SelectContent className="font-bengali">
-                                            {plans.map((plan: any) => (
-                                                <SelectItem key={plan.id} value={plan.id}>
-                                                    {plan.name} — {plan.monthlyFee} টাকা / মাস
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
                             </div>
                         </div>
                     )}
@@ -387,9 +370,9 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                                     <span className="font-medium">{formData.studentID}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-zinc-500 font-bengali">প্ল্যান</span>
+                                    <span className="text-zinc-500 font-bengali">ফি টিয়ার</span>
                                     <span className="font-medium text-teal-600 font-bengali">
-                                        {plans.find(p => p.id === formData.planId)?.name || 'N/A'}
+                                        জেনারেল (ডিফল্ট)
                                     </span>
                                 </div>
                             </div>

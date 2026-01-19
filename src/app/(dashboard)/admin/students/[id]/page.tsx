@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Phone, MapPin, GraduationCap, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ManualPasswordReset } from "@/components/admin/students/ManualPasswordReset";
 
 export default async function StudentProfilePage({ params }: { params: { id: string } }) {
     const student = await getStudentById(params.id);
@@ -62,6 +63,10 @@ export default async function StudentProfilePage({ params }: { params: { id: str
                                 {student.country && <p className="text-zinc-500 text-xs">{student.country}</p>}
                             </div>
                         </div>
+
+                        <div className="mt-6 pt-4 border-t">
+                            <ManualPasswordReset studentId={student.id} studentName={student.fullName} />
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -115,18 +120,52 @@ export default async function StudentProfilePage({ params }: { params: { id: str
                                 <div>
                                     <p className="text-sm font-medium font-bengali">বর্তমান প্ল্যান</p>
                                     <p className="text-xl font-bold font-bengali text-teal-700 dark:text-teal-400">
-                                        {student.planHistory[0]?.plan?.name || "No Active Plan"}
+                                        {student.planHistory && student.planHistory[0]?.plan
+                                            ? student.planHistory[0].plan.name
+                                            : `একাডেমিক ফি (${(student as any).feeTier === 'SADKA' ? 'সাদকা/ছাড়' : 'রেগুলার'})`
+                                        }
                                     </p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs text-zinc-500 font-bengali">ফি পরিমান</p>
-                                    <p className="font-mono font-bold">৳ {student.planHistory[0]?.plan?.monthlyFee || 0}</p>
+                                    <p className="font-mono font-bold text-lg">
+                                        ৳ {(() => {
+                                            // 1. Custom Plan
+                                            if (student.planHistory && student.planHistory[0]?.plan) {
+                                                return student.planHistory[0].plan.monthlyFee;
+                                            }
+
+                                            // 2. Academic Fee Fallback: Batch -> Dept -> Course
+                                            const isSadka = (student as any).feeTier === 'SADKA';
+                                            const batch = student.enrollments[0]?.batch as any;
+                                            const dept = student.department as any;
+                                            const course = student.department?.course as any;
+
+                                            // Helper to pick first non-null/non-zero fee
+                                            const getFee = (sVal: number | null, mVal: number | null) => {
+                                                const val = isSadka ? sVal : mVal;
+                                                return val !== null && val !== undefined ? val : null;
+                                            }
+
+                                            // Fallback Chain
+                                            const batchFee = batch ? getFee(batch.sadkaFee, batch.monthlyFee) : null;
+                                            if (batchFee !== null) return batchFee;
+
+                                            const deptFee = dept ? getFee(dept.sadkaFee, dept.monthlyFee) : null;
+                                            if (deptFee !== null) return deptFee;
+
+                                            const courseFee = course ? getFee(course.sadkaFee, course.monthlyFee) : null;
+                                            if (courseFee !== null) return courseFee;
+
+                                            return 0;
+                                        })()}
+                                    </p>
                                 </div>
                             </div>
 
                             <div className="mt-4 text-center">
                                 <Button variant="outline" className="w-full font-bengali" disabled>
-                                    পেমেন্ট ইতিহাস দখুন (Coming Soon)
+                                    পেমেন্ট ইতিহাস দেখুন (Coming Soon)
                                 </Button>
                             </div>
                         </CardContent>

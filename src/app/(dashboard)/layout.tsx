@@ -52,6 +52,7 @@ export default async function DashboardLayout({
     ];
 
     const studentLinks = [
+        { href: "/student/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
         { href: "/student/profile", label: "আমার প্রোফাইল", iconName: "UserCircle" },
         { href: "/student/attendance", label: "হাজিরা রিপোর্ট", iconName: "Calendar" },
         { href: "/student/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },

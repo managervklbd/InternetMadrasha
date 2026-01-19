@@ -12,6 +12,11 @@ import { logAdminAction } from "../audit";
  * Creates a new user in INVITED status and returns the invitation link.
  * In a real app, this would also trigger an email.
  */
+import { sendCredentialEmail } from "@/lib/mail";
+
+/**
+ * Creates a new user in ACTIVE status with auto-generated credentials and triggers email.
+ */
 export async function inviteUser(email: string, role: Role, fullName: string) {
     const existingUser = await prisma.user.findUnique({
         where: { email },
@@ -21,14 +26,16 @@ export async function inviteUser(email: string, role: Role, fullName: string) {
         throw new Error("এই ইমেল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট বিদ্যমান।");
     }
 
-    const invitationToken = uuidv4();
+    // Generate random 8-character password
+    const password = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await prisma.user.create({
         data: {
             email,
             role,
-            status: "INVITED",
-            invitationToken,
+            status: "ACTIVE", // Auto-activate
+            password: hashedPassword,
         },
     });
 
@@ -37,24 +44,22 @@ export async function inviteUser(email: string, role: Role, fullName: string) {
             data: {
                 userId: user.id,
                 fullName,
-                gender: "MALE", // Default, should be passed from form in real use
+                gender: "MALE", // Default
             }
         });
     }
 
-    const inviteLink = `${process.env.NEXTAUTH_URL}/auth/invite?token=${invitationToken}`;
-
-    // Here you would call your email service (e.g., Resend, AWS SES)
-    console.log(`Invitation sent to ${email}: ${inviteLink}`);
+    // Send Credential Email
+    await sendCredentialEmail(email, fullName, password);
 
     await logAdminAction(
-        "USER_INVITE",
+        "USER_CREATE_AUTO",
         "User",
         user.id,
         { email, role, fullName }
     );
 
-    return { user, inviteLink };
+    return { user, inviteLink: null };
 }
 
 /**

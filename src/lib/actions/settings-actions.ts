@@ -16,6 +16,15 @@ export async function updateSiteSettings(data: {
     contactEmail?: string;
     contactPhone?: string;
     siteActive: boolean;
+    // New fields
+    smtpHost?: string;
+    smtpPort?: number;
+    smtpUser?: string;
+    smtpPass?: string;
+    smtpSecure?: boolean;
+    sslStoreId?: string;
+    sslStorePass?: string;
+    sslIsSandbox?: boolean;
 }) {
     const result = await prisma.siteSettings.upsert({
         where: { id: 1 },

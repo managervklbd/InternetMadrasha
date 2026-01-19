@@ -68,6 +68,11 @@ enum LiveClassSession {
   NIGHT
 }
 
+enum FeeTier {
+  GENERAL
+  SADKA
+}
+
 // --- Models ---
 
 // A) AUTH & USERS
@@ -102,6 +107,7 @@ model StudentProfile {
   whatsappNumber   String?      // Required if residency == PROBASHI
   photoUrl         String?
   activeStatus     Boolean      @default(true)
+  feeTier          FeeTier      @default(GENERAL)
   
   departmentId     String?
   department       Department?  @relation(fields: [departmentId], references: [id])
@@ -137,6 +143,10 @@ model Course {
   id          String       @id @default(cuid())
   name        String       @unique
   code        String?      // e.g. "HFZ"
+  monthlyFee  Float?
+  admissionFee Float?
+  sadkaFee    Float?
+  durationMonths Int?      // Default duration in months
   departments Department[]
 }
 
@@ -146,6 +156,9 @@ model Department {
   code      String?    // e.g. "MZN"
   courseId  String
   course    Course     @relation(fields: [courseId], references: [id])
+  monthlyFee Float?
+  admissionFee Float?
+  sadkaFee    Float?
   batches   Batch[]
   subjects  Subject[]
   students  StudentProfile[]
@@ -170,6 +183,9 @@ model Batch {
   startDate     DateTime?
   endDate       DateTime?
   active        Boolean      @default(true)
+  monthlyFee    Float?
+  admissionFee  Float?
+  sadkaFee      Float?
 
   teachers      TeacherProfile[] @relation("TeacherBatches")
   enrollments   Enrollment[]
@@ -258,8 +274,8 @@ model MonthlyInvoice {
   id          String        @id @default(cuid())
   studentId   String
   student     StudentProfile @relation(fields: [studentId], references: [id])
-  planId      String
-  plan        Plan          @relation(fields: [planId], references: [id])
+  planId      String?
+  plan        Plan?         @relation(fields: [planId], references: [id])
   month       Int
   year        Int
   amount      Float
@@ -367,6 +383,18 @@ model SiteSettings {
   contactEmail  String?
   contactPhone  String?
   siteActive    Boolean  @default(true)
+
+  // SMTP Settings
+  smtpHost      String?
+  smtpPort      Int?
+  smtpUser      String?
+  smtpPass      String?
+  smtpSecure    Boolean  @default(false)
+
+  // SSL Commerz Settings
+  sslStoreId    String?
+  sslStorePass  String?
+  sslIsSandbox  Boolean  @default(true)
 }
 
 // K) AUDIT LOGS

@@ -45,3 +45,137 @@ export async function deletePlan(id: string) {
         return { success: false, error: "Failed to delete plan" };
     }
 }
+
+/**
+ * Logic to ensure a student has an invoice for the current month.
+ * Can be called during student creation or bulk generation.
+ */
+export async function syncStudentMonthlyInvoice(studentId: string) {
+    const date = new Date();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+
+    // 1. Get student with all fee-related data
+    const student = await prisma.studentProfile.findUnique({
+        where: { id: studentId },
+        include: {
+            enrollments: {
+                include: {
+                    batch: {
+                        include: {
+                            department: {
+                                include: { course: true }
+                            }
+                        }
+                    }
+                },
+                orderBy: { joinedAt: 'desc' },
+                take: 1
+            },
+            planHistory: {
+                include: { plan: true },
+                orderBy: { startDate: 'desc' },
+                take: 1
+            }
+        }
+    });
+
+    if (!student || !student.activeStatus) return { success: false, error: "Student not found or inactive" };
+
+    // 2. Check if invoice already exists for this month
+    const exists = await prisma.monthlyInvoice.findFirst({
+        where: {
+            studentId,
+            month,
+            year
+        }
+    });
+
+    if (exists) return { success: true, alreadyExisted: true };
+
+    // 3. Calculate Amount
+    let monthlyAmount = 0;
+    let admissionAmount = 0;
+    let planId: string | null = null;
+
+    // A. Check for Active Custom Plan
+    const activePlan = student.planHistory[0]?.plan;
+    if (activePlan) {
+        monthlyAmount = activePlan.monthlyFee;
+        planId = activePlan.id;
+    } else {
+        // B. Use Academic Structure Fee
+        const enrollment = student.enrollments[0];
+        if (enrollment && enrollment.batch) {
+            const batch = enrollment.batch;
+            const course = batch.department.course;
+            const dept = batch.department;
+
+            const s = student as any;
+            const b = batch as any;
+            const d = dept as any;
+            const c = course as any;
+
+            if (s.feeTier === "SADKA") {
+                // Priority: Batch -> Dept -> Course -> 0
+                monthlyAmount = b.sadkaFee ?? d.sadkaFee ?? c.sadkaFee ?? 0;
+            } else {
+                // Priority: Batch -> Dept -> Course -> 0
+                monthlyAmount = b.monthlyFee ?? d.monthlyFee ?? c.monthlyFee ?? 0;
+            }
+
+            // Check if this is the first invoice to add Admission Fee
+            const totalInvoices = await prisma.monthlyInvoice.count({ where: { studentId } });
+            if (totalInvoices === 0) {
+                // Priority: Batch -> Dept -> Course -> 0
+                admissionAmount = b.admissionFee ?? d.admissionFee ?? c.admissionFee ?? 0;
+            }
+        }
+    }
+
+    const totalAmount = monthlyAmount + admissionAmount;
+
+    // 4. Create Invoice if amount > 0
+    if (totalAmount > 0) {
+        const invoice = await prisma.monthlyInvoice.create({
+            data: {
+                studentId,
+                month,
+                year,
+                amount: totalAmount,
+                planId: planId as any,
+                dueDate: new Date(year, month - 1, 10), // Date constructor month is 0-indexed
+                status: 'UNPAID'
+            }
+        });
+        return { success: true, created: true, invoice };
+    }
+
+    return { success: false, error: "No fee amount found for student" };
+}
+
+export async function generateMonthlyInvoices() {
+    try {
+        // Get all active students
+        const students = await prisma.studentProfile.findMany({
+            where: { activeStatus: true },
+            select: { id: true }
+        });
+
+        let count = 0;
+        for (const student of students) {
+            const res = await syncStudentMonthlyInvoice(student.id);
+            if (res.success && (res as any).created) {
+                count++;
+            }
+        }
+
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath("/admin/billing");
+
+        return { success: true, count };
+    } catch (error) {
+        console.error("Error generating invoices:", error);
+        return { success: false, error: "Failed to generate invoices" };
+    }
+}

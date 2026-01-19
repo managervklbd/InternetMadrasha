@@ -2,7 +2,10 @@
 
 import { prisma } from "@/lib/db";
 import { inviteUser } from "./auth-actions";
+import { syncStudentMonthlyInvoice } from "./billing-actions";
 import { StudentMode, Residency, Gender } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import { sendCredentialEmail } from "@/lib/mail";
 
 export async function provisionStudent(data: {
     email: string;
@@ -16,7 +19,6 @@ export async function provisionStudent(data: {
     whatsappNumber?: string;
     departmentId?: string;
     batchId?: string; // Semester ID
-    planId: string;
 }) {
     // 1. Invite User
     const { user, inviteLink } = await inviteUser(data.email, "STUDENT", data.fullName);
@@ -35,6 +37,7 @@ export async function provisionStudent(data: {
             whatsappNumber: data.whatsappNumber,
             activeStatus: true,
             departmentId: data.departmentId,
+            feeTier: "GENERAL" as any, // Default to General
         },
     });
 
@@ -46,17 +49,9 @@ export async function provisionStudent(data: {
                 batchId: data.batchId,
             }
         });
-    }
 
-    // 4. Create Initial Plan History
-    if (data.planId) {
-        await prisma.studentPlanHistory.create({
-            data: {
-                studentId: student.id,
-                planId: data.planId,
-                startDate: new Date(),
-            }
-        });
+        // 4. Automatically sync/generate the first monthly invoice
+        await syncStudentMonthlyInvoice(student.id);
     }
 
     return { student, inviteLink };
@@ -88,17 +83,53 @@ export async function getStudents() {
     });
 }
 
+// ... (previous code)
+
 export async function getStudentById(id: string) {
     return prisma.studentProfile.findUnique({
         where: { id },
         include: {
             user: { select: { email: true, status: true } },
-            department: true,
-            enrollments: { include: { batch: true } },
+            department: {
+                include: {
+                    course: true // Include course for fee fallback
+                }
+            },
+            enrollments: {
+                include: { batch: true },
+                orderBy: { joinedAt: 'desc' }, // Get latest
+                take: 1
+            },
             planHistory: { include: { plan: true }, orderBy: { startDate: 'desc' }, take: 1 },
         },
     });
 }
+
+// ... (other functions)
+
+export async function adminSetStudentPassword(studentId: string, newPassword: string) {
+    try {
+        const student = await prisma.studentProfile.findUnique({
+            where: { id: studentId },
+            select: { userId: true }
+        });
+
+        if (!student) throw new Error("Student not found");
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        await prisma.user.update({
+            where: { id: student.userId },
+            data: { password: hashedPassword }
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error setting password:", error);
+        return { success: false, error: "Failed to set password" };
+    }
+}
+
 
 export async function updateStudentProfile(studentId: string, data: {
     fullName: string;
@@ -112,12 +143,11 @@ export async function updateStudentProfile(studentId: string, data: {
     activeStatus: boolean;
     departmentId?: string;
     batchId?: string;
-    planId?: string;
 }) {
     // 1. Get existing student
     const existingStudent = await prisma.studentProfile.findUnique({
         where: { id: studentId },
-        include: { user: true, enrollments: true, planHistory: true }
+        include: { user: true, enrollments: true }
     });
 
     if (!existingStudent) throw new Error("Student not found");
@@ -158,18 +188,9 @@ export async function updateStudentProfile(studentId: string, data: {
                 data: { studentId, batchId: data.batchId }
             });
         }
-    }
 
-    // 5. Update Plan (add new history if changed)
-    const currentPlan = existingStudent.planHistory[0]?.planId;
-    if (data.planId && data.planId !== currentPlan) {
-        await prisma.studentPlanHistory.create({
-            data: {
-                studentId,
-                planId: data.planId,
-                startDate: new Date(),
-            }
-        });
+        // Sync invoice in case it wasn't generated or details changed
+        await syncStudentMonthlyInvoice(studentId);
     }
 
     const { revalidatePath } = await import("next/cache");
@@ -180,7 +201,94 @@ export async function updateStudentProfile(studentId: string, data: {
 }
 
 export async function resendStudentInvitation(studentId: string) {
-    // Mock implementation since mail.ts was deleted
-    console.log("Mocking resend for student", studentId);
-    return { success: true };
+    try {
+        const student = await prisma.studentProfile.findUnique({
+            where: { id: studentId },
+            include: { user: true }
+        });
+
+        if (!student) throw new Error("Student not found");
+
+        // Generate new password
+        const password = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Update User
+        await prisma.user.update({
+            where: { id: student.userId },
+            data: {
+                password: hashedPassword,
+                status: "ACTIVE"
+            }
+        });
+
+        // Send Email using SMTP
+        const res = await sendCredentialEmail(student.user.email, student.fullName, password);
+
+        if (!res.success) {
+            console.error("SMTP sending failed:", res.error);
+            throw new Error(res.error || "Failed to send email via SMTP");
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error sending credential email:", error);
+        return { success: false, error: "Failed to send credential email" };
+    }
+}
+
+export async function toggleStudentStatus(studentId: string, currentStatus: boolean, path: string) {
+    try {
+        await prisma.studentProfile.update({
+            where: { id: studentId },
+            data: { activeStatus: !currentStatus }
+        });
+
+        const student = await prisma.studentProfile.findUnique({
+            where: { id: studentId },
+            select: { userId: true }
+        });
+
+        if (student) {
+            await prisma.user.update({
+                where: { id: student.userId },
+                data: { status: !currentStatus ? "ACTIVE" : "DISABLED" }
+            });
+        }
+
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath(path);
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling student status:", error);
+        throw error;
+    }
+}
+
+export async function migrateStudentFeeTier(studentId: string, tier: any) {
+    try {
+        await prisma.studentProfile.update({
+            where: { id: studentId },
+            data: { feeTier: tier }
+        });
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath("/admin/students");
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: "Failed to update fee tier" };
+    }
+}
+
+export async function bulkMigrateFeeTier(studentIds: string[], tier: any) {
+    try {
+        await prisma.studentProfile.updateMany({
+            where: { id: { in: studentIds } },
+            data: { feeTier: tier }
+        });
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath("/admin/students");
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: "Failed to update bulk fee tier" };
+    }
 }

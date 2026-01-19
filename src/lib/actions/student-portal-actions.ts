@@ -128,3 +128,131 @@ export async function joinClass(sessionId: string) {
         }
     });
 }
+
+export async function getStudentInvoices() {
+    const profile = await getStudentProfile();
+    const issued = await prisma.monthlyInvoice.findMany({
+        where: { studentId: profile.id },
+        orderBy: { issuedAt: "desc" },
+        include: { plan: true }
+    });
+
+    const profile_with_enrollment = await prisma.studentProfile.findUnique({
+        where: { id: profile.id },
+        include: {
+            enrollments: {
+                include: { batch: true },
+                orderBy: { joinedAt: "desc" },
+                take: 1
+            }
+        }
+    });
+
+    const currentBatch = profile_with_enrollment?.enrollments[0]?.batch;
+    const batchEndDate = currentBatch?.endDate ? new Date(currentBatch.endDate) : null;
+    const batchStartDate = currentBatch?.startDate ? new Date(currentBatch.startDate) : null;
+
+    // Calculate prospective months (next 12 months)
+    const upcoming = [];
+    const now = new Date();
+    let currentMonth = now.getMonth() + 1;
+    let currentYear = now.getFullYear();
+
+    const { amount: monthlyFee, planId } = await calculateStudentMonthlyFee(profile.id);
+
+    // If there is no fee (e.g. 0), we might not want to show advance payment options,
+    // or maybe we do (for tracking). Assuming if amount > 0 for now.
+
+    if (monthlyFee > 0) {
+        for (let i = 1; i <= 12; i++) {
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+
+            // DATE VALIDATION LOGIC
+            // Construct a date object for the first day of the prospective month
+            const prospectiveDate = new Date(currentYear, currentMonth - 1, 1);
+
+            // 1. Check if batch has ended
+            if (batchEndDate && prospectiveDate > batchEndDate) {
+                continue;
+            }
+
+            // 2. Check if batch hasn't started (optional, usually we pay in advance but maybe not before start?)
+            // If batch starts in future, maybe we still allow payment? keeping it open for now unless requested.
+
+            // Check if invoice already exists
+            const exists = issued.find(inv => inv.month === currentMonth && inv.year === currentYear);
+            if (!exists) {
+                upcoming.push({
+                    id: `ADV-${currentMonth}-${currentYear}`,
+                    month: currentMonth,
+                    year: currentYear,
+                    amount: monthlyFee,
+                    planId: planId,
+                    status: "UNISSUED",
+                    isAdvance: true
+                });
+            }
+        }
+    }
+
+    return { issued, upcoming };
+}
+
+export async function calculateStudentMonthlyFee(studentId: string): Promise<{ amount: number, planId: string | null }> {
+    const student = await prisma.studentProfile.findUnique({
+        where: { id: studentId },
+        include: {
+            enrollments: {
+                include: {
+                    batch: {
+                        include: {
+                            department: {
+                                include: { course: true }
+                            }
+                        }
+                    }
+                },
+                orderBy: { joinedAt: 'desc' },
+                take: 1
+            },
+            planHistory: {
+                include: { plan: true },
+                orderBy: { startDate: 'desc' },
+                take: 1
+            }
+        }
+    });
+
+    if (!student || !student.activeStatus) return { amount: 0, planId: null };
+
+    // A. Check for Active Custom Plan
+    const activePlan = student.planHistory[0]?.plan;
+    if (activePlan) return { amount: activePlan.monthlyFee, planId: activePlan.id };
+
+    // B. Use Academic Structure Fee
+    const enrollment = student.enrollments[0];
+    if (enrollment && enrollment.batch) {
+        const batch = enrollment.batch;
+        const course = batch.department.course;
+        const dept = batch.department;
+
+        const s = student as any;
+        const b = batch as any;
+        const d = dept as any;
+        const c = course as any;
+
+        let amount = 0;
+        if (s.feeTier === "SADKA") {
+            amount = b.sadkaFee ?? d.sadkaFee ?? c.sadkaFee ?? 0;
+        } else {
+            amount = b.monthlyFee ?? d.monthlyFee ?? c.monthlyFee ?? 0;
+        }
+        return { amount, planId: null };
+    }
+
+    return { amount: 0, planId: null };
+}

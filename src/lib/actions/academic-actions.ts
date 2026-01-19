@@ -3,12 +3,58 @@
 import { prisma } from "@/lib/db";
 import { BatchType, Gender, StudentMode } from "@prisma/client";
 
-export async function createCourse(name: string) {
-    if (!name || name.trim() === "") {
+export async function createCourse(data: { name: string; monthlyFee?: number; admissionFee?: number; durationMonths?: number; isSingleCourse?: boolean }) {
+    if (!data.name || data.name.trim() === "") {
         return { success: false, error: "কোর্সের নাম আবশ্যক।" };
     }
     try {
-        const course = await prisma.course.create({ data: { name } });
+        const course = await prisma.course.create({
+            data: {
+                name: data.name,
+                monthlyFee: data.monthlyFee,
+                admissionFee: data.admissionFee,
+                durationMonths: data.durationMonths
+            }
+        });
+
+        // Auto-create structure for Single Course
+        if (data.isSingleCourse) {
+            const dept = await prisma.department.create({
+                data: {
+                    name: "সাধারণ বিভাগ", // General Department
+                    code: "GEN",
+                    courseId: course.id,
+                    monthlyFee: data.monthlyFee,
+                    admissionFee: data.admissionFee
+                }
+            });
+
+            let startDate = new Date();
+            let endDate = undefined;
+
+            if (data.durationMonths) {
+                // Calculate end date based on duration
+                const end = new Date(startDate);
+                end.setMonth(end.getMonth() + data.durationMonths);
+                endDate = end;
+            }
+
+            await prisma.batch.create({
+                data: {
+                    name: "ডিফল্ট ব্যাচ", // Default Batch
+                    type: BatchType.MONTHLY,
+                    departmentId: dept.id,
+                    allowedGender: Gender.MALE, // Default, can be changed
+                    allowedMode: StudentMode.OFFLINE,
+                    active: true,
+                    monthlyFee: data.monthlyFee,
+                    admissionFee: data.admissionFee,
+                    startDate: startDate,
+                    endDate: endDate
+                }
+            });
+        }
+
         return { success: true, data: course };
     } catch (error: any) {
         console.error("Error creating course:", error);
@@ -87,17 +133,6 @@ export async function createBatch(data: {
     }
 }
 
-export async function updateBatch(id: string, name: string) {
-    if (!id || !name) return { success: false, error: "ID and Name required" };
-    try {
-        await prisma.batch.update({ where: { id }, data: { name } });
-        return { success: true };
-    } catch (error) {
-        console.error("Error updating batch:", error);
-        return { success: false, error: "Failed to update semester" };
-    }
-}
-
 export async function deleteBatch(id: string) {
     if (!id) return { success: false, error: "ID required" };
     try {
@@ -111,10 +146,19 @@ export async function deleteBatch(id: string) {
 
 // --- Update & Delete Actions for Course & Dept ---
 
-export async function updateCourse(id: string, name: string) {
+// --- Update & Delete Actions for Course & Dept ---
+
+export async function updateCourse(id: string, name: string, monthlyFee?: number, sadkaFee?: number) {
     if (!id || !name) return { success: false, error: "ID and Name required" };
     try {
-        await prisma.course.update({ where: { id }, data: { name } });
+        await prisma.course.update({
+            where: { id },
+            data: {
+                name,
+                monthlyFee,
+                sadkaFee
+            }
+        });
         return { success: true };
     } catch (error) {
         console.error("Error updating course:", error);
@@ -133,10 +177,17 @@ export async function deleteCourse(id: string) {
     }
 }
 
-export async function updateDepartment(id: string, name: string) {
+export async function updateDepartment(id: string, name: string, monthlyFee?: number, sadkaFee?: number) {
     if (!id || !name) return { success: false, error: "ID and Name required" };
     try {
-        await prisma.department.update({ where: { id }, data: { name } });
+        await prisma.department.update({
+            where: { id },
+            data: {
+                name,
+                monthlyFee,
+                sadkaFee
+            }
+        });
         return { success: true };
     } catch (error) {
         console.error("Error updating department:", error);
@@ -152,5 +203,23 @@ export async function deleteDepartment(id: string) {
     } catch (error) {
         console.error("Error deleting department:", error);
         return { success: false, error: "Failed to delete department (ensure it has no batches)" };
+    }
+}
+
+export async function updateBatch(id: string, name: string, monthlyFee?: number, sadkaFee?: number) {
+    if (!id || !name) return { success: false, error: "ID and Name required" };
+    try {
+        await prisma.batch.update({
+            where: { id },
+            data: {
+                name,
+                monthlyFee,
+                sadkaFee
+            }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating batch:", error);
+        return { success: false, error: "Failed to update semester" };
     }
 }

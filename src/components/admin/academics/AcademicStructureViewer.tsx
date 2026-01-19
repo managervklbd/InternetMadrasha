@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { getAcademicStructure, createCourse } from "@/lib/actions/academic-actions";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
     DialogContent,
@@ -23,6 +24,7 @@ export function AcademicStructureViewer() {
     const [loading, setLoading] = useState(true);
     const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
     const [newCourseName, setNewCourseName] = useState("");
+    const [isSingleCourse, setIsSingleCourse] = useState(false);
     const [creatingCourse, setCreatingCourse] = useState(false);
 
     const refreshStructure = async () => {
@@ -47,11 +49,20 @@ export function AcademicStructureViewer() {
         if (!newCourseName.trim()) return;
 
         setCreatingCourse(true);
+        const formData = new FormData(e.target as HTMLFormElement);
+        const durationMonths = formData.get("durationMonths") ? Number(formData.get("durationMonths")) : undefined;
+
         try {
-            const res = await createCourse(newCourseName) as any;
+            const res = await createCourse({
+                name: newCourseName,
+                isSingleCourse,
+                durationMonths
+            }) as any;
+
             if (res.success) {
                 toast.success("কোর্স তৈরি সফল হয়েছে");
                 setNewCourseName("");
+                setIsSingleCourse(false);
                 setIsCreateCourseOpen(false);
                 refreshStructure();
             } else {
@@ -89,11 +100,40 @@ export function AcademicStructureViewer() {
                                 <Label className="font-bengali">কোর্সের নাম</Label>
                                 <Input
                                     className="font-bengali"
-                                    placeholder="কোর্সের নাম..."
+                                    placeholder="কোর্সের নাম (যেমন: স্পোকেন ইংলিশ)"
                                     value={newCourseName}
                                     onChange={(e) => setNewCourseName(e.target.value)}
+                                    required
                                 />
                             </div>
+
+                            <div className="flex items-center space-x-2 border p-3 rounded-md bg-zinc-50 dark:bg-zinc-900">
+                                <Checkbox
+                                    id="singleCourse"
+                                    checked={isSingleCourse}
+                                    onCheckedChange={(c) => setIsSingleCourse(c === true)}
+                                />
+                                <div className="space-y-1">
+                                    <Label htmlFor="singleCourse" className="font-bengali cursor-pointer">একক কোর্স (সিঙ্গেল কোর্স)</Label>
+                                    <p className="text-xs text-zinc-500 font-bengali">
+                                        এটি চেক করলে অটোমেটিক একটি বিভাগ এবং ব্যাচ তৈরি হবে। (যেমন: স্বল্পমেয়াদী কোর্সের জন্য)
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="font-bengali">কোর্সের সময়কাল (মাস)</Label>
+                                <Input
+                                    type="number"
+                                    className="font-bengali"
+                                    placeholder="Examples: 12, 6, 4"
+                                    name="durationMonths"
+                                />
+                                <p className="text-xs text-zinc-500 font-bengali">
+                                    কোর্সের ডিফল্ট সময়কাল। ফাঁকা রাখলে ১২ মাস ধরা হবে।
+                                </p>
+                            </div>
+
                             <DialogFooter>
                                 <Button type="submit" className="bg-teal-600 font-bengali" disabled={creatingCourse}>
                                     {creatingCourse ? "তৈরি হচ্ছে..." : "তৈরি করুন"}
@@ -117,6 +157,6 @@ export function AcademicStructureViewer() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
