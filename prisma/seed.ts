@@ -107,6 +107,19 @@ async function main() {
     }
 
     console.log({ student })
+
+    // 4. Site Settings
+    const settings = await prisma.siteSettings.upsert({
+        where: { id: 1 },
+        update: {},
+        create: {
+            id: 1,
+            madrasaName: "তালিমুল কুরআন ওয়াস সুন্নাহ ইন্টারনেট মাদ্রাসা",
+            siteActive: true,
+            // Default SMTP/Payment settings can be left null or set to defaults here
+        }
+    })
+    console.log({ settings })
 }
 
 main()

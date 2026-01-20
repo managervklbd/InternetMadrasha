@@ -38,7 +38,7 @@ export async function createMonthlyLiveClass(data: {
     gender: Gender;
     teacherId: string;
     batchId: string;
-    sessions: LiveClassSession[];
+    sessionKeys: string[];
     liveLink: string;
     active: boolean;
 }) {
@@ -159,7 +159,7 @@ export async function getStudentLiveClasses() {
     });
 }
 
-export async function joinLiveClass(classId: string, sessionType: LiveClassSession) {
+export async function joinLiveClass(classId: string, sessionKey: string) {
     const sessionUser = await auth();
     if (!sessionUser?.user) throw new Error("Unauthorized");
 
@@ -193,15 +193,81 @@ export async function joinLiveClass(classId: string, sessionType: LiveClassSessi
     if (!liveClass || !liveClass.active) throw new Error("Class not found or inactive");
 
     // Log attendance
+    // Fetch session config to get the label name if needed, or just store the key
+    // Ideally we should also store the session label for historical accuracy if config changes
+    const sessionConfig = await prisma.liveClassSessionConfig.findUnique({
+        where: { key: sessionKey }
+    });
+
     await prisma.liveClassAttendance.create({
         data: {
             studentId: student.id,
             liveClassId: classId,
-            session: sessionType,
+            sessionKey: sessionKey,
+            sessionName: sessionConfig?.label || sessionKey,
             date: new Date(),
             joinTime: new Date()
         }
     });
+
+    // AUTO-ATTENDANCE: Integrate with daily attendance system
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Find or Create a ClassSession for this day
+        // We look for a session for this batch today that overlaps with current time or matching the sessionKey label
+        let classSession = await prisma.classSession.findFirst({
+            where: {
+                batchId: liveClass.batchId,
+                date: {
+                    gte: today,
+                    lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+                }
+            }
+        });
+
+        if (!classSession) {
+            // Create a default session for the day if none exists
+            const startTime = new Date();
+            const endTime = new Date();
+            endTime.setHours(endTime.getHours() + 1);
+
+            classSession = await prisma.classSession.create({
+                data: {
+                    batchId: liveClass.batchId,
+                    date: today,
+                    startTime,
+                    endTime
+                }
+            });
+        }
+
+        // 2. Mark Attendance
+        await prisma.attendance.upsert({
+            where: {
+                studentId_classSessionId: {
+                    studentId: student.id,
+                    classSessionId: classSession.id
+                }
+            },
+            update: {
+                status: "PRESENT",
+                mode: "ONLINE",
+                joinTime: new Date()
+            },
+            create: {
+                studentId: student.id,
+                classSessionId: classSession.id,
+                status: "PRESENT",
+                mode: "ONLINE",
+                joinTime: new Date()
+            }
+        });
+    } catch (error) {
+        console.error("Auto-attendance failed:", error);
+        // We don't throw here to avoid blocking the student from joining the link
+    }
 
     return liveClass.liveLink;
 }

@@ -66,7 +66,11 @@ export async function getStudents() {
                     status: true,
                 },
             },
-            department: true,
+            department: {
+                include: {
+                    course: true
+                }
+            },
             enrollments: {
                 include: {
                     batch: true
@@ -207,28 +211,11 @@ export async function resendStudentInvitation(studentId: string) {
             include: { user: true }
         });
 
-        if (!student) throw new Error("Student not found");
+        if (!student || !student.user) throw new Error("Student or associated user not found");
 
-        // Generate new password
-        const password = Math.random().toString(36).slice(-8);
-        const hashedPassword = await bcrypt.hash(password, 12);
+        const { resendUserCredentials } = await import("./auth-actions");
 
-        // Update User
-        await prisma.user.update({
-            where: { id: student.userId },
-            data: {
-                password: hashedPassword,
-                status: "ACTIVE"
-            }
-        });
-
-        // Send Email using SMTP
-        const res = await sendCredentialEmail(student.user.email, student.fullName, password);
-
-        if (!res.success) {
-            console.error("SMTP sending failed:", res.error);
-            throw new Error(res.error || "Failed to send email via SMTP");
-        }
+        await resendUserCredentials(student.user.email, student.fullName, "STUDENT");
 
         return { success: true };
     } catch (error) {
@@ -271,8 +258,13 @@ export async function migrateStudentFeeTier(studentId: string, tier: any) {
             where: { id: studentId },
             data: { feeTier: tier }
         });
+
+        // Sync invoice so it updates immediately
+        await syncStudentMonthlyInvoice(studentId);
+
         const { revalidatePath } = await import("next/cache");
         revalidatePath("/admin/students");
+        revalidatePath(`/admin/students/${studentId}`);
         return { success: true };
     } catch (error) {
         return { success: false, error: "Failed to update fee tier" };
@@ -285,6 +277,11 @@ export async function bulkMigrateFeeTier(studentIds: string[], tier: any) {
             where: { id: { in: studentIds } },
             data: { feeTier: tier }
         });
+
+        for (const id of studentIds) {
+            await syncStudentMonthlyInvoice(id);
+        }
+
         const { revalidatePath } = await import("next/cache");
         revalidatePath("/admin/students");
         return { success: true };

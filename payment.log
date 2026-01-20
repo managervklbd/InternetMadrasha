@@ -15,3 +15,9 @@ SyntaxError: Unexpected token 'F', "File not found.
 [1/19/2026, 4:34:50 PM] Step 3: DB Transaction Started for Invoice cmkky78ml0001iwujgebuboh8
 [1/19/2026, 4:34:51 PM] Step 4: DB Transaction Complete
 [1/19/2026, 4:34:52 PM] SUCCESS: Redirecting to success page
+[1/20/2026, 6:35:57 PM] SUCCESS CALLBACK - Data: {"tran_id":"TRAN_dcae6d46_1768912538598","val_id":"260120183551ggTYmrFPJRsQ7l9","amount":"520.00","card_type":"BKASH-BKash","store_amount":"507.00","card_no":"","bank_tran_id":"260120183551EnjahRhVIpMwkat","status":"VALID","tran_date":"2026-01-20 18:35:39","error":"","currency":"BDT","card_issuer":"BKash Mobile Banking","card_brand":"MOBILEBANKING","card_sub_brand":"Classic","card_issuer_country":"Bangladesh","card_issuer_country_code":"BD","store_id":"maxte696cc56a023b1","verify_sign":"0580bc4b5a1fb4b472bca4ad6102eeec","verify_key":"amount,bank_tran_id,base_fair,card_brand,card_issuer,card_issuer_country,card_issuer_country_code,card_no,card_sub_brand,card_type,currency,currency_amount,currency_rate,currency_type,error,risk_level,risk_title,status,store_amount,store_id,tran_date,tran_id,val_id,value_a,value_b,value_c,value_d","verify_sign_sha2":"9dbe35dd322c483504cddb0c2a03118f1dc5cf17b995f102e1e8148fe2ade3d5","currency_type":"BDT","currency_amount":"520.00","currency_rate":"1.0000","base_fair":"0.00","value_a":"cmkmg6u5c000apol6n53ryjgn","value_b":"cmkmg6fj30004pol63zp6y4u3","value_c":"","value_d":"","subscription_id":"","risk_level":"0","risk_title":"Safe"}
+[1/20/2026, 6:35:58 PM] Step 1: Validating val_id 260120183551ggTYmrFPJRsQ7l9 for Invoices: cmkmg6u5c000apol6n53ryjgn
+[1/20/2026, 6:35:59 PM] Step 2: Validation Data Received - Card: BKASH-BKash
+[1/20/2026, 6:36:00 PM] Step 3: DB Transaction Started for 1 Invoices
+[1/20/2026, 6:36:03 PM] Step 4: DB Transaction Complete
+[1/20/2026, 6:36:04 PM] SUCCESS: Redirecting to success page

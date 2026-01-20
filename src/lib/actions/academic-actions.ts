@@ -3,7 +3,15 @@
 import { prisma } from "@/lib/db";
 import { BatchType, Gender, StudentMode } from "@prisma/client";
 
-export async function createCourse(data: { name: string; monthlyFee?: number; admissionFee?: number; durationMonths?: number; isSingleCourse?: boolean }) {
+export async function createCourse(data: {
+    name: string;
+    monthlyFee?: number;
+    admissionFee?: number;
+    durationMonths?: number;
+    isSingleCourse?: boolean;
+    startDate?: Date;
+    endDate?: Date;
+}) {
     if (!data.name || data.name.trim() === "") {
         return { success: false, error: "কোর্সের নাম আবশ্যক।" };
     }
@@ -29,10 +37,10 @@ export async function createCourse(data: { name: string; monthlyFee?: number; ad
                 }
             });
 
-            let startDate = new Date();
-            let endDate = undefined;
+            let startDate = data.startDate || new Date();
+            let endDate = data.endDate;
 
-            if (data.durationMonths) {
+            if (!endDate && data.durationMonths) {
                 // Calculate end date based on duration
                 const end = new Date(startDate);
                 end.setMonth(end.getMonth() + data.durationMonths);
@@ -110,6 +118,8 @@ export async function createBatch(data: {
     departmentId: string;
     allowedGender: "MALE" | "FEMALE";
     allowedMode: "ONLINE" | "OFFLINE";
+    startDate?: Date;
+    endDate?: Date;
 }) {
     if (!data.name || !data.departmentId) {
         return { success: false, error: "Name and Department ID are required" };
@@ -124,6 +134,8 @@ export async function createBatch(data: {
                 allowedGender: data.allowedGender === "MALE" ? Gender.MALE : Gender.FEMALE,
                 allowedMode: data.allowedMode === "ONLINE" ? StudentMode.ONLINE : StudentMode.OFFLINE,
                 active: true,
+                startDate: data.startDate,
+                endDate: data.endDate
             },
         });
         return { success: true, data: batch };
@@ -148,15 +160,21 @@ export async function deleteBatch(id: string) {
 
 // --- Update & Delete Actions for Course & Dept ---
 
-export async function updateCourse(id: string, name: string, monthlyFee?: number, sadkaFee?: number) {
-    if (!id || !name) return { success: false, error: "ID and Name required" };
+export async function updateCourse(id: string, data: {
+    name: string;
+    monthlyFee?: number;
+    admissionFee?: number;
+    durationMonths?: number;
+}) {
+    if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
         await prisma.course.update({
             where: { id },
             data: {
-                name,
-                monthlyFee,
-                sadkaFee
+                name: data.name,
+                monthlyFee: data.monthlyFee,
+                admissionFee: data.admissionFee,
+                durationMonths: data.durationMonths
             }
         });
         return { success: true };
@@ -177,15 +195,13 @@ export async function deleteCourse(id: string) {
     }
 }
 
-export async function updateDepartment(id: string, name: string, monthlyFee?: number, sadkaFee?: number) {
+export async function updateDepartment(id: string, name: string) {
     if (!id || !name) return { success: false, error: "ID and Name required" };
     try {
         await prisma.department.update({
             where: { id },
             data: {
                 name,
-                monthlyFee,
-                sadkaFee
             }
         });
         return { success: true };
@@ -206,15 +222,21 @@ export async function deleteDepartment(id: string) {
     }
 }
 
-export async function updateBatch(id: string, name: string, monthlyFee?: number, sadkaFee?: number) {
-    if (!id || !name) return { success: false, error: "ID and Name required" };
+export async function updateBatch(id: string, data: {
+    name: string;
+    monthlyFee?: number;
+    startDate?: Date;
+    endDate?: Date;
+}) {
+    if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
         await prisma.batch.update({
             where: { id },
             data: {
-                name,
-                monthlyFee,
-                sadkaFee
+                name: data.name,
+                monthlyFee: data.monthlyFee,
+                startDate: data.startDate,
+                endDate: data.endDate
             }
         });
         return { success: true };

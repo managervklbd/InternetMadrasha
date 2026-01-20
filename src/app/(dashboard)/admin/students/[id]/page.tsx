@@ -6,6 +6,8 @@ import { ArrowLeft, Phone, MapPin, GraduationCap, CreditCard } from "lucide-reac
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ManualPasswordReset } from "@/components/admin/students/ManualPasswordReset";
+import { StudentProfileActions } from "@/components/admin/students/StudentProfileActions";
+import { ProfileEditTrigger } from "@/components/shared/ProfileEditTrigger";
 
 export default async function StudentProfilePage({ params }: { params: { id: string } }) {
     const student = await getStudentById(params.id);
@@ -27,7 +29,9 @@ export default async function StudentProfilePage({ params }: { params: { id: str
                     <h1 className="text-2xl font-bold font-bengali">{student.fullName}</h1>
                     <p className="text-zinc-500 font-mono text-sm">{student.studentID}</p>
                 </div>
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex gap-2 items-center">
+                    <ProfileEditTrigger student={student} isAdmin={true} />
+                    <StudentProfileActions studentId={student.id} />
                     <Badge variant={student.activeStatus ? "success" : "destructive"}>
                         {student.activeStatus ? "Active" : "Inactive"}
                     </Badge>

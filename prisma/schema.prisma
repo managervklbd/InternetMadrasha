@@ -7,7 +7,403 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- Enums ---
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  password        String?
+  role            Role             @default(STUDENT)
+  status          AccountStatus    @default(INVITED)
+  invitationToken String?          @unique
+  resetToken      String?          @unique
+  resetTokenExpiry DateTime?
+  lastLogin       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  auditLogs       AdminActionLog[]
+  studentProfile  StudentProfile?
+  teacherProfile  TeacherProfile?
+}
+
+model StudentProfile {
+  id                  String                @id @default(cuid())
+  userId              String                @unique
+  studentID           String                @unique
+  fullName            String
+  gender              Gender
+  mode                StudentMode           @default(OFFLINE)
+  residency           Residency             @default(LOCAL)
+  country             String?
+  phoneNumber         String?
+  whatsappNumber      String?
+  photoUrl            String?
+  activeStatus        Boolean               @default(true)
+  departmentId        String?
+  feeTier             FeeTier               @default(GENERAL)
+  attendance          Attendance[]
+  enrollments         Enrollment[]
+  homeworkSubmissions HomeworkSubmission[]
+  liveClassAttendance LiveClassAttendance[]
+  marks               Mark[]
+  invoices            MonthlyInvoice[]
+  planHistory         StudentPlanHistory[]
+  department          Department?           @relation(fields: [departmentId], references: [id])
+  user                User                  @relation(fields: [userId], references: [id])
+
+  @@index([activeStatus])
+  @@index([studentID])
+}
+
+model TeacherProfile {
+  id              String             @id @default(cuid())
+  userId          String             @unique
+  fullName        String
+  gender          Gender
+  designation     String?            @default("Assistant Teacher")
+  phone           String?
+  address         String?
+  joiningDate     DateTime?          @default(now())
+  salary          Float?             @default(0)
+  paymentMethod   PaymentMethod?     @default(CASH)
+  bankAccountNumber String?
+  mobileBankingNumber String?
+  nid             String?
+  specialization  String?
+  activeStatus    Boolean            @default(true)
+  homeworks       Homework[]
+  liveClasses     MonthlyLiveClass[]
+  payments        TeacherPayment[]
+  user            User               @relation(fields: [userId], references: [id])
+  assignedBatches Batch[]            @relation("TeacherBatches")
+}
+
+model TeacherPayment {
+  id            String        @id @default(cuid())
+  teacherId     String
+  month         Int
+  year          Int
+  amount        Float
+  paymentDate   DateTime      @default(now())
+  status        PaymentStatus @default(PAID) // Reusing PaymentStatus or creating new? Using InvoiceStatus alias or string? Let's use string or new enum.
+  method        PaymentMethod
+  transactionId String?
+  note          String?
+  teacher       TeacherProfile @relation(fields: [teacherId], references: [id])
+}
+
+enum PaymentMethod {
+  CASH
+  BANK
+  MOBILE_BANKING
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  FAILED
+}
+
+model Course {
+  id             String       @id @default(cuid())
+  name           String       @unique
+  code           String?
+  admissionFee   Float?
+  durationMonths Int?
+  monthlyFee     Float?
+  sadkaFee       Float?
+  departments    Department[]
+}
+
+model Department {
+  id           String           @id @default(cuid())
+  name         String
+  code         String?
+  courseId     String
+  admissionFee Float?
+  monthlyFee   Float?
+  sadkaFee     Float?
+  batches      Batch[]
+  course       Course           @relation(fields: [courseId], references: [id])
+  students     StudentProfile[]
+  subjects     Subject[]
+}
+
+model Subject {
+  id            String         @id @default(cuid())
+  name          String
+  departmentId  String
+  batchSubjects BatchSubject[]
+  department    Department     @relation(fields: [departmentId], references: [id])
+}
+
+model Batch {
+  id            String             @id @default(cuid())
+  name          String
+  type          BatchType          @default(MONTHLY)
+  departmentId  String
+  allowedGender Gender
+  allowedMode   StudentMode        @default(OFFLINE)
+  startDate     DateTime?
+  endDate       DateTime?
+  active        Boolean            @default(true)
+  admissionFee  Float?
+  monthlyFee    Float?
+  sadkaFee      Float?
+  department    Department         @relation(fields: [departmentId], references: [id])
+  batchSubjects BatchSubject[]
+  sessions      ClassSession[]
+  enrollments   Enrollment[]
+  homeworks     Homework[]
+  liveClasses   MonthlyLiveClass[]
+  teachers      TeacherProfile[]   @relation("TeacherBatches")
+}
+
+model BatchSubject {
+  id        String  @id @default(cuid())
+  batchId   String
+  subjectId String
+  batch     Batch   @relation(fields: [batchId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  @@unique([batchId, subjectId])
+}
+
+model SessionTemplate {
+  id        String @id @default(cuid())
+  name      String
+  startTime String
+  endTime   String
+}
+
+model ClassSession {
+  id         String       @id @default(cuid())
+  batchId    String
+  date       DateTime
+  startTime  DateTime
+  endTime    DateTime
+  attendance Attendance[]
+  batch      Batch        @relation(fields: [batchId], references: [id])
+}
+
+model Enrollment {
+  id        String         @id @default(cuid())
+  studentId String
+  batchId   String
+  joinedAt  DateTime       @default(now())
+  batch     Batch          @relation(fields: [batchId], references: [id])
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, batchId])
+}
+
+model Attendance {
+  id             String           @id @default(cuid())
+  studentId      String
+  classSessionId String
+  mode           StudentMode
+  status         AttendanceStatus @default(PRESENT)
+  joinTime       DateTime?
+  leaveTime      DateTime?
+  classSession   ClassSession     @relation(fields: [classSessionId], references: [id])
+  student        StudentProfile   @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, classSessionId])
+}
+
+model Plan {
+  id          String               @id @default(cuid())
+  name        String               @unique
+  monthlyFee  Float
+  description String?
+  invoices    MonthlyInvoice[]
+  history     StudentPlanHistory[]
+}
+
+model StudentPlanHistory {
+  id        String         @id @default(cuid())
+  studentId String
+  planId    String
+  startDate DateTime       @default(now())
+  endDate   DateTime?
+  plan      Plan           @relation(fields: [planId], references: [id])
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+}
+
+model MonthlyInvoice {
+  id            String                  @id @default(cuid())
+  studentId     String
+  planId        String?
+  month         Int
+  year          Int
+  amount        Float
+  status        InvoiceStatus           @default(UNPAID)
+  dueDate       DateTime
+  issuedAt      DateTime                @default(now())
+  ledgerEntries LedgerTransaction[]
+  plan          Plan?                   @relation(fields: [planId], references: [id])
+  student       StudentProfile          @relation(fields: [studentId], references: [id])
+  transactions  SSLCommerzTransaction[]
+
+  @@unique([studentId, month, year])
+}
+
+model SSLCommerzTransaction {
+  id          String         @id @default(cuid())
+  invoiceId   String
+  storeId     String
+  tranId      String         @unique
+  valId       String?        @unique
+  amount      Float
+  currency    String         @default("BDT")
+  tranDate    DateTime
+  cardType    String?
+  status      String
+  bankTranId  String?
+  rawResponse Json?
+  invoice     MonthlyInvoice @relation(fields: [invoiceId], references: [id])
+}
+
+model LedgerTransaction {
+  id              String          @id @default(cuid())
+  fundType        FundType
+  amount          Float
+  dr_cr           String
+  description     String?
+  invoiceId       String?
+  transactionDate DateTime        @default(now())
+  referenceId     String?
+  invoice         MonthlyInvoice? @relation(fields: [invoiceId], references: [id])
+}
+
+model Homework {
+  id          String               @id @default(cuid())
+  title       String
+  description String
+  batchId     String
+  teacherId   String
+  deadline    DateTime
+  attachments String[]
+  batch       Batch                @relation(fields: [batchId], references: [id])
+  teacher     TeacherProfile       @relation(fields: [teacherId], references: [id])
+  submissions HomeworkSubmission[]
+}
+
+model HomeworkSubmission {
+  id          String         @id @default(cuid())
+  homeworkId  String
+  studentId   String
+  content     String?
+  fileUrls    String[]
+  submittedAt DateTime       @default(now())
+  grade       String?
+  feedback    String?
+  homework    Homework       @relation(fields: [homeworkId], references: [id])
+  student     StudentProfile @relation(fields: [studentId], references: [id])
+}
+
+model Assessment {
+  id         String   @id @default(cuid())
+  name       String
+  date       DateTime
+  totalMarks Float
+  marks      Mark[]
+}
+
+model Mark {
+  id           String         @id @default(cuid())
+  assessmentId String
+  studentId    String
+  subjectId    String
+  obtainedMark Float
+  comments     String?
+  assessment   Assessment     @relation(fields: [assessmentId], references: [id])
+  student      StudentProfile @relation(fields: [studentId], references: [id])
+}
+
+model ResultPublishLog {
+  id           String   @id @default(cuid())
+  batchId      String
+  semesterName String
+  publishedBy  String
+  publishedAt  DateTime @default(now())
+}
+
+model SiteSettings {
+  id             Int     @id @default(1)
+  madrasaName    String
+  madrasaAddress String?
+  madrasaLogo    String?
+  contactEmail   String?
+  contactPhone   String?
+  siteActive     Boolean @default(true)
+  smtpHost       String?
+  smtpPass       String?
+  smtpPort       Int?
+  smtpSecure     Boolean @default(false)
+  smtpUser       String?
+  sslIsSandbox   Boolean @default(true)
+  sslStoreId     String?
+  sslStorePass   String?
+}
+
+model AdminActionLog {
+  id          String   @id @default(cuid())
+  adminId     String
+  action      String
+  targetModel String
+  targetId    String
+  details     Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+  admin       User     @relation(fields: [adminId], references: [id])
+}
+
+model MonthlyLiveClass {
+  id          String                @id @default(cuid())
+  title       String
+  month       Int
+  year        Int
+  gender      Gender
+  studentMode StudentMode           @default(ONLINE)
+  teacherId   String
+  batchId     String
+  sessionKeys String[]              @default([])
+  sessions    LiveClassSession[]
+  liveLink    String
+  active      Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  attendance  LiveClassAttendance[]
+  batch       Batch                 @relation(fields: [batchId], references: [id])
+  teacher     TeacherProfile        @relation(fields: [teacherId], references: [id])
+
+  @@index([month, year, gender, active])
+}
+
+model LiveClassSessionConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  label     String
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LiveClassAttendance {
+  id          String           @id @default(cuid())
+  studentId   String
+  liveClassId String
+  session     LiveClassSession @default(MORNING) // Keeping this for backward compatibility or make optional? It was required.
+  sessionKey  String?          // For dynamic sessions
+  sessionName String?          // Snapshot of the session label
+  date        DateTime         @default(now())
+  joinTime    DateTime         @default(now())
+  liveClass   MonthlyLiveClass @relation(fields: [liveClassId], references: [id])
+  student     StudentProfile   @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, date])
+}
 
 enum Role {
   ADMIN
@@ -71,380 +467,4 @@ enum LiveClassSession {
 enum FeeTier {
   GENERAL
   SADKA
-}
-
-// --- Models ---
-
-// A) AUTH & USERS
-model User {
-  id              String        @id @default(cuid())
-  email           String        @unique
-  password        String?       // Nullable for INVITED status
-  role            Role          @default(STUDENT)
-  status          AccountStatus @default(INVITED)
-  invitationToken String?       @unique
-  lastLogin       DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  studentProfile  StudentProfile?
-  teacherProfile  TeacherProfile?
-  auditLogs       AdminActionLog[]
-}
-
-// B) STUDENT & TEACHER PROFILES
-model StudentProfile {
-  id               String       @id @default(cuid())
-  userId           String       @unique
-  user             User         @relation(fields: [userId], references: [id])
-  studentID        String       @unique // Madrasa-specific ID
-  fullName         String
-  gender           Gender
-  mode             StudentMode  @default(OFFLINE)
-  residency        Residency    @default(LOCAL)
-  country          String?      // Required if residency == PROBASHI
-  phoneNumber      String?      // General contact number
-  whatsappNumber   String?      // Required if residency == PROBASHI
-  photoUrl         String?
-  activeStatus     Boolean      @default(true)
-  feeTier          FeeTier      @default(GENERAL)
-  
-  departmentId     String?
-  department       Department?  @relation(fields: [departmentId], references: [id])
-
-  enrollments      Enrollment[]
-  planHistory      StudentPlanHistory[]
-  invoices         MonthlyInvoice[]
-  attendance       Attendance[]
-  homeworkSubmissions HomeworkSubmission[]
-  marks            Mark[]
-  liveClassAttendance LiveClassAttendance[]
-
-  @@index([activeStatus])
-  @@index([studentID])
-}
-
-model TeacherProfile {
-  id              String    @id @default(cuid())
-  userId          String    @unique
-  user            User      @relation(fields: [userId], references: [id])
-  fullName        String
-  gender          Gender
-  specialization  String?
-  activeStatus    Boolean   @default(true)
-  
-  assignedBatches Batch[]   @relation("TeacherBatches")
-  homeworks       Homework[]
-  liveClasses     MonthlyLiveClass[]
-}
-
-// C) ACADEMIC STRUCTURE
-model Course {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  code        String?      // e.g. "HFZ"
-  monthlyFee  Float?
-  admissionFee Float?
-  sadkaFee    Float?
-  durationMonths Int?      // Default duration in months
-  departments Department[]
-}
-
-model Department {
-  id        String     @id @default(cuid())
-  name      String
-  code      String?    // e.g. "MZN"
-  courseId  String
-  course    Course     @relation(fields: [courseId], references: [id])
-  monthlyFee Float?
-  admissionFee Float?
-  sadkaFee    Float?
-  batches   Batch[]
-  subjects  Subject[]
-  students  StudentProfile[]
-}
-
-model Subject {
-  id           String         @id @default(cuid())
-  name         String
-  departmentId String
-  department   Department     @relation(fields: [departmentId], references: [id])
-  batchSubjects BatchSubject[]
-}
-
-model Batch {
-  id            String       @id @default(cuid())
-  name          String
-  type          BatchType    @default(MONTHLY)
-  departmentId  String
-  department    Department   @relation(fields: [departmentId], references: [id])
-  allowedGender Gender
-  allowedMode   StudentMode  @default(OFFLINE)
-  startDate     DateTime?
-  endDate       DateTime?
-  active        Boolean      @default(true)
-  monthlyFee    Float?
-  admissionFee  Float?
-  sadkaFee      Float?
-
-  teachers      TeacherProfile[] @relation("TeacherBatches")
-  enrollments   Enrollment[]
-  batchSubjects BatchSubject[]
-  homeworks     Homework[]
-  sessions      ClassSession[]
-  liveClasses   MonthlyLiveClass[]
-}
-
-model BatchSubject {
-  id        String  @id @default(cuid())
-  batchId   String
-  batch     Batch   @relation(fields: [batchId], references: [id])
-  subjectId String
-  subject   Subject @relation(fields: [subjectId], references: [id])
-  
-  @@unique([batchId, subjectId])
-}
-
-// D) DAILY SESSION SYSTEM
-model SessionTemplate {
-  id        String @id @default(cuid())
-  name      String // e.g., "Morning Session"
-  startTime String // HH:mm format
-  endTime   String // HH:mm format
-}
-
-model ClassSession {
-  id        String   @id @default(cuid())
-  batchId   String
-  batch     Batch    @relation(fields: [batchId], references: [id])
-  date      DateTime
-  startTime DateTime
-  endTime   DateTime
-  
-  attendance Attendance[]
-}
-
-// E) ENROLLMENT & ATTENDANCE
-model Enrollment {
-  id        String   @id @default(cuid())
-  studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id])
-  batchId   String
-  batch     Batch    @relation(fields: [batchId], references: [id])
-  joinedAt  DateTime @default(now())
-  
-  @@unique([studentId, batchId])
-}
-
-model Attendance {
-  id             String           @id @default(cuid())
-  studentId      String
-  student        StudentProfile   @relation(fields: [studentId], references: [id])
-  classSessionId String
-  classSession   ClassSession     @relation(fields: [classSessionId], references: [id])
-  mode           StudentMode
-  status         AttendanceStatus @default(PRESENT)
-  joinTime       DateTime?
-  leaveTime      DateTime?
-  
-  @@unique([studentId, classSessionId])
-}
-
-// F) BILLING & SUBSCRIPTION
-model Plan {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  monthlyFee  Float
-  description String?
-  history     StudentPlanHistory[]
-  invoices    MonthlyInvoice[]
-}
-
-model StudentPlanHistory {
-  id        String         @id @default(cuid())
-  studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id])
-  planId    String
-  plan      Plan           @relation(fields: [planId], references: [id])
-  startDate DateTime       @default(now())
-  endDate   DateTime?
-}
-
-model MonthlyInvoice {
-  id          String        @id @default(cuid())
-  studentId   String
-  student     StudentProfile @relation(fields: [studentId], references: [id])
-  planId      String?
-  plan        Plan?         @relation(fields: [planId], references: [id])
-  month       Int
-  year        Int
-  amount      Float
-  status      InvoiceStatus @default(UNPAID)
-  dueDate     DateTime
-  issuedAt    DateTime      @default(now())
-  
-  transactions SSLCommerzTransaction[]
-  ledgerEntries LedgerTransaction[]
-
-  @@unique([studentId, month, year])
-}
-
-// G) PAYMENT GATEWAY
-model SSLCommerzTransaction {
-  id            String         @id @default(cuid())
-  invoiceId     String
-  invoice       MonthlyInvoice @relation(fields: [invoiceId], references: [id])
-  storeId       String
-  tranId        String         @unique
-  valId         String?        @unique
-  amount        Float
-  currency      String         @default("BDT")
-  tranDate      DateTime
-  cardType      String?
-  status        String         // VALIDATED, FAILED, CANCELLED
-  bankTranId    String?
-  rawResponse   Json?
-}
-
-// H) ACCOUNTING / LEDGER (Core Financials)
-model LedgerTransaction {
-  id          String         @id @default(cuid())
-  fundType    FundType
-  amount      Float
-  dr_cr       String         // "DR" or "CR"
-  description String?
-  invoiceId   String?
-  invoice     MonthlyInvoice? @relation(fields: [invoiceId], references: [id])
-  transactionDate DateTime   @default(now())
-  referenceId String?        // External reference like SSL tranId
-}
-
-// I) HOMEWORK & RESULTS
-model Homework {
-  id          String       @id @default(cuid())
-  title       String
-  description String
-  batchId     String
-  batch       Batch        @relation(fields: [batchId], references: [id])
-  teacherId   String
-  teacher     TeacherProfile @relation(fields: [teacherId], references: [id])
-  deadline    DateTime
-  attachments String[]     // URLs to storage
-
-  submissions HomeworkSubmission[]
-}
-
-model HomeworkSubmission {
-  id         String   @id @default(cuid())
-  homeworkId String
-  homework   Homework @relation(fields: [homeworkId], references: [id])
-  studentId  String
-  student    StudentProfile @relation(fields: [studentId], references: [id])
-  content    String?
-  fileUrls   String[]
-  submittedAt DateTime @default(now())
-  grade      String?
-  feedback   String?
-}
-
-model Assessment {
-  id         String   @id @default(cuid())
-  name       String   // e.g., "Midterm Exam", "Monthly Test"
-  date       DateTime
-  totalMarks Float
-  marks      Mark[]
-}
-
-model Mark {
-  id           String         @id @default(cuid())
-  assessmentId String
-  assessment   Assessment     @relation(fields: [assessmentId], references: [id])
-  studentId    String
-  student      StudentProfile @relation(fields: [studentId], references: [id])
-  subjectId    String         // Links to Subject (logical)
-  obtainedMark Float
-  comments     String?
-}
-
-model ResultPublishLog {
-  id          String   @id @default(cuid())
-  batchId     String
-  semesterName String
-  publishedBy String
-  publishedAt DateTime @default(now())
-}
-
-// J) SITE SETTINGS
-model SiteSettings {
-  id            Int      @id @default(1)
-  madrasaName   String
-  madrasaAddress String?
-  madrasaLogo   String?
-  contactEmail  String?
-  contactPhone  String?
-  siteActive    Boolean  @default(true)
-
-  // SMTP Settings
-  smtpHost      String?
-  smtpPort      Int?
-  smtpUser      String?
-  smtpPass      String?
-  smtpSecure    Boolean  @default(false)
-
-  // SSL Commerz Settings
-  sslStoreId    String?
-  sslStorePass  String?
-  sslIsSandbox  Boolean  @default(true)
-}
-
-// K) AUDIT LOGS
-model AdminActionLog {
-  id         String   @id @default(cuid())
-  adminId    String
-  admin      User     @relation(fields: [adminId], references: [id])
-  action     String   // e.g., "USER_CREATE", "PLAN_CHANGE"
-  targetModel String
-  targetId   String
-  details    Json?
-  ipAddress  String?
-  createdAt  DateTime @default(now())
-}
-
-model MonthlyLiveClass {
-  id              String             @id @default(cuid())
-  title           String             // e.g., "January 2026 – Live Classes"
-  month           Int                // 1-12
-  year            Int
-  gender          Gender
-  studentMode     StudentMode        @default(ONLINE)
-  
-  teacherId       String
-  teacher         TeacherProfile     @relation(fields: [teacherId], references: [id])
-  
-  batchId         String
-  batch           Batch              @relation(fields: [batchId], references: [id])
-
-  sessions        LiveClassSession[] // [MORNING, NOON, NIGHT]
-  liveLink        String             // Zoom/Meet URL
-  active          Boolean            @default(true)
-  
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-
-  attendance      LiveClassAttendance[]
-  
-  @@index([month, year, gender, active])
-}
-
-model LiveClassAttendance {
-  id               String           @id @default(cuid())
-  studentId        String
-  student          StudentProfile   @relation(fields: [studentId], references: [id])
-  liveClassId      String
-  liveClass        MonthlyLiveClass @relation(fields: [liveClassId], references: [id])
-  session          LiveClassSession
-  date             DateTime         @default(now())
-  joinTime         DateTime         @default(now())
-
-  @@index([studentId, date])
 }

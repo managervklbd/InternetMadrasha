@@ -33,6 +33,7 @@ interface CourseItemProps {
     course: {
         id: string;
         name: string;
+        durationMonths?: number | null;
         departments: any[];
     };
     onRefresh: () => void;
@@ -50,6 +51,7 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
     // Course Edit State
     const [isEditingCourse, setIsEditingCourse] = useState(false);
     const [courseName, setCourseName] = useState(course.name);
+    const [courseDuration, setCourseDuration] = useState(course.durationMonths || 12);
 
     // --- Dept Handlers ---
     const handleCreateDepartment = async (e: React.FormEvent) => {
@@ -97,11 +99,14 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
 
     // --- Course Handlers ---
     const handleUpdateCourse = async () => {
-        if (courseName.trim() === course.name) {
+        if (courseName.trim() === course.name && Number(courseDuration) === course.durationMonths) {
             setIsEditingCourse(false);
             return;
         }
-        const res = await updateCourse(course.id, courseName) as any;
+        const res = await updateCourse(course.id, {
+            name: courseName,
+            durationMonths: Number(courseDuration)
+        }) as any;
         if (res.success) {
             toast.success("কোর্স আপডেট হয়েছে");
             setIsEditingCourse(false);
@@ -133,19 +138,33 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
             >
                 <div className="flex items-center gap-3 flex-1">
                     {isEditingCourse ? (
-                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                            <Input
-                                value={courseName}
-                                onChange={(e) => setCourseName(e.target.value)}
-                                className="h-9 w-64 font-bengali"
-                                autoFocus
-                            />
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={handleUpdateCourse}>
-                                <Check className="w-5 h-5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-stone-500" onClick={() => setIsEditingCourse(false)}>
-                                <X className="w-5 h-5" />
-                            </Button>
+                        <div className="flex items-center gap-2 p-1 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                            <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-black text-zinc-400 ml-1">কোর্সের নাম</label>
+                                <Input
+                                    value={courseName}
+                                    onChange={(e) => setCourseName(e.target.value)}
+                                    className="h-9 w-64 font-bengali"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-black text-zinc-400 ml-1">মেয়াদ (মাস)</label>
+                                <Input
+                                    type="number"
+                                    value={courseDuration}
+                                    onChange={(e) => setCourseDuration(Number(e.target.value))}
+                                    className="h-9 w-24 font-bengali"
+                                />
+                            </div>
+                            <div className="flex items-end h-16 pb-1">
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={handleUpdateCourse}>
+                                    <Check className="w-5 h-5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-stone-500 hover:bg-zinc-100" onClick={() => setIsEditingCourse(false)}>
+                                    <X className="w-5 h-5" />
+                                </Button>
+                            </div>
                         </div>
                     ) : (
                         <>
@@ -155,9 +174,17 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold font-bengali text-zinc-800 dark:text-zinc-100">{course.name}</h3>
-                                <p className="text-xs text-zinc-500 font-bengali">
-                                    {course.departments.length} বিভাগ
-                                </p>
+                                <div className="flex items-center gap-2 text-xs text-zinc-500 font-bengali">
+                                    <span>{course.departments.length} বিভাগ</span>
+                                    {course.durationMonths && (
+                                        <>
+                                            <span>•</span>
+                                            <span className="font-medium text-teal-600 dark:text-teal-400">
+                                                মেয়াদ: {course.durationMonths.toLocaleString('bn-BD')} মাস
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </>
                     )}

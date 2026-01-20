@@ -1,8 +1,7 @@
-import LoginForm from "@/components/auth/LoginForm";
-import Link from "next/link";
+import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
 import { getSiteSettings } from "@/lib/actions/settings-actions";
 
-export default async function LoginPage() {
+export default async function ForgotPasswordPage() {
     const settings = await getSiteSettings();
 
     return (
@@ -31,15 +30,14 @@ export default async function LoginPage() {
                 </div>
             </div>
 
-            {/* Right Side - Login Form */}
+            {/* Right Side - Form */}
             <div className="flex items-center justify-center p-8 lg:p-12 bg-zinc-50 dark:bg-black">
-                <div className="w-full max-w-md space-y-4">
-                    <LoginForm />
-                    <div className="text-center">
-                        <Link href="/auth/forgot-password" className="text-sm text-teal-600 hover:underline font-bengali">
-                            পাসওয়ার্ড ভুলে গেছেন?
-                        </Link>
+                <div className="bg-white dark:bg-zinc-900 p-8 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-800 w-full max-w-md space-y-6">
+                    <div className="text-center space-y-2">
+                        <h1 className="text-2xl font-bold font-bengali text-teal-700 dark:text-teal-400">পাসওয়ার্ড পুনরুদ্ধার</h1>
+                        <p className="text-zinc-500 text-sm font-bengali">আপনার অ্যাকাউন্টের ইমেল ঠিকানা দিন</p>
                     </div>
+                    <ForgotPasswordForm />
                 </div>
             </div>
         </div>

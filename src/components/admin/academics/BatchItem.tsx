@@ -21,19 +21,36 @@ interface BatchItemProps {
     batch: {
         id: string;
         name: string;
+        startDate?: any;
+        endDate?: any;
     };
-    onEdit: (id: string, newName: string) => void;
+    onEdit: (id: string, data: any) => void;
     onDelete: (id: string) => void;
 }
 
 export function BatchItem({ batch, onEdit, onDelete }: BatchItemProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [newName, setNewName] = useState(batch.name);
+    const [newStartDate, setNewStartDate] = useState(batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : "");
+    const [newEndDate, setNewEndDate] = useState(batch.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : "");
     const [isDeleting, setIsDeleting] = useState(false);
 
+    const formatDate = (date: any) => {
+        if (!date) return "";
+        const d = new Date(date);
+        return d.toLocaleDateString('bn-BD', { year: 'numeric', month: 'short', day: 'numeric' });
+    };
+
     const handleSave = () => {
-        if (newName.trim() !== batch.name) {
-            onEdit(batch.id, newName);
+        if (newName.trim() !== batch.name ||
+            newStartDate !== (batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : "") ||
+            newEndDate !== (batch.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : "")
+        ) {
+            onEdit(batch.id, {
+                name: newName,
+                startDate: newStartDate ? new Date(newStartDate) : undefined,
+                endDate: newEndDate ? new Date(newEndDate) : undefined
+            } as any);
         }
         setIsEditing(false);
     };
@@ -44,24 +61,56 @@ export function BatchItem({ batch, onEdit, onDelete }: BatchItemProps) {
                 <BookOpen className="w-3.5 h-3.5 text-zinc-300" />
 
                 {isEditing ? (
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-col gap-2 p-1 bg-zinc-50 dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800">
                         <Input
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
-                            className="h-7 w-40 font-bengali text-sm"
+                            className="h-8 w-full font-bengali text-sm"
+                            placeholder="নাম..."
                             autoFocus
                         />
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={handleSave}>
-                            <Check className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-stone-500" onClick={() => setIsEditing(false)}>
-                            <X className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex gap-2">
+                            <div className="flex-1">
+                                <label className="text-[9px] uppercase font-bold text-zinc-400 block ml-1">শুরু</label>
+                                <Input
+                                    type="date"
+                                    value={newStartDate}
+                                    onChange={(e) => setNewStartDate(e.target.value)}
+                                    className="h-7 text-[10px] font-bengali"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="text-[9px] uppercase font-bold text-zinc-400 block ml-1">শেষ</label>
+                                <Input
+                                    type="date"
+                                    value={newEndDate}
+                                    onChange={(e) => setNewEndDate(e.target.value)}
+                                    className="h-7 text-[10px] font-bengali"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-1 mt-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-green-600" onClick={handleSave}>
+                                <Check className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-stone-500" onClick={() => setIsEditing(false)}>
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
                     </div>
                 ) : (
-                    <span className="font-bengali text-sm text-zinc-600 dark:text-zinc-300">
-                        {batch.name}
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="font-bengali text-sm text-zinc-600 dark:text-zinc-300">
+                            {batch.name}
+                        </span>
+                        {(batch.startDate || batch.endDate) && (
+                            <span className="text-[10px] text-zinc-400 font-bengali">
+                                {batch.startDate && formatDate(batch.startDate)}
+                                {batch.startDate && batch.endDate && " - "}
+                                {batch.endDate && formatDate(batch.endDate)}
+                            </span>
+                        )}
+                    </div>
                 )}
             </div>
 

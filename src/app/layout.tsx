@@ -16,7 +16,13 @@ import { Providers } from "@/components/providers";
 import { getSiteSettings } from "@/lib/actions/settings-actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
+  let settings;
+  try {
+    settings = await getSiteSettings();
+  } catch (error) {
+    console.error("Failed to fetch site settings for metadata:", error);
+    // Continue with undefined settings (which falls back to defaults)
+  }
   return {
     title: {
       default: settings?.madrasaName || "মাদ্রাসা ম্যানেজমেন্ট সিস্টেম",

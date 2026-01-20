@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Check, X, ChevronRight, ChevronDown, Plus, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
     AlertDialog,
@@ -57,13 +58,19 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
         if (!newBatchName.trim()) return;
 
         setLoading(true);
+        const formData = new FormData(e.target as HTMLFormElement);
+        const startDate = formData.get("startDate") ? new Date(formData.get("startDate") as string) : undefined;
+        const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
+
         try {
             const res = await createBatch({
                 name: newBatchName,
                 departmentId: department.id,
                 type: "SEMESTER",
                 allowedGender: "MALE", // Default, can be updated later if needed
-                allowedMode: "OFFLINE"
+                allowedMode: "OFFLINE",
+                startDate,
+                endDate
             }) as any;
 
             if (res.success) {
@@ -81,8 +88,8 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
         }
     };
 
-    const handleEditBatch = async (id: string, name: string) => {
-        const res = await updateBatch(id, name) as any;
+    const handleEditBatch = async (id: string, data: any) => {
+        const res = await updateBatch(id, data) as any;
         if (res.success) {
             toast.success("আপডেট হয়েছে");
             onRefresh();
@@ -197,21 +204,46 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
                 <div className="pl-9 pr-3 pb-3 pt-0">
                     <div className="pt-2 space-y-2 border-l-2 border-zinc-100 dark:border-zinc-800 pl-4 mt-1">
                         {isAddingBatch && (
-                            <form onSubmit={handleAddBatch} className="flex items-center gap-2 mb-2 animate-in fade-in slide-in-from-top-1">
-                                <BookOpen className="w-4 h-4 text-zinc-400" />
-                                <Input
-                                    className="h-8 w-48 font-bengali focus-visible:ring-teal-500"
-                                    placeholder="সেমিস্টারের নাম..."
-                                    value={newBatchName}
-                                    onChange={(e) => setNewBatchName(e.target.value)}
-                                    autoFocus
-                                />
-                                <Button type="submit" size="sm" className="h-8 bg-teal-600 hover:bg-teal-700 text-white font-bengali" disabled={loading}>
-                                    যোগ
-                                </Button>
-                                <Button type="button" size="sm" variant="ghost" className="h-8" onClick={() => setIsAddingBatch(false)}>
-                                    <X className="w-4 h-4" />
-                                </Button>
+                            <form onSubmit={handleAddBatch} className="space-y-3 p-3 bg-white dark:bg-zinc-900 rounded-lg border border-teal-100 dark:border-teal-900/30 animate-in fade-in slide-in-from-top-1">
+                                <div className="flex items-center gap-2">
+                                    <BookOpen className="w-4 h-4 text-zinc-400" />
+                                    <Input
+                                        className="h-8 flex-1 font-bengali focus-visible:ring-teal-500"
+                                        placeholder="সেমিস্টারের নাম..."
+                                        value={newBatchName}
+                                        onChange={(e) => setNewBatchName(e.target.value)}
+                                        autoFocus
+                                        required
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-zinc-400">শুরুর তারিখ</Label>
+                                        <Input
+                                            type="date"
+                                            name="startDate"
+                                            className="h-8 text-xs font-bengali"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-[10px] uppercase font-bold text-zinc-400">শেষের তারিখ</Label>
+                                        <Input
+                                            type="date"
+                                            name="endDate"
+                                            className="h-8 text-xs font-bengali"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-1">
+                                    <Button type="button" size="sm" variant="ghost" className="h-8 font-bengali text-xs" onClick={() => setIsAddingBatch(false)}>
+                                        বাতিল
+                                    </Button>
+                                    <Button type="submit" size="sm" className="h-8 bg-teal-600 hover:bg-teal-700 text-white font-bengali px-4" disabled={loading}>
+                                        {loading ? "যোগ হচ্ছে..." : "যোগ করুন"}
+                                    </Button>
+                                </div>
                             </form>
                         )}
 

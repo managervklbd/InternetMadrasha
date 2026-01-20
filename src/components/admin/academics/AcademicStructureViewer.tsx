@@ -51,12 +51,16 @@ export function AcademicStructureViewer() {
         setCreatingCourse(true);
         const formData = new FormData(e.target as HTMLFormElement);
         const durationMonths = formData.get("durationMonths") ? Number(formData.get("durationMonths")) : undefined;
+        const startDate = formData.get("startDate") ? new Date(formData.get("startDate") as string) : undefined;
+        const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
 
         try {
             const res = await createCourse({
                 name: newCourseName,
                 isSingleCourse,
-                durationMonths
+                durationMonths,
+                startDate,
+                endDate
             }) as any;
 
             if (res.success) {
@@ -88,7 +92,7 @@ export function AcademicStructureViewer() {
                             <Plus className="w-4 h-4" /> নতুন মারহালা/কোর্স
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-md">
                         <DialogHeader>
                             <DialogTitle className="font-bengali">নতুন কোর্স তৈরি করুন</DialogTitle>
                             <DialogDescription className="font-bengali">
@@ -121,6 +125,25 @@ export function AcademicStructureViewer() {
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="font-bengali">শুরুর তারিখ</Label>
+                                    <Input
+                                        type="date"
+                                        name="startDate"
+                                        className="font-bengali"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="font-bengali">শেষের তারিখ</Label>
+                                    <Input
+                                        type="date"
+                                        name="endDate"
+                                        className="font-bengali"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
                                 <Label className="font-bengali">কোর্সের সময়কাল (মাস)</Label>
                                 <Input
@@ -135,7 +158,7 @@ export function AcademicStructureViewer() {
                             </div>
 
                             <DialogFooter>
-                                <Button type="submit" className="bg-teal-600 font-bengali" disabled={creatingCourse}>
+                                <Button type="submit" className="bg-teal-600 font-bengali w-full" disabled={creatingCourse}>
                                     {creatingCourse ? "তৈরি হচ্ছে..." : "তৈরি করুন"}
                                 </Button>
                             </DialogFooter>

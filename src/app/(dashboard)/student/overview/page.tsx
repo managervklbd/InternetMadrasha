@@ -22,7 +22,16 @@ import Link from "next/link";
 
 export default async function StudentDashboard() {
     const data = await getStudentDashboardData();
-    const { profile, latestInvoice, sessions, homeworkCount, attendanceToday } = data;
+    const {
+        profile,
+        latestInvoice,
+        sessions,
+        homework,
+        homeworkCount,
+        attendanceToday,
+        monthlyFee,
+        currentPlanName
+    } = data;
 
     const isUnpaid = latestInvoice?.status === "UNPAID";
     const isOffline = profile.mode === "OFFLINE";
@@ -108,47 +117,82 @@ export default async function StudentDashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Class Join Section */}
-                <Card className="lg:col-span-2 border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-950">
-                    <CardHeader>
-                        <CardTitle>লাইভ ক্লাস</CardTitle>
-                        <CardDescription>আপনার নির্ধারিত অনলাইন ক্লাসে এখান থেকে সরাসরি যোগ দিন।</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {sessions.length === 0 ? (
-                                <div className="text-center py-12 text-zinc-500 italic">আজকের জন্য কোনো ক্লাস নির্ধারিত নেই।</div>
-                            ) : (
-                                sessions.map((session) => (
-                                    <div key={session.id} className="flex items-center justify-between p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
-                                                <Video className="w-6 h-6 text-teal-600" />
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Class Join Section */}
+                    <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-950">
+                        <CardHeader>
+                            <CardTitle>লাইভ ক্লাস</CardTitle>
+                            <CardDescription>আপনার নির্ধারিত অনলাইন ক্লাসে এখান থেকে সরাসরি যোগ দিন।</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {sessions.length === 0 ? (
+                                    <div className="text-center py-12 text-zinc-500 italic">আজকের জন্য কোনো ক্লাস নির্ধারিত নেই।</div>
+                                ) : (
+                                    sessions.map((session) => (
+                                        <div key={session.id} className="flex items-center justify-between p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
+                                                    <Video className="w-6 h-6 text-teal-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold">{session.batch.name}</h4>
+                                                    <p className="text-xs text-zinc-500">ওস্তাদ: Muhammad Abdullah</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h4 className="font-bold">{session.batch.name}</h4>
-                                                <p className="text-xs text-zinc-500">ওস্তাদ: Muhammad Abdullah</p>
-                                            </div>
-                                        </div>
 
-                                        {isUnpaid ? (
-                                            <Button disabled className="gap-2 bg-zinc-200 text-zinc-500">
-                                                <Lock className="w-4 h-4" />
-                                                লক করা
-                                            </Button>
-                                        ) : isOffline ? (
-                                            <Badge variant="outline">শুধুমাত্র অফলাইন</Badge>
-                                        ) : (
-                                            <Button className="bg-teal-600 hover:bg-teal-700 gap-2">
-                                                ক্লাসে যোগ দিন
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
+                                            {isUnpaid ? (
+                                                <Button disabled className="gap-2 bg-zinc-200 text-zinc-500">
+                                                    <Lock className="w-4 h-4" />
+                                                    লক করা
+                                                </Button>
+                                            ) : isOffline ? (
+                                                <Badge variant="outline">শুধুমাত্র অফলাইন</Badge>
+                                            ) : (
+                                                <Button className="bg-teal-600 hover:bg-teal-700 gap-2">
+                                                    ক্লাসে যোগ দিন
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Homework List Section */}
+                    <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-950">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BookOpen className="w-5 h-5 text-teal-600" />
+                                সক্রিয় হোমওয়ার্ক
+                            </CardTitle>
+                            <CardDescription>আপনার জমা দেওয়ার বাকি থাকা কাজসমূহ।</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                {homework.length === 0 ? (
+                                    <div className="text-center py-8 text-zinc-500 italic">নতুন কোনো হোমওয়ার্ক নেই।</div>
+                                ) : (
+                                    homework.map((hw) => (
+                                        <div key={hw.id} className="p-4 rounded-xl flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+                                            <div>
+                                                <h4 className="font-bold">{hw.title}</h4>
+                                                <div className="flex items-center gap-3 mt-1">
+                                                    <Badge variant="secondary" className="text-[10px]">{hw.batch.name}</Badge>
+                                                    <span className="text-[10px] text-zinc-500">ডেডলাইন: {new Date(hw.deadline).toLocaleDateString('bn-BD')}</span>
+                                                </div>
+                                            </div>
+                                            <Link href={`/student/homework/${hw.id}`}>
+                                                <Button size="sm" variant="outline" className="font-bengali">বিস্তারিত</Button>
+                                            </Link>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* Quick Links / Profile Info */}
                 <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
@@ -170,11 +214,11 @@ export default async function StudentDashboard() {
                         <div className="pt-4 border-t border-zinc-100 space-y-3">
                             <div className="flex justify-between text-sm">
                                 <span className="text-zinc-500">বর্তমান প্ল্যান</span>
-                                <span className="font-bold text-teal-600">{profile.planHistory[0]?.plan.name || "N/A"}</span>
+                                <span className="font-bold text-teal-600 font-bengali">{currentPlanName}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-zinc-500">মাসিক খরচ</span>
-                                <span className="font-bold">৳{profile.planHistory[0]?.plan.monthlyFee || 0}</span>
+                                <span className="font-bold text-teal-900 dark:text-teal-100">৳{monthlyFee}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-zinc-500">আবাসিক অবস্থা</span>
@@ -182,7 +226,9 @@ export default async function StudentDashboard() {
                             </div>
                         </div>
 
-                        <Button variant="outline" className="w-full mt-4 h-11">সম্পূর্ণ প্রোফাইল দেখুন</Button>
+                        <Link href="/student/profile">
+                            <Button variant="outline" className="w-full mt-4 h-11">সম্পূর্ণ প্রোফাইল দেখুন</Button>
+                        </Link>
                     </CardContent>
                 </Card>
             </div>

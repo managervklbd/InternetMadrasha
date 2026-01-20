@@ -303,9 +303,16 @@ export default function StudentsPage() {
                                     <TableCell>
                                         <div className="flex flex-col gap-1">
                                             {student.department && (
-                                                <span className="font-medium font-bengali text-xs text-zinc-700 dark:text-zinc-300">
-                                                    {student.department.name}
-                                                </span>
+                                                <div className="flex flex-col">
+                                                    {student.department.course && (
+                                                        <span className="font-bold font-bengali text-xs text-teal-600 dark:text-teal-400">
+                                                            {student.department.course.name}
+                                                        </span>
+                                                    )}
+                                                    <span className="font-medium font-bengali text-xs text-zinc-700 dark:text-zinc-300">
+                                                        {student.department.name}
+                                                    </span>
+                                                </div>
                                             )}
                                             {student.enrollments && student.enrollments.length > 0 && student.enrollments[0].batch && (
                                                 <Badge variant="outline" className="w-fit font-bengali text-[10px] h-5 px-1.5">

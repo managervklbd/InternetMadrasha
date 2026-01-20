@@ -8,7 +8,13 @@ export default auth((req) => {
 
     const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth");
     const isPaymentApiRoute = nextUrl.pathname.startsWith("/api/payment");
-    const isAuthRoute = ["/auth/login", "/auth/invite", "/"].includes(nextUrl.pathname);
+    const isAuthRoute = [
+        "/auth/login",
+        "/auth/invite",
+        "/auth/forgot-password",
+        "/auth/reset-password",
+        "/"
+    ].includes(nextUrl.pathname);
     const isPublicRoute = nextUrl.pathname === "/"; // Only landing page is public
 
     if (isApiAuthRoute || isPaymentApiRoute) return null;

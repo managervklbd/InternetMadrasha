@@ -82,18 +82,7 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
 
     if (!student || !student.activeStatus) return { success: false, error: "Student not found or inactive" };
 
-    // 2. Check if invoice already exists for this month
-    const exists = await prisma.monthlyInvoice.findFirst({
-        where: {
-            studentId,
-            month,
-            year
-        }
-    });
-
-    if (exists) return { success: true, alreadyExisted: true };
-
-    // 3. Calculate Amount
+    // 2. Calculate current target amount
     let monthlyAmount = 0;
     let admissionAmount = 0;
     let planId: string | null = null;
@@ -117,23 +106,43 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
             const c = course as any;
 
             if (s.feeTier === "SADKA") {
-                // Priority: Batch -> Dept -> Course -> 0
                 monthlyAmount = b.sadkaFee ?? d.sadkaFee ?? c.sadkaFee ?? 0;
             } else {
-                // Priority: Batch -> Dept -> Course -> 0
                 monthlyAmount = b.monthlyFee ?? d.monthlyFee ?? c.monthlyFee ?? 0;
             }
 
-            // Check if this is the first invoice to add Admission Fee
             const totalInvoices = await prisma.monthlyInvoice.count({ where: { studentId } });
-            if (totalInvoices === 0) {
-                // Priority: Batch -> Dept -> Course -> 0
+            if (totalInvoices === 0 || (totalInvoices === 1 && (await prisma.monthlyInvoice.findFirst({ where: { studentId, month, year } })))) {
                 admissionAmount = b.admissionFee ?? d.admissionFee ?? c.admissionFee ?? 0;
             }
         }
     }
 
     const totalAmount = monthlyAmount + admissionAmount;
+
+    // 3. Check if invoice already exists for this month
+    const exists = await prisma.monthlyInvoice.findFirst({
+        where: {
+            studentId,
+            month,
+            year
+        }
+    });
+
+    if (exists) {
+        // If unpaid and amount is wrong, update it
+        if (exists.status === 'UNPAID' && (exists.amount !== totalAmount || exists.planId !== planId)) {
+            await prisma.monthlyInvoice.update({
+                where: { id: exists.id },
+                data: {
+                    amount: totalAmount,
+                    planId: planId as any
+                }
+            });
+            return { success: true, updated: true };
+        }
+        return { success: true, alreadyExisted: true };
+    }
 
     // 4. Create Invoice if amount > 0
     if (totalAmount > 0) {
@@ -144,7 +153,7 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
                 year,
                 amount: totalAmount,
                 planId: planId as any,
-                dueDate: new Date(year, month - 1, 10), // Date constructor month is 0-indexed
+                dueDate: new Date(year, month - 1, 10),
                 status: 'UNPAID'
             }
         });

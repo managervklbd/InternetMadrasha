@@ -17,6 +17,17 @@ export async function logAdminAction(
             return;
         }
 
+        // Verify admin exists to prevent FK violation (e.g. stale session)
+        const adminExists = await prisma.user.findUnique({
+            where: { id: adminId },
+            select: { id: true }
+        });
+
+        if (!adminExists) {
+            console.warn(`Audit log skipped: Admin ID ${adminId} not found in database.`);
+            return;
+        }
+
         const headersList = await headers();
         const ip = headersList.get("x-forwarded-for") || "unknown";
 

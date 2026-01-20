@@ -35,11 +35,11 @@ export function PaymentActionButton({ invoiceId, status }: { invoiceId: string, 
             size="sm"
             disabled={loading}
             onClick={handlePay}
-            className="bg-teal-600 hover:bg-teal-700 gap-2"
+            className="bg-teal-600 hover:bg-teal-700 gap-2 font-bengali"
         >
             {loading ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null}
             {!loading && <ExternalLink className="w-3 h-3 mr-2" />}
-            Pay Now
+            পেমেন্ট করুন
         </Button>
     );
 }
@@ -95,12 +95,12 @@ export function MultiPaymentButton({ invoiceIds }: { invoiceIds: string[] }) {
     return (
         <Button
             size="lg"
-            className="bg-teal-600 hover:bg-teal-700 shadow-lg font-bold gap-3 px-8"
+            className="bg-teal-600 hover:bg-teal-700 shadow-lg font-bold gap-3 px-8 font-bengali"
             disabled={loading || invoiceIds.length === 0}
             onClick={handlePay}
         >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ExternalLink className="w-5 h-5" />}
-            Pay for {invoiceIds.length} Months
+            {invoiceIds.length} মাসের পেমেন্ট করুন
         </Button>
     );
 }

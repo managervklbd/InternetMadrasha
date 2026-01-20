@@ -48,8 +48,8 @@ export function InvoiceTable({ invoices, upcoming = [] }: { invoices: any[], upc
                             {selectedIds.length}
                         </div>
                         <div>
-                            <p className="font-bold text-teal-900 dark:text-teal-100">Selected for Payment</p>
-                            <p className="text-sm text-teal-700 dark:text-teal-400">Total: ৳{allInvoices.filter(i => selectedIds.includes(i.id)).reduce((acc, i) => acc + i.amount, 0)}</p>
+                            <p className="font-bold text-teal-900 dark:text-teal-100 font-bengali">পেমেন্টের জন্য নির্বাচিত</p>
+                            <p className="text-sm text-teal-700 dark:text-teal-400 font-bengali">মোট: ৳{allInvoices.filter(i => selectedIds.includes(i.id)).reduce((acc, i) => acc + i.amount, 0)}</p>
                         </div>
                     </div>
                     <MultiPaymentButton invoiceIds={selectedIds} />
@@ -67,17 +67,17 @@ export function InvoiceTable({ invoices, upcoming = [] }: { invoices: any[], upc
                                     disabled={unpaidInvoices.length === 0}
                                 />
                             </TableHead>
-                            <TableHead>Month/Year</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Action</TableHead>
+                            <TableHead className="font-bengali">মাস/বছর</TableHead>
+                            <TableHead className="font-bengali">পরিমাণ</TableHead>
+                            <TableHead className="font-bengali">অবস্থা</TableHead>
+                            <TableHead className="text-right font-bengali">অ্যাকশন</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {allInvoices.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="h-32 text-center text-zinc-500 italic">
-                                    No invoices issued yet.
+                                <TableCell colSpan={5} className="h-32 text-center text-zinc-500 italic font-bengali">
+                                    কোন ইনভয়েস পাওয়া যায়নি।
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -104,14 +104,14 @@ export function InvoiceTable({ invoices, upcoming = [] }: { invoices: any[], upc
                                                 <Badge variant="success" className="h-4 text-[9px] px-1 py-0">Verified</Badge>
                                             )}
                                             {inv.isAdvance && (
-                                                <Badge variant="outline" className="h-4 text-[9px] px-1 py-0 text-amber-600 border-amber-200">Advance</Badge>
+                                                <Badge variant="outline" className="h-4 text-[9px] px-1 py-0 text-amber-600 border-amber-200 font-bengali">অগ্রিম</Badge>
                                             )}
                                         </div>
                                     </TableCell>
                                     <TableCell className="font-bold">৳{inv.amount}</TableCell>
                                     <TableCell>
-                                        <Badge variant={inv.status === "PAID" ? "success" : "warning"} className="capitalize">
-                                            {inv.status === "UNPAID_ADVANCE" ? "Advance" : inv.status.toLowerCase()}
+                                        <Badge variant={inv.status === "PAID" ? "success" : "warning"} className="capitalize font-bengali">
+                                            {inv.status === "UNPAID_ADVANCE" ? "অগ্রিম" : (inv.status === "PAID" ? "পরিশোধিত" : "বাকি")}
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -140,13 +140,13 @@ export function InvoiceTable({ invoices, upcoming = [] }: { invoices: any[], upc
             {unpaidInvoices.length > 1 && (
                 <div className="flex justify-end p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
                     <div className="text-right space-y-2">
-                        <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Batch Payment Summary</p>
+                        <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider font-bengali">পেমেন্ট সারাংশ</p>
                         <div className="flex items-center justify-end gap-6">
                             <div>
                                 <p className="text-2xl font-black text-zinc-900 dark:text-zinc-100">
                                     ৳{allInvoices.filter(i => selectedIds.includes(i.id)).reduce((acc, i) => acc + i.amount, 0)}
                                 </p>
-                                <p className="text-[10px] text-zinc-500 font-bold">{selectedIds.length} months selected</p>
+                                <p className="text-[10px] text-zinc-500 font-bold font-bengali">{selectedIds.length} মাস নির্বাচিত</p>
                             </div>
                             <MultiPaymentButton invoiceIds={selectedIds} />
                         </div>

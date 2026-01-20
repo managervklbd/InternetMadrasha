@@ -39,6 +39,7 @@ export default async function DashboardLayout({
         { href: "/admin/reports/financial", label: "আর্থিক প্রতিবেদন", iconName: "PieChart" },
         { href: "/admin/reports/students", label: "ছাত্র পরিসংখ্যান", iconName: "Users" },
         { href: "/admin/reports/attendance", label: "হাজিরা রিপোর্ট", iconName: "CalendarCheck" },
+        { href: "/admin/attendance", label: "হাজিরা ইনপুট", iconName: "Calendar" },
         { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
         { href: "/admin/audit", label: "অডিট লগ", iconName: "ShieldAlert" },
         { href: "/admin/settings", label: "সেটিংস", iconName: "Settings" },
@@ -67,9 +68,9 @@ export default async function DashboardLayout({
     }
 
     return (
-        <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans">
+        <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans print:h-auto print:overflow-visible">
             {/* Desktop Sidebar */}
-            <aside className="w-72 hidden md:flex border-r border-teal-800 flex-col relative overflow-hidden shadow-2xl">
+            <aside className="w-72 hidden md:flex border-r border-teal-800 flex-col relative overflow-hidden shadow-2xl print:hidden">
                 <SidebarContent
                     role={role}
                     links={links}
@@ -80,8 +81,8 @@ export default async function DashboardLayout({
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-950">
-                <header className="h-20 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-20 flex items-center justify-between px-4 md:px-8 shadow-sm">
+            <main className="flex-1 overflow-y-auto bg-zinc-50/50 dark:bg-zinc-950 print:overflow-visible">
+                <header className="h-20 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky top-0 z-20 flex items-center justify-between px-4 md:px-8 shadow-sm print:hidden">
                     <div className="flex items-center gap-4">
                         <MobileSidebar
                             role={role}

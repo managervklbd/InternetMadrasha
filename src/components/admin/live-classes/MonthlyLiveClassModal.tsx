@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { getTeachers } from "@/lib/actions/teacher-actions";
 import { getAcademicStructure } from "@/lib/actions/academic-actions";
 import { createMonthlyLiveClass, updateMonthlyLiveClass } from "@/lib/actions/live-class-actions";
+import { getSessionConfigs } from "@/lib/actions/session-config-actions";
 
 export function MonthlyLiveClassModal({
     open,
@@ -25,7 +26,9 @@ export function MonthlyLiveClassModal({
     const [teachers, setTeachers] = useState<any[]>([]);
     const [batches, setBatches] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [selectedSessions, setSelectedSessions] = useState<string[]>(initialData?.sessions || []);
+    const [sessionConfigs, setSessionConfigs] = useState<any[]>([]);
+    // Support both new sessionKeys and legacy sessions (mapped if possible, or just default empty)
+    const [selectedSessions, setSelectedSessions] = useState<string[]>(initialData?.sessionKeys || initialData?.sessions || []);
 
     useEffect(() => {
         if (open) {
@@ -36,8 +39,10 @@ export function MonthlyLiveClassModal({
                 );
                 setBatches(allBatches);
             });
+            getSessionConfigs().then(setSessionConfigs);
+
             if (initialData) {
-                setSelectedSessions(initialData.sessions || []);
+                setSelectedSessions(initialData.sessionKeys || initialData.sessions || []);
             } else {
                 setSelectedSessions([]);
             }
@@ -55,7 +60,7 @@ export function MonthlyLiveClassModal({
             gender: formData.get("gender") as any,
             teacherId: formData.get("teacherId") as string,
             batchId: formData.get("batchId") as string,
-            sessions: selectedSessions,
+            sessionKeys: selectedSessions,
             liveLink: formData.get("liveLink") as string,
             active: formData.get("active") === "on",
         };
@@ -158,7 +163,7 @@ export function MonthlyLiveClassModal({
                                 <SelectContent>
                                     {batches.map(b => (
                                         <SelectItem key={b.id} value={b.id} className="font-bengali">
-                                            {b.name} ({b.allowedGender})
+                                            {b.department?.course?.name} - {b.department?.name} ({b.name})
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -167,20 +172,28 @@ export function MonthlyLiveClassModal({
 
                         <div className="space-y-3">
                             <Label className="font-bengali text-zinc-900 dark:text-zinc-100">সেশন শিডিউল</Label>
-                            <div className="flex gap-6">
-                                {["MORNING", "NOON", "NIGHT"].map(session => (
-                                    <div key={session} className="flex items-center gap-2">
+                            <div className="flex flex-wrap gap-4">
+                                {sessionConfigs.map((session: any) => (
+                                    <div key={session.key} className="flex items-center gap-2">
                                         <Checkbox
-                                            id={`session-${session}`}
-                                            checked={selectedSessions.includes(session)}
-                                            onCheckedChange={() => toggleSession(session)}
+                                            id={`session-${session.key}`}
+                                            checked={selectedSessions.includes(session.key)}
+                                            onCheckedChange={() => toggleSession(session.key)}
                                         />
-                                        <Label htmlFor={`session-${session}`} className="font-bengali text-sm capitalize">
-                                            {session === "MORNING" ? "সকাল" : session === "NOON" ? "দুপুর" : "রাত"}
-                                        </Label>
+                                        <div className="flex flex-col">
+                                            <Label htmlFor={`session-${session.key}`} className="font-bengali text-sm capitalize">
+                                                {session.label}
+                                            </Label>
+                                            <span className="text-[10px] text-zinc-500 font-mono">
+                                                {session.startTime} - {session.endTime}
+                                            </span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
+                            {sessionConfigs.length === 0 && !loading && (
+                                <p className="text-sm text-red-500 font-bengali">কোন সেশন কনফিগারেশন পাওয়া যায়নি। সেটিংস ট্যাবে গিয়ে সেশন তৈরি করুন।</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">

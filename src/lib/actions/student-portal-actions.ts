@@ -57,8 +57,8 @@ export async function getStudentDashboardData() {
         }
     });
 
-    // 3. Get Homework Count
-    const homeworkCount = await prisma.homework.count({
+    // 3. Get Homework (Active)
+    const homework = await prisma.homework.findMany({
         where: {
             batch: {
                 enrollments: {
@@ -66,7 +66,13 @@ export async function getStudentDashboardData() {
                 }
             },
             deadline: { gte: new Date() }
-        }
+        },
+        include: {
+            teacher: true,
+            batch: true
+        },
+        orderBy: { id: "desc" },
+        take: 5
     });
 
     // 4. Check Attendance for Today
@@ -79,12 +85,24 @@ export async function getStudentDashboardData() {
         }
     });
 
+    // 5. Calculate Current Fee and Plan
+    const { amount: monthlyFee, planId } = await calculateStudentMonthlyFee(profile.id);
+
+    let currentPlanName = profile.feeTier === 'SADKA' ? "সদকা প্ল্যান" : "সাধারণ প্ল্যান"; // Updated default based on tier
+    if (planId) {
+        const plan = await prisma.plan.findUnique({ where: { id: planId } });
+        currentPlanName = plan?.name || currentPlanName;
+    }
+
     return {
         profile,
         latestInvoice,
         sessions,
-        homeworkCount,
-        attendanceToday
+        homework,
+        homeworkCount: homework.length,
+        attendanceToday,
+        monthlyFee,
+        currentPlanName
     };
 }
 
@@ -141,7 +159,15 @@ export async function getStudentInvoices() {
         where: { id: profile.id },
         include: {
             enrollments: {
-                include: { batch: true },
+                include: {
+                    batch: {
+                        include: {
+                            department: {
+                                include: { course: true }
+                            }
+                        }
+                    }
+                },
                 orderBy: { joinedAt: "desc" },
                 take: 1
             }
@@ -149,8 +175,18 @@ export async function getStudentInvoices() {
     });
 
     const currentBatch = profile_with_enrollment?.enrollments[0]?.batch;
-    const batchEndDate = currentBatch?.endDate ? new Date(currentBatch.endDate) : null;
     const batchStartDate = currentBatch?.startDate ? new Date(currentBatch.startDate) : null;
+    let batchEndDate = currentBatch?.endDate ? new Date(currentBatch.endDate) : null;
+    const durationMonths = (currentBatch as any)?.department?.course?.durationMonths;
+
+    // Strict Billing Limit: Normalize end date to the 1st of the month AFTER the allowed duration
+    if (batchStartDate && durationMonths) {
+        const strictLimit = new Date(batchStartDate.getFullYear(), batchStartDate.getMonth() + durationMonths, 1);
+        // Use the stricter of the two: explicitly set end date or duration-based limit
+        if (!batchEndDate || strictLimit < batchEndDate) {
+            batchEndDate = strictLimit;
+        }
+    }
 
     // Calculate prospective months (next 12 months)
     const upcoming = [];
@@ -160,8 +196,20 @@ export async function getStudentInvoices() {
 
     const { amount: monthlyFee, planId } = await calculateStudentMonthlyFee(profile.id);
 
-    // If there is no fee (e.g. 0), we might not want to show advance payment options,
-    // or maybe we do (for tracking). Assuming if amount > 0 for now.
+    // Self-healing: Update existing UNPAID invoices if they don't match the current calculation
+    // This ensures that if feeTier/plan changed, the student sees the updated amount immediately.
+    for (const inv of issued) {
+        if (inv.status === InvoiceStatus.UNPAID && inv.amount !== monthlyFee) {
+            await prisma.monthlyInvoice.update({
+                where: { id: inv.id },
+                data: {
+                    amount: monthlyFee,
+                    planId: planId as any
+                }
+            });
+            inv.amount = monthlyFee; // Update local object for display
+        }
+    }
 
     if (monthlyFee > 0) {
         for (let i = 1; i <= 12; i++) {
@@ -176,12 +224,9 @@ export async function getStudentInvoices() {
             const prospectiveDate = new Date(currentYear, currentMonth - 1, 1);
 
             // 1. Check if batch has ended
-            if (batchEndDate && prospectiveDate > batchEndDate) {
+            if (batchEndDate && prospectiveDate >= batchEndDate) {
                 continue;
             }
-
-            // 2. Check if batch hasn't started (optional, usually we pay in advance but maybe not before start?)
-            // If batch starts in future, maybe we still allow payment? keeping it open for now unless requested.
 
             // Check if invoice already exists
             const exists = issued.find(inv => inv.month === currentMonth && inv.year === currentYear);
