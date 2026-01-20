@@ -56,10 +56,10 @@ export default async function InvoicePrintPage({ params }: { params: { id: strin
             </div>
 
             {/* The Invoice Card */}
-            <div className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 shadow-xl rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 print:shadow-none print:border-none print:m-0 print:max-w-none print:w-full print:rounded-none">
+            <div className="max-w-4xl mx-auto bg-white dark:bg-zinc-900 shadow-xl rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 print:max-w-none print:w-full">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-teal-900 to-emerald-800 p-8 text-white relative">
-                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="relative z-10 flex flex-col md:flex-row print:flex-row justify-between items-start md:items-center print:items-center gap-6">
                         <div className="flex items-center gap-4">
                             {settings?.madrasaLogo && (
                                 <img src={settings.madrasaLogo} alt="Logo" className="w-16 h-16 rounded-xl object-contain bg-white/10 p-2" />
@@ -76,9 +76,9 @@ export default async function InvoicePrintPage({ params }: { params: { id: strin
                     </div>
                 </div>
 
-                <div className="p-8 space-y-10">
+                <div className="p-8 print:p-6 space-y-10 print:space-y-6">
                     {/* Student & Invoice Status Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8">
                         <section className="space-y-4">
                             <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-bengali">প্রাপক</h3>
                             <div className="space-y-1">
@@ -88,7 +88,7 @@ export default async function InvoicePrintPage({ params }: { params: { id: strin
                                 <p className="text-zinc-500">{student.phoneNumber}</p>
                             </div>
                         </section>
-                        <section className="space-y-4 md:text-right">
+                        <section className="space-y-4 md:text-right print:text-right">
                             <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider font-bengali">ইনভয়েস বিবরণ</h3>
                             <div className="space-y-1">
                                 <p className="text-zinc-600 dark:text-zinc-400 font-bengali"><strong>প্রদান:</strong> {new Date(invoice.issuedAt).toLocaleDateString()}</p>
@@ -106,7 +106,7 @@ export default async function InvoicePrintPage({ params }: { params: { id: strin
                     </div>
 
                     {/* Academic Context */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-y border-zinc-100 dark:border-zinc-800">
+                    <div className="grid grid-cols-1 md:grid-cols-3 print:grid-cols-3 gap-6 py-6 print:py-4 border-y border-zinc-100 dark:border-zinc-800">
                         <div>
                             <p className="text-[10px] font-bold text-zinc-400 uppercase font-bengali">কোর্স</p>
                             <p className="font-semibold text-zinc-700 dark:text-zinc-300 font-bengali">{student.department?.course?.name || "N/A"}</p>
@@ -148,11 +148,11 @@ export default async function InvoicePrintPage({ params }: { params: { id: strin
 
                     {/* Multi-level verification / Payment Info */}
                     {invoice.status === "PAID" && (
-                        <div className="bg-zinc-50 dark:bg-zinc-950/50 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col md:flex-row items-center gap-6">
+                        <div className="bg-zinc-50 dark:bg-zinc-950/50 p-6 print:p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col md:flex-row print:flex-row items-center gap-6">
                             <div className="bg-white dark:bg-zinc-900 p-3 rounded-xl shadow-sm border border-green-100">
                                 <ShieldCheck className="w-8 h-8 text-green-600" />
                             </div>
-                            <div className="flex-1 text-center md:text-left">
+                            <div className="flex-1 text-center md:text-left print:text-left">
                                 <h4 className="font-bold text-green-700 mb-1 leading-tight font-bengali">পরিশোধিত পেমেন্ট</h4>
                                 <p className="text-xs text-zinc-500 font-bengali">
                                     {transaction
@@ -167,7 +167,7 @@ export default async function InvoicePrintPage({ params }: { params: { id: strin
                     )}
 
                     {/* Footer */}
-                    <div className="pt-12 border-t border-zinc-100 dark:border-zinc-800 text-center space-y-4">
+                    <div className="pt-12 print:pt-6 border-t border-zinc-100 dark:border-zinc-800 text-center space-y-4 print:space-y-2">
                         <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest font-bengali">{settings?.madrasaName || "ইন্টারনেট মাদ্রাসা"}-এর সাথে যুক্ত থাকার জন্য ধন্যবাদ</p>
                         <div className="flex justify-center gap-8 text-[11px] text-zinc-500 font-medium">
                             <p>{settings?.contactEmail || "info@internetmadrasha.com"}</p>
@@ -182,7 +182,7 @@ export default async function InvoicePrintPage({ params }: { params: { id: strin
                 __html: `
                 @media print {
                     @page { 
-                        margin: 1.5cm;
+                        margin: 0.5cm;
                         size: A4;
                     }
                     body { 
