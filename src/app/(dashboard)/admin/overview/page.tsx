@@ -15,9 +15,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAdminOverviewStats } from "@/lib/actions/report-actions";
+import { getAdminViewMode } from "@/lib/actions/settings-actions";
 
 export default async function AdminOverview() {
-    const stats = await getAdminOverviewStats();
+    const viewMode = await getAdminViewMode();
+    const stats = await getAdminOverviewStats(viewMode);
 
     return (
         <div className="flex-1 space-y-6">
@@ -38,12 +40,6 @@ export default async function AdminOverview() {
                 <h2 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 font-bengali">
                     ড্যাশবোর্ড ওভারভিউ
                 </h2>
-                <div className="flex gap-3">
-                    <Button className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        প্রভিশন ইউজার
-                    </Button>
-                </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 import { initiateSSLPayment } from "@/lib/payment/sslcommerz";
 import { v4 as uuidv4 } from "uuid";
+import { revalidatePath } from "next/cache";
 
 export async function initiateInvoicePayment(invoiceIds: string[]) {
     try {
@@ -115,5 +116,122 @@ export async function initiateInvoicePayment(invoiceIds: string[]) {
     } catch (error: any) {
         console.error("Payment initiation error:", error);
         return { success: false, error: error.message || "Internal server error" };
+    }
+}
+
+export async function recordManualPayment(data: {
+    studentId: string;
+    months: { month: number; year: number }[];
+    amount: number; // User confirmed total amount
+    reference?: string;
+    description?: string;
+    paymentMethod?: "CASH" | "BANK_TRANSFER" | "MOBILE_BANKING";
+}) {
+    const session = await auth();
+    if (session?.user?.role !== "ADMIN") {
+        throw new Error("Unauthorized");
+    }
+
+    if (!data.studentId || data.months.length === 0) {
+        return { success: false, error: "Invalid data" };
+    }
+
+    try {
+        const student = await prisma.studentProfile.findUnique({
+            where: { id: data.studentId },
+            include: { user: true }
+        });
+
+        if (!student) throw new Error("Student not found");
+
+        const paidInvoiceIds: string[] = [];
+        const { calculateStudentMonthlyFee } = await import("./student-portal-actions");
+
+        for (const m of data.months) {
+            // Find or Create Invoice
+            let invoice = await prisma.monthlyInvoice.findUnique({
+                where: {
+                    studentId_month_year: {
+                        studentId: data.studentId,
+                        month: m.month,
+                        year: m.year
+                    }
+                }
+            });
+
+            if (!invoice) {
+                // Create new
+                const { amount, planId } = await calculateStudentMonthlyFee(data.studentId);
+
+                invoice = await prisma.monthlyInvoice.create({
+                    data: {
+                        studentId: data.studentId,
+                        planId: planId,
+                        month: m.month,
+                        year: m.year,
+                        amount: amount,
+                        status: "UNPAID",
+                        dueDate: new Date(m.year, m.month - 1, 10),
+                        issuedAt: new Date()
+                    }
+                });
+            }
+
+            // Update to PAID
+            if (invoice.status !== "PAID") {
+                await prisma.monthlyInvoice.update({
+                    where: { id: invoice.id },
+                    data: { status: "PAID" }
+                });
+                paidInvoiceIds.push(invoice.id);
+            }
+        }
+
+        const tran_id = `MANUAL_${uuidv4().substring(0, 8)}`;
+
+        const invoices = await prisma.monthlyInvoice.findMany({
+            where: { id: { in: paidInvoiceIds } }
+        });
+
+        for (const invoice of invoices) {
+            await prisma.ledgerTransaction.create({
+                data: {
+                    amount: invoice.amount,
+                    fundType: "MONTHLY",
+                    transactionDate: new Date(),
+                    referenceId: data.reference || tran_id, // Same ref links them
+                    description: `Manual Payment (${data.paymentMethod || "CASH"}): ${invoice.month}/${invoice.year}. ${data.description || ""}`,
+                    dr_cr: "CR",
+                    invoiceId: invoice.id
+                }
+            });
+        }
+
+        if (student.user?.email) {
+            const items = invoices.map(inv => ({
+                description: `Monthly Fee - ${new Date(inv.year, inv.month - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+                amount: inv.amount
+            }));
+
+            // Async call - don't block response
+            import("@/lib/mail").then(({ sendPaymentConfirmationEmail }) => {
+                sendPaymentConfirmationEmail(
+                    student.user.email,
+                    student.fullName,
+                    data.amount,
+                    tran_id,
+                    items
+                ).catch(err => console.error("Failed to send payment email:", err));
+            });
+        }
+
+        revalidatePath("/admin/billing");
+        revalidatePath(`/admin/students/${data.studentId}`);
+
+        return { success: true };
+
+    } catch (error: any) {
+        console.error("Manual Payment Error:", error);
+        return { success: false, error: error.message };
     }
 }

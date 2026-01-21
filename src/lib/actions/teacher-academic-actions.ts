@@ -45,6 +45,31 @@ export async function getHomeworkWithSubmissions(batchId?: string) {
     });
 }
 
+export async function getHomeworkById(homeworkId: string) {
+    const profile = await getTeacherProfile();
+    const homework = await prisma.homework.findUnique({
+        where: { id: homeworkId },
+        include: {
+            batch: true,
+            submissions: {
+                include: {
+                    student: {
+                        include: {
+                            user: true
+                        }
+                    }
+                },
+                orderBy: { submittedAt: 'desc' }
+            }
+        }
+    });
+
+    if (!homework) return null;
+    if (homework.teacherId !== profile.id) throw new Error("Unauthorized");
+
+    return homework;
+}
+
 export async function gradeSubmission(data: {
     submissionId: string;
     grade: string;

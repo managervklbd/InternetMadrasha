@@ -3,28 +3,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreditCard, Wallet, TrendingUp, AlertCircle } from "lucide-react";
 
-export function TreasuryCards({ stats }: { stats: any }) {
+export function TreasuryCards({ stats, viewMode = "ONLINE" }: { stats: any, viewMode?: string }) {
     const findFund = (type: string) => stats.fundBreakdown.find((f: any) => f.fundType === type)?.amount || 0;
+    const isOffline = viewMode === "OFFLINE";
 
     const funds = [
         {
-            name: "ডিপোজিট / মাসিক ফি",
+            name: isOffline ? "অফলাইন মাসিক ফি" : "অনলাইন মাসিক ফি",
             amount: `৳${findFund("MONTHLY")}`,
             icon: Wallet,
             color: "text-teal-600"
         },
-        {
-            name: "ভর্তি ফান্ড",
-            amount: `৳${findFund("ADMISSION")}`,
-            icon: CreditCard,
-            color: "text-blue-600"
-        },
-        {
-            name: "দান (লিল্লাহ)",
-            amount: `৳${findFund("DONATION")}`,
-            icon: TrendingUp,
-            color: "text-green-600"
-        },
+        // Removed Admission and Donation (Lillah) as requested
         {
             name: "দানা কমিটি",
             amount: `৳${findFund("DANA_COMMITTEE")}`,

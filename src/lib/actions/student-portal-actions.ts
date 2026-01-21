@@ -17,6 +17,14 @@ async function getStudentProfile() {
             planHistory: {
                 where: { endDate: null },
                 include: { plan: true }
+            },
+            department: {
+                include: { course: true }
+            },
+            enrollments: {
+                include: { batch: true },
+                orderBy: { joinedAt: "desc" },
+                take: 1
             }
         }
     });
@@ -53,7 +61,24 @@ export async function getStudentDashboardData() {
             }
         },
         include: {
-            batch: true
+            batch: {
+                include: {
+                    teachers: true,
+                    department: {
+                        include: {
+                            course: true
+                        }
+                    },
+                    liveClasses: {
+                        where: {
+                            active: true,
+                            month: now.getMonth() + 1,
+                            year: now.getFullYear()
+                        },
+                        take: 1
+                    }
+                }
+            }
         }
     });
 
@@ -94,6 +119,60 @@ export async function getStudentDashboardData() {
         currentPlanName = plan?.name || currentPlanName;
     }
 
+    // 6. Get Subjects for Enrolled Batches
+    const subjects = await prisma.subject.findMany({
+        where: {
+            batchSubjects: {
+                some: {
+                    batch: {
+                        enrollments: {
+                            some: { studentId: profile.id }
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 7. Get Monthly Live Classes (Only for Online Students)
+    let onlineLiveClasses: any[] = [];
+    if (profile.mode === "ONLINE") {
+        const batchIds = profile.enrollments.map(e => e.batchId);
+
+        // Strict Invoice Check for Monthly Live Class Access
+        const invoice = await prisma.monthlyInvoice.findFirst({
+            where: {
+                studentId: profile.id,
+                month: now.getMonth() + 1,
+                year: now.getFullYear(),
+                status: "PAID"
+            }
+        });
+
+        if (invoice) {
+            const monthlyClasses = await prisma.monthlyLiveClass.findMany({
+                where: {
+                    batchId: { in: batchIds },
+                    // gender: profile.gender, // Optional constraint if strict gender separation needed
+                    month: now.getMonth() + 1,
+                    year: now.getFullYear(),
+                    active: true
+                },
+                include: {
+                    batch: true,
+                    teacher: true
+                }
+            });
+
+            const sessionConfigs = await prisma.liveClassSessionConfig.findMany();
+
+            onlineLiveClasses = monthlyClasses.map(cls => ({
+                ...cls,
+                sessionDetails: (cls.sessionKeys || []).map(key => sessionConfigs.find(c => c.key === key)).filter(Boolean)
+            }));
+        }
+    }
+
     return {
         profile,
         latestInvoice,
@@ -102,7 +181,9 @@ export async function getStudentDashboardData() {
         homeworkCount: homework.length,
         attendanceToday,
         monthlyFee,
-        currentPlanName
+        currentPlanName,
+        subjects,
+        onlineLiveClasses
     };
 }
 
@@ -291,13 +372,130 @@ export async function calculateStudentMonthlyFee(studentId: string): Promise<{ a
         const c = course as any;
 
         let amount = 0;
-        if (s.feeTier === "SADKA") {
-            amount = b.sadkaFee ?? d.sadkaFee ?? c.sadkaFee ?? 0;
+        if (s.mode === "OFFLINE") {
+            if (s.feeTier === "SADKA") {
+                amount = b.sadkaFeeOffline ?? d.sadkaFeeOffline ?? c.sadkaFeeOffline ?? b.sadkaFee ?? d.sadkaFee ?? c.sadkaFee ?? 0;
+            } else {
+                amount = b.monthlyFeeOffline ?? d.monthlyFeeOffline ?? c.monthlyFeeOffline ?? b.monthlyFee ?? d.monthlyFee ?? c.monthlyFee ?? 0;
+            }
         } else {
-            amount = b.monthlyFee ?? d.monthlyFee ?? c.monthlyFee ?? 0;
+            // ONLINE Default
+            if (s.feeTier === "SADKA") {
+                amount = b.sadkaFee ?? d.sadkaFee ?? c.sadkaFee ?? 0;
+            } else {
+                amount = b.monthlyFee ?? d.monthlyFee ?? c.monthlyFee ?? 0;
+            }
         }
         return { amount, planId: null };
     }
 
     return { amount: 0, planId: null };
+}
+
+export async function getStudentAttendanceHistory() {
+    const profile = await getStudentProfile();
+
+    const attendance = await prisma.attendance.findMany({
+        where: {
+            studentId: profile.id
+        },
+        orderBy: {
+            classSession: {
+                date: 'desc'
+            }
+        },
+        include: {
+            classSession: {
+                include: {
+                    batch: true
+                }
+            }
+        }
+    });
+
+    const stats = {
+        present: attendance.filter(a => a.status === 'PRESENT').length,
+        absent: attendance.filter(a => a.status === 'ABSENT').length,
+        late: attendance.filter(a => a.status === 'LATE').length,
+        total: attendance.length
+    };
+
+    return { attendance, stats };
+}
+
+export async function getHomeworkDetail(homeworkId: string) {
+    const profile = await getStudentProfile();
+
+    const homework = await prisma.homework.findUnique({
+        where: { id: homeworkId },
+        include: {
+            teacher: true,
+            batch: true,
+            submissions: {
+                where: { studentId: profile.id },
+                orderBy: { submittedAt: 'desc' },
+                take: 1
+            }
+        }
+    });
+
+    if (!homework) throw new Error("Homework not found");
+
+    // Verify student is enrolled in the batch
+    const enrollment = await prisma.enrollment.findFirst({
+        where: {
+            studentId: profile.id,
+            batchId: homework.batchId
+        }
+    });
+
+    if (!enrollment) throw new Error("Unauthorized access to homework");
+
+    return homework;
+}
+
+export async function submitHomework(data: { homeworkId: string, content?: string, fileUrls?: string[] }) {
+    const profile = await getStudentProfile();
+
+    const homework = await prisma.homework.findUnique({ where: { id: data.homeworkId } });
+    if (!homework) throw new Error("Homework not found");
+
+    return prisma.homeworkSubmission.create({
+        data: {
+            homeworkId: data.homeworkId,
+            studentId: profile.id,
+            content: data.content,
+            fileUrls: data.fileUrls || []
+        }
+    });
+}
+
+export async function getStudentHomeworks() {
+    const profile = await getStudentProfile();
+
+    const homeworks = await prisma.homework.findMany({
+        where: {
+            batch: {
+                enrollments: {
+                    some: {
+                        studentId: profile.id
+                    }
+                }
+            }
+        },
+        include: {
+            batch: true,
+            submissions: {
+                where: {
+                    studentId: profile.id
+                },
+                take: 1
+            }
+        },
+        orderBy: {
+            deadline: 'asc'
+        }
+    });
+
+    return homeworks;
 }

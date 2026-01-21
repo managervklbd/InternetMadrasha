@@ -1,5 +1,3 @@
-"use strict";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +18,15 @@ import {
     DialogTrigger,
     DialogFooter
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Clock } from "lucide-react";
-import { createSessionConfig, getSessionConfigs, deleteSessionConfig, SessionConfigData } from "@/lib/actions/session-config-actions";
+import { Plus, Trash2, Clock, Pencil } from "lucide-react";
+import { createSessionConfig, getSessionConfigs, deleteSessionConfig, updateSessionConfig, SessionConfigData } from "@/lib/actions/session-config-actions";
 
 export function SessionConfigManager() {
     const [configs, setConfigs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingConfig, setEditingConfig] = useState<any | null>(null);
 
     const refreshConfigs = async () => {
         setLoading(true);
@@ -56,12 +55,24 @@ export function SessionConfigManager() {
         }
     };
 
-    const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleEdit = (config: any) => {
+        setEditingConfig(config);
+        setIsDialogOpen(true);
+    };
+
+    const handleOpenChange = (open: boolean) => {
+        setIsDialogOpen(open);
+        if (!open) {
+            setEditingConfig(null);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsSubmitting(true);
         const formData = new FormData(e.currentTarget);
 
-        const data: SessionConfigData = {
+        const data: Partial<SessionConfigData> = {
             label: formData.get("label") as string,
             key: formData.get("key") as string,
             startTime: formData.get("startTime") as string,
@@ -70,14 +81,27 @@ export function SessionConfigManager() {
         };
 
         try {
-            await createSessionConfig(data);
-            setIsCreateOpen(false);
+            if (editingConfig) {
+                await updateSessionConfig(editingConfig.id, data);
+            } else {
+                await createSessionConfig(data as SessionConfigData);
+            }
+            setIsDialogOpen(false);
+            setEditingConfig(null);
             refreshConfigs();
         } catch (error) {
-            alert("Failed to create session config. Key might be duplicate.");
+            alert(`Failed to ${editingConfig ? 'update' : 'create'} session config. Key might be duplicate.`);
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const formatTime = (time: string) => {
+        if (!time) return "";
+        const [hours, minutes] = time.split(":").map(Number);
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const h = hours % 12 || 12;
+        return `${h}:${minutes.toString().padStart(2, "0")} ${ampm}`;
     };
 
     return (
@@ -87,35 +111,63 @@ export function SessionConfigManager() {
                     <h2 className="text-xl font-semibold font-bengali">সেশন শিডিউল কনফিগারেশন</h2>
                     <p className="text-zinc-500 text-sm font-bengali">নতুন সেশন তৈরি করুন এবং সময় নির্ধারণ করুন।</p>
                 </div>
-                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
                     <DialogTrigger asChild>
-                        <Button className="gap-2 font-bengali">
+                        <Button className="gap-2 font-bengali" onClick={() => setEditingConfig(null)}>
                             <Plus className="w-4 h-4" />
                             নতুন সেশন
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle className="font-bengali">নতুন সেশন তৈরি করুন</DialogTitle>
+                            <DialogTitle className="font-bengali">
+                                {editingConfig ? "সেশন সম্পাদনা করুন" : "নতুন সেশন তৈরি করুন"}
+                            </DialogTitle>
                         </DialogHeader>
-                        <form onSubmit={handleCreate} className="space-y-4 py-4">
+                        <form onSubmit={handleSubmit} className="space-y-4 py-4">
                             <div className="space-y-2">
                                 <Label className="font-bengali">লেবেল (Label)</Label>
-                                <Input name="label" placeholder="উদাহরণ: সকাল (Morning)" required className="font-bengali" />
+                                <Input
+                                    name="label"
+                                    placeholder="উদাহরণ: সকাল (Morning)"
+                                    required
+                                    className="font-bengali"
+                                    defaultValue={editingConfig?.label || ""}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label className="font-bengali">কী (Unique Key/ID)</Label>
-                                <Input name="key" placeholder="MORNING" required className="uppercase font-mono" />
-                                <p className="text-xs text-zinc-500 font-bengali">ইংরেজিতে ইউনিক নাম ব্যবহার করুন (যেমন: MORNING, NIGHT)</p>
+                                <Input
+                                    name="key"
+                                    placeholder="MORNING"
+                                    required
+                                    className="uppercase font-mono"
+                                    defaultValue={editingConfig?.key || ""}
+                                    readOnly={!!editingConfig} // Prevent changing key on edit to avoid conflicts/complexity
+                                    title={editingConfig ? "Key cannot be changed" : ""}
+                                />
+                                <p className="text-xs text-zinc-500 font-bengali">
+                                    {editingConfig ? "কী পরিবর্তন করা যাবে না।" : "ইংরেজিতে ইউনিক নাম ব্যবহার করুন (যেমন: MORNING, NIGHT)"}
+                                </p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="font-bengali">শুরুর সময়</Label>
-                                    <Input name="startTime" type="time" required />
+                                    <Input
+                                        name="startTime"
+                                        type="time"
+                                        required
+                                        defaultValue={editingConfig?.startTime || ""}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="font-bengali">শেষের সময়</Label>
-                                    <Input name="endTime" type="time" required />
+                                    <Input
+                                        name="endTime"
+                                        type="time"
+                                        required
+                                        defaultValue={editingConfig?.endTime || ""}
+                                    />
                                 </div>
                             </div>
                             <DialogFooter>
@@ -155,18 +207,28 @@ export function SessionConfigManager() {
                                     <TableCell>
                                         <div className="flex items-center gap-2 text-sm">
                                             <Clock className="w-3 h-3 text-zinc-400" />
-                                            {config.startTime} - {config.endTime}
+                                            {formatTime(config.startTime)} - {formatTime(config.endTime)}
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDelete(config.id)}
-                                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleEdit(config)}
+                                                className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDelete(config.id)}
+                                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))

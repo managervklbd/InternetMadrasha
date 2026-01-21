@@ -18,7 +18,11 @@ import {
 import { AttendanceStatus, StudentMode } from "@prisma/client";
 import { Calendar, Users, Clock, Save, Plus, Loader2 } from "lucide-react";
 
-export default function AttendanceManager() {
+interface AttendanceManagerProps {
+    viewMode?: "ONLINE" | "OFFLINE";
+}
+
+export default function AttendanceManager({ viewMode }: AttendanceManagerProps) {
     const [batches, setBatches] = useState<any[]>([]);
     const [selectedBatchId, setSelectedBatchId] = useState<string>("");
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -33,8 +37,8 @@ export default function AttendanceManager() {
     const [newEndTime, setNewEndTime] = useState("10:00");
 
     useEffect(() => {
-        getAdminAttendanceBatches().then(setBatches);
-    }, []);
+        getAdminAttendanceBatches(viewMode as any).then(setBatches);
+    }, [viewMode]);
 
     useEffect(() => {
         if (selectedBatchId && selectedDate) {
@@ -202,8 +206,8 @@ export default function AttendanceManager() {
                                             key={s.id}
                                             onClick={() => setSelectedSessionId(s.id)}
                                             className={`p-3 rounded-lg border cursor-pointer transition-colors ${selectedSessionId === s.id
-                                                    ? "bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800"
-                                                    : "hover:bg-zinc-50 dark:hover:bg-zinc-900 border-zinc-100 dark:border-zinc-800"
+                                                ? "bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800"
+                                                : "hover:bg-zinc-50 dark:hover:bg-zinc-900 border-zinc-100 dark:border-zinc-800"
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between mb-1">
@@ -241,54 +245,60 @@ export default function AttendanceManager() {
                                         <TableRow>
                                             <TableHead className="font-bengali">নাম ও আইডি</TableHead>
                                             <TableHead className="font-bengali text-center">উপস্থিতি</TableHead>
+                                            <TableHead className="font-bengali text-center">জয়েন টাইম</TableHead>
                                             <TableHead className="font-bengali text-right">মোড (Mode)</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {data.students.map(student => {
-                                            const att = getStatusForStudent(student.id);
-                                            return (
-                                                <TableRow key={student.id}>
-                                                    <TableCell>
-                                                        <div className="font-bold">{student.fullName}</div>
-                                                        <div className="text-[10px] text-zinc-500 font-mono">{student.studentID}</div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <Button
-                                                                size="sm"
-                                                                variant={att?.status === 'PRESENT' ? 'default' : 'outline'}
-                                                                className={`h-7 px-2 text-[10px] font-bengali ${att?.status === 'PRESENT' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
-                                                                onClick={() => handleMarkAttendance(student.id, 'PRESENT', student.mode)}
-                                                            >
-                                                                উপস্থিত
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant={att?.status === 'ABSENT' ? 'destructive' : 'outline'}
-                                                                className="h-7 px-2 text-[10px] font-bengali"
-                                                                onClick={() => handleMarkAttendance(student.id, 'ABSENT', student.mode)}
-                                                            >
-                                                                অনুপস্থিত
-                                                            </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant={att?.status === 'LATE' ? 'default' : 'outline'}
-                                                                className={`h-7 px-2 text-[10px] font-bengali ${att?.status === 'LATE' ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-                                                                onClick={() => handleMarkAttendance(student.id, 'LATE', student.mode)}
-                                                            >
-                                                                দেরি
-                                                            </Button>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <Badge variant="outline" className="text-[10px]">
-                                                            {student.mode === 'ONLINE' ? 'অনলাইন' : 'অফলাইন'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
+                                        {data.students
+                                            .filter(student => !viewMode || student.mode === viewMode)
+                                            .map(student => {
+                                                const att = getStatusForStudent(student.id);
+                                                return (
+                                                    <TableRow key={student.id}>
+                                                        <TableCell>
+                                                            <div className="font-bold">{student.fullName}</div>
+                                                            <div className="text-[10px] text-zinc-500 font-mono">{student.studentID}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant={att?.status === 'PRESENT' ? 'default' : 'outline'}
+                                                                    className={`h-7 px-2 text-[10px] font-bengali ${att?.status === 'PRESENT' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                                                                    onClick={() => handleMarkAttendance(student.id, 'PRESENT', student.mode)}
+                                                                >
+                                                                    উপস্থিত
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant={att?.status === 'ABSENT' ? 'destructive' : 'outline'}
+                                                                    className="h-7 px-2 text-[10px] font-bengali"
+                                                                    onClick={() => handleMarkAttendance(student.id, 'ABSENT', student.mode)}
+                                                                >
+                                                                    অনুপস্থিত
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant={att?.status === 'LATE' ? 'default' : 'outline'}
+                                                                    className={`h-7 px-2 text-[10px] font-bengali ${att?.status === 'LATE' ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+                                                                    onClick={() => handleMarkAttendance(student.id, 'LATE', student.mode)}
+                                                                >
+                                                                    দেরি
+                                                                </Button>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-center font-mono text-xs text-zinc-500">
+                                                            {att?.joinTime ? new Date(att.joinTime).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' }) : "-"}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Badge variant="outline" className="text-[10px]">
+                                                                {student.mode === 'ONLINE' ? 'অনলাইন' : 'অফলাইন'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
                                     </TableBody>
                                 </Table>
                             )}

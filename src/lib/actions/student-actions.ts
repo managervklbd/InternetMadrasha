@@ -57,8 +57,9 @@ export async function provisionStudent(data: {
     return { student, inviteLink };
 }
 
-export async function getStudents() {
+export async function getStudents(filter?: { mode?: StudentMode }) {
     return prisma.studentProfile.findMany({
+        where: filter?.mode ? { mode: filter.mode } : undefined,
         include: {
             user: {
                 select: {

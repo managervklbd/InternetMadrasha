@@ -10,6 +10,7 @@ export async function createCourse(data: {
     admissionFee?: number;
     durationMonths?: number;
     isSingleCourse?: boolean;
+    allowedMode?: StudentMode;
     startDate?: Date;
     endDate?: Date;
 }) {
@@ -30,8 +31,8 @@ export async function createCourse(data: {
         if (data.isSingleCourse) {
             const dept = await prisma.department.create({
                 data: {
-                    name: "সাধারণ বিভাগ", // General Department
-                    code: "GEN",
+                    name: `${data.name} বিভাগ`, // Named after the course
+                    code: data.name.substring(0, 3).toUpperCase(),
                     courseId: course.id,
                     monthlyFee: data.monthlyFee,
                     admissionFee: data.admissionFee
@@ -50,11 +51,11 @@ export async function createCourse(data: {
 
             await prisma.batch.create({
                 data: {
-                    name: "ডিফল্ট ব্যাচ", // Default Batch
+                    name: `১ম ব্যাচ (${data.allowedMode === "ONLINE" ? "অনলাইন" : "অফলাইন"})`,
                     type: BatchType.MONTHLY,
                     departmentId: dept.id,
-                    allowedGender: Gender.MALE, // Default, can be changed
-                    allowedMode: StudentMode.OFFLINE,
+                    allowedGender: Gender.MALE,
+                    allowedMode: data.allowedMode || StudentMode.OFFLINE,
                     active: true,
                     monthlyFee: data.monthlyFee,
                     admissionFee: data.admissionFee,
@@ -100,12 +101,40 @@ export async function createDepartment(name: string, courseId: string, code?: st
     }
 }
 
-export async function getAcademicStructure() {
+export async function getAcademicStructure(mode?: StudentMode) {
     return prisma.course.findMany({
+        where: mode ? {
+            OR: [
+                {
+                    departments: {
+                        some: {
+                            batches: {
+                                some: {
+                                    allowedMode: mode
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    departments: {
+                        none: {}
+                    }
+                }
+            ]
+        } : undefined,
         include: {
             departments: {
                 include: {
-                    batches: true,
+                    batches: {
+                        where: mode ? { allowedMode: mode } : undefined,
+                        include: {
+                            batchSubjects: {
+                                include: { subject: true }
+                            },
+                            teachers: true
+                        }
+                    },
                     subjects: true,
                 },
             },
@@ -170,6 +199,9 @@ export async function updateCourse(id: string, data: {
     monthlyFee?: number;
     admissionFee?: number;
     sadkaFee?: number;
+    monthlyFeeOffline?: number;
+    sadkaFeeOffline?: number;
+    admissionFeeOffline?: number;
     durationMonths?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
@@ -181,6 +213,9 @@ export async function updateCourse(id: string, data: {
                 monthlyFee: data.monthlyFee,
                 admissionFee: data.admissionFee,
                 sadkaFee: data.sadkaFee,
+                monthlyFeeOffline: data.monthlyFeeOffline,
+                sadkaFeeOffline: data.sadkaFeeOffline,
+                admissionFeeOffline: data.admissionFeeOffline,
                 durationMonths: data.durationMonths
             }
         });
@@ -209,6 +244,9 @@ export async function updateDepartment(id: string, data: {
     monthlyFee?: number;
     sadkaFee?: number;
     admissionFee?: number;
+    monthlyFeeOffline?: number;
+    sadkaFeeOffline?: number;
+    admissionFeeOffline?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
@@ -219,6 +257,9 @@ export async function updateDepartment(id: string, data: {
                 monthlyFee: data.monthlyFee,
                 sadkaFee: data.sadkaFee,
                 admissionFee: data.admissionFee,
+                monthlyFeeOffline: data.monthlyFeeOffline,
+                sadkaFeeOffline: data.sadkaFeeOffline,
+                admissionFeeOffline: data.admissionFeeOffline,
             }
         });
         revalidatePath("/admin/billing");
@@ -246,6 +287,10 @@ export async function updateBatch(id: string, data: {
     monthlyFee?: number;
     sadkaFee?: number;
     admissionFee?: number;
+    monthlyFeeOffline?: number;
+    sadkaFeeOffline?: number;
+    admissionFeeOffline?: number;
+    allowedMode?: StudentMode;
     startDate?: Date;
     endDate?: Date;
 }) {
@@ -258,6 +303,10 @@ export async function updateBatch(id: string, data: {
                 monthlyFee: data.monthlyFee,
                 sadkaFee: data.sadkaFee,
                 admissionFee: data.admissionFee,
+                monthlyFeeOffline: data.monthlyFeeOffline,
+                sadkaFeeOffline: data.sadkaFeeOffline,
+                admissionFeeOffline: data.admissionFeeOffline,
+                allowedMode: data.allowedMode,
                 startDate: data.startDate,
                 endDate: data.endDate
             }
@@ -267,5 +316,108 @@ export async function updateBatch(id: string, data: {
     } catch (error) {
         console.error("Error updating batch:", error);
         return { success: false, error: "Failed to update semester" };
+    }
+}
+
+// --- Subject Actions ---
+
+export async function createSubject(name: string, departmentId: string, batchId?: string) {
+    if (!name || !departmentId) {
+        return { success: false, error: "নাম এবং বিভাগ আবশ্যক।" };
+    }
+    try {
+        const names = name.split(',').map(n => n.trim()).filter(n => n !== "");
+
+        for (const subName of names) {
+            const subject = await prisma.subject.create({
+                data: {
+                    name: subName,
+                    departmentId
+                }
+            });
+
+            if (batchId) {
+                await prisma.batchSubject.create({
+                    data: {
+                        batchId,
+                        subjectId: subject.id
+                    }
+                });
+            }
+        }
+
+        revalidatePath("/admin/academics");
+        return { success: true };
+    } catch (error) {
+        console.error("Error creating subject:", error);
+        return { success: false, error: "বিষয় তৈরি করতে ব্যর্থ হয়েছে।" };
+    }
+}
+
+export async function updateSubject(id: string, name: string) {
+    if (!id || !name) return { success: false, error: "আইডি এবং নাম আবশ্যক" };
+    try {
+        await prisma.subject.update({
+            where: { id },
+            data: { name }
+        });
+        revalidatePath("/admin/academics");
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating subject:", error);
+        return { success: false, error: "বিষয় আপডেট করতে ব্যর্থ হয়েছে।" };
+    }
+}
+
+export async function deleteSubject(id: string) {
+    if (!id) return { success: false, error: "আইডি আবশ্যক" };
+    try {
+        await prisma.subject.delete({ where: { id } });
+        revalidatePath("/admin/academics");
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting subject:", error);
+        return { success: false, error: "বিষয় মুছে ফেলতে ব্যর্থ হয়েছে। নিশ্চিত করুন এটি কোনো ব্যাচে যুক্ত নেই।" };
+    }
+}
+
+export async function toggleBatchSubject(batchId: string, subjectId: string, active: boolean) {
+    try {
+        if (active) {
+            await prisma.batchSubject.upsert({
+                where: {
+                    batchId_subjectId: { batchId, subjectId }
+                },
+                update: {},
+                create: { batchId, subjectId }
+            });
+        } else {
+            await prisma.batchSubject.deleteMany({
+                where: { batchId, subjectId }
+            });
+        }
+        revalidatePath("/admin/academics");
+        return { success: true };
+    } catch (error) {
+        console.error("Error toggling batch subject:", error);
+        return { success: false, error: "ব্যাচ বিষয় আপডেট করতে ব্যর্থ হয়েছে।" };
+    }
+}
+export async function assignTeachersToBatch(batchId: string, teacherIds: string[]) {
+    if (!batchId) return { success: false, error: "Batch ID required" };
+    try {
+        await prisma.batch.update({
+            where: { id: batchId },
+            data: {
+                teachers: {
+                    set: teacherIds.map(id => ({ id }))
+                }
+            }
+        });
+        revalidatePath("/admin/academics");
+        return { success: true };
+    } catch (error) {
+        console.error("Error assigning teachers:", error);
+        return { success: false, error: "Failed to assign teachers" };
     }
 }

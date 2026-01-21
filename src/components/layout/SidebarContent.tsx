@@ -35,11 +35,19 @@ const IconMap: Record<string, any> = {
     HeartHandshake
 };
 
-export function SidebarContent({ role, links, signOutAction, brandName, brandLogo }: { role: string, links: any[], signOutAction: () => Promise<void>, brandName: string, brandLogo?: string | null }) {
+export function SidebarContent({ role, links, signOutAction, brandName, brandLogo, viewMode }: {
+    role: string,
+    links: any[],
+    signOutAction: () => Promise<void>,
+    brandName: string,
+    brandLogo?: string | null,
+    viewMode?: "ONLINE" | "OFFLINE"
+}) {
     const pathname = usePathname();
+    const isOffline = viewMode === "OFFLINE";
 
     return (
-        <div className="flex flex-col h-full bg-gradient-to-b from-teal-950 to-emerald-900 overflow-hidden relative">
+        <div className={`flex flex-col h-full overflow-hidden relative ${isOffline ? 'bg-zinc-900 border-r border-zinc-800' : 'bg-gradient-to-b from-teal-950 to-emerald-900'}`}>
             {/* Islamic Pattern Overlay */}
             <div className="absolute inset-0 bg-pattern-islamic opacity-10 pointer-events-none"></div>
 
@@ -60,36 +68,47 @@ export function SidebarContent({ role, links, signOutAction, brandName, brandLog
             </div>
 
             <nav className="flex-1 px-3 py-6 space-y-6 relative z-10 overflow-y-auto no-scrollbar">
-                {links.map((section, idx) => (
-                    <div key={idx} className="space-y-1.5">
-                        {section.title && (
-                            <h3 className="px-4 text-[11px] font-bold text-teal-200/40 uppercase tracking-widest font-mono">
-                                {section.title}
-                            </h3>
-                        )}
-                        {section.items.map((link: any) => {
-                            const IconComponent = IconMap[link.iconName] || LayoutDashboard;
-                            const isActive = link.href === '/dashboard'
-                                ? pathname === '/dashboard'
-                                : pathname?.startsWith(link.href);
+                {links.map((section, idx) => {
+                    // Filter items based on viewMode
+                    const filteredItems = section.items.filter((link: any) => {
+                        if (viewMode === "OFFLINE" && link.iconName === "Video") return false;
+                        if (viewMode === "ONLINE" && link.iconName === "Calendar") return false;
+                        return true;
+                    });
 
-                            return (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group border border-transparent
+                    if (filteredItems.length === 0) return null;
+
+                    return (
+                        <div key={idx} className="space-y-1.5">
+                            {section.title && (
+                                <h3 className="px-4 text-[11px] font-bold text-teal-200/40 uppercase tracking-widest font-mono">
+                                    {section.title}
+                                </h3>
+                            )}
+                            {filteredItems.map((link: any) => {
+                                const IconComponent = IconMap[link.iconName] || LayoutDashboard;
+                                const isActive = link.href === '/dashboard'
+                                    ? pathname === '/dashboard'
+                                    : pathname?.startsWith(link.href);
+
+                                return (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group border border-transparent
                                         ${isActive
-                                            ? 'bg-white/10 text-white border-amber-500/30 shadow-sm'
-                                            : 'text-teal-100/70 hover:text-white hover:bg-white/10 hover:border-amber-500/20'
-                                        }`}
-                                >
-                                    <IconComponent className={`w-5 h-5 transition-colors ${isActive ? 'text-amber-400' : 'group-hover:text-amber-400'}`} />
-                                    <span className={`font-medium font-bengali tracking-wide text-sm ${isActive ? 'text-white' : ''}`}>{link.label}</span>
-                                </Link>
-                            )
-                        })}
-                    </div>
-                ))}
+                                                ? 'bg-white/10 text-white border-amber-500/30 shadow-sm'
+                                                : 'text-teal-100/70 hover:text-white hover:bg-white/10 hover:border-amber-500/20'
+                                            }`}
+                                    >
+                                        <IconComponent className={`w-5 h-5 transition-colors ${isActive ? 'text-amber-400' : 'group-hover:text-amber-400'}`} />
+                                        <span className={`font-medium font-bengali tracking-wide text-sm ${isActive ? 'text-white' : ''}`}>{link.label}</span>
+                                    </Link>
+                                )
+                            })}
+                        </div>
+                    );
+                })}
             </nav>
 
             <div className="p-4 border-t border-teal-800/50 relative z-10 bg-black/20">

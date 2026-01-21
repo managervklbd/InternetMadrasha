@@ -87,6 +87,8 @@ export async function markOfflineAttendance(data: {
         throw new Error("Only offline student attendance can be manually marked.");
     }
 
+    const joinTime = (data.status === "PRESENT" || data.status === "LATE") ? new Date() : null;
+
     return prisma.attendance.upsert({
         where: {
             studentId_classSessionId: {
@@ -94,12 +96,23 @@ export async function markOfflineAttendance(data: {
                 classSessionId: data.sessionId,
             },
         },
-        update: { status: data.status },
+        update: {
+            status: data.status,
+            joinTime: joinTime
+        },
         create: {
             studentId: data.studentId,
             classSessionId: data.sessionId,
             status: data.status,
             mode: "OFFLINE",
+            joinTime: joinTime
         },
+    });
+}
+
+export async function getSessionAttendance(sessionId: string) {
+    await getTeacherProfile();
+    return prisma.attendance.findMany({
+        where: { classSessionId: sessionId }
     });
 }

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { provisionStudent, getStudents, toggleStudentStatus, migrateStudentFeeTier, bulkMigrateFeeTier, resendStudentInvitation } from "@/lib/actions/student-actions";
+import { getAdminViewMode } from "@/lib/actions/settings-actions";
 import { useToast } from "@/hooks/use-toast";
 import { ProvisionStudentModal } from "@/components/admin/students/ProvisionStudentModal";
 import {
@@ -63,7 +64,8 @@ export default function StudentsPage() {
     const refreshStudents = async () => {
         setLoading(true);
         try {
-            const data = await getStudents();
+            const mode = await getAdminViewMode();
+            const data = await getStudents({ mode });
             setStudents(data);
             setSelected([]); // Reset selection on refresh
         } catch (err) {

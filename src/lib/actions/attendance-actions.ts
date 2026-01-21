@@ -4,10 +4,13 @@ import { prisma } from "@/lib/db";
 import { AttendanceStatus, StudentMode } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-export async function getAdminAttendanceBatches() {
+export async function getAdminAttendanceBatches(mode?: StudentMode) {
     try {
         return await prisma.batch.findMany({
-            where: { active: true },
+            where: {
+                active: true,
+                allowedMode: mode ? mode : undefined
+            },
             include: {
                 department: {
                     include: { course: true }
@@ -46,6 +49,7 @@ export async function getBatchAttendanceData(batchId: string, date: Date) {
         });
 
         // 2. Get sessions for this batch on this date
+        const studentIds = students.map(s => s.id);
         const sessions = await prisma.classSession.findMany({
             where: {
                 batchId,
@@ -55,7 +59,11 @@ export async function getBatchAttendanceData(batchId: string, date: Date) {
                 }
             },
             include: {
-                attendance: true
+                attendance: {
+                    where: {
+                        studentId: { in: studentIds }
+                    }
+                }
             },
             orderBy: { startTime: 'asc' }
         });
@@ -107,6 +115,7 @@ export async function adminMarkAttendance(data: {
     mode: StudentMode;
 }) {
     try {
+        const joinTime = (data.status === "PRESENT" || data.status === "LATE") ? new Date() : null;
         const attendance = await prisma.attendance.upsert({
             where: {
                 studentId_classSessionId: {
@@ -116,13 +125,15 @@ export async function adminMarkAttendance(data: {
             },
             update: {
                 status: data.status,
-                mode: data.mode
+                mode: data.mode,
+                joinTime: joinTime
             },
             create: {
                 studentId: data.studentId,
                 classSessionId: data.sessionId,
                 status: data.status,
-                mode: data.mode
+                mode: data.mode,
+                joinTime: joinTime
             }
         });
 
@@ -139,9 +150,11 @@ export async function adminBulkMarkAttendance(data: {
 }) {
     try {
         // Use a transaction for safety
+        const now = new Date();
         await prisma.$transaction(
-            data.updates.map(update =>
-                prisma.attendance.upsert({
+            data.updates.map(update => {
+                const joinTime = (update.status === "PRESENT" || update.status === "LATE") ? now : null;
+                return prisma.attendance.upsert({
                     where: {
                         studentId_classSessionId: {
                             studentId: update.studentId,
@@ -150,16 +163,18 @@ export async function adminBulkMarkAttendance(data: {
                     },
                     update: {
                         status: update.status,
-                        mode: update.mode
+                        mode: update.mode,
+                        joinTime: joinTime
                     },
                     create: {
                         studentId: update.studentId,
                         classSessionId: data.sessionId,
                         status: update.status,
-                        mode: update.mode
+                        mode: update.mode,
+                        joinTime: joinTime
                     }
-                })
-            )
+                });
+            })
         );
 
         return { success: true };

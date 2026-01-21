@@ -110,6 +110,9 @@ model Course {
   durationMonths Int?
   monthlyFee     Float?
   sadkaFee       Float?
+  monthlyFeeOffline Float?
+  sadkaFeeOffline   Float?
+  admissionFeeOffline Float?
   departments    Department[]
 }
 
@@ -121,6 +124,9 @@ model Department {
   admissionFee Float?
   monthlyFee   Float?
   sadkaFee     Float?
+  monthlyFeeOffline Float?
+  sadkaFeeOffline   Float?
+  admissionFeeOffline Float?
   batches      Batch[]
   course       Course           @relation(fields: [courseId], references: [id])
   students     StudentProfile[]
@@ -148,6 +154,9 @@ model Batch {
   admissionFee  Float?
   monthlyFee    Float?
   sadkaFee      Float?
+  monthlyFeeOffline Float?
+  sadkaFeeOffline   Float?
+  admissionFeeOffline Float?
   department    Department         @relation(fields: [departmentId], references: [id])
   batchSubjects BatchSubject[]
   sessions      ClassSession[]
@@ -282,6 +291,8 @@ model Homework {
   teacherId   String
   deadline    DateTime
   attachments String[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
   batch       Batch                @relation(fields: [batchId], references: [id])
   teacher     TeacherProfile       @relation(fields: [teacherId], references: [id])
   submissions HomeworkSubmission[]
@@ -294,6 +305,7 @@ model HomeworkSubmission {
   content     String?
   fileUrls    String[]
   submittedAt DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   grade       String?
   feedback    String?
   homework    Homework       @relation(fields: [homeworkId], references: [id])

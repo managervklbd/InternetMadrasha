@@ -1,5 +1,4 @@
-import { prisma } from "@/lib/db";
-import { auth } from "@/auth";
+import { getStudentHomeworks } from "@/lib/actions/student-portal-actions";
 import {
     Card,
     CardContent,
@@ -13,86 +12,136 @@ import {
     FileText,
     Clock,
     CheckCircle2,
-    MessageSquare,
     ArrowRight,
-    Upload
+    Upload,
+    History,
+    Award
 } from "lucide-react";
 import Link from "next/link";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default async function StudentHomeworkPage() {
-    const session = await auth();
-    const profile = await prisma.studentProfile.findUnique({
-        where: { userId: session?.user?.id },
-        include: {
-            enrollments: {
-                include: {
-                    batch: {
-                        include: {
-                            homeworks: {
-                                include: {
-                                    submissions: {
-                                        where: { studentId: "auto-resolved-by-context" } // placeholder
-                                    }
-                                },
-                                orderBy: { deadline: 'asc' }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
+    const homeworks = await getStudentHomeworks();
 
-    // Flat list of homeworks for student enrolled batches
-    const homeworks = profile?.enrollments.flatMap(e => e.batch.homeworks) || [];
+    const submitted = homeworks.filter(hw => hw.submissions.length > 0);
+    const pending = homeworks.filter(hw => hw.submissions.length === 0);
 
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Assigned Homework</h1>
-                <p className="text-zinc-500 text-lg">Keep track of your studies, submit assignments, and view teacher feedback.</p>
+                <h1 className="text-3xl font-bold tracking-tight font-bengali">আমার হোমওয়ার্ক</h1>
+                <p className="text-zinc-500 text-lg font-bengali">নতুন কাজ জমা দিন এবং পুরাতন কাজের ফলাফল দেখুন।</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {homeworks.length === 0 ? (
-                    <div className="col-span-full text-center py-20 text-zinc-500 italic">No homework has been assigned to your batches yet.</div>
-                ) : (
-                    homeworks.map((hw) => (
-                        <Card key={hw.id} className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 hover:ring-teal-500/20 transition-all flex flex-col">
-                            <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                    <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-wider">Batch: {profile?.enrollments[0]?.batch.name}</Badge>
-                                    {new Date(hw.deadline) < new Date() ? (
-                                        <Badge variant="destructive" className="text-[10px]">Overdue</Badge>
-                                    ) : (
-                                        <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-bold">
-                                            <Clock className="w-3 h-3" />
-                                            Due: {new Date(hw.deadline).toLocaleDateString()}
+            <Tabs defaultValue="pending" className="w-full">
+                <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
+                    <TabsTrigger value="pending" className="font-bengali">জমা বাকি আছে ({pending.length})</TabsTrigger>
+                    <TabsTrigger value="submitted" className="font-bengali">জমা দেওয়া হয়েছে ({submitted.length})</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="pending" className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {pending.length === 0 ? (
+                            <div className="col-span-full py-20 text-center text-zinc-500 italic font-bengali border rounded-xl bg-zinc-50/50">
+                                আপনার কোনো হোমওয়ার্ক জমা বাকি নেই।
+                            </div>
+                        ) : (
+                            pending.map((hw) => (
+                                <Card key={hw.id} className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 hover:ring-teal-500/20 transition-all flex flex-col h-full">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Badge variant="secondary" className="font-bengali text-[10px] bg-teal-50 text-teal-700">{hw.batch.name}</Badge>
+                                            {new Date(hw.deadline) < new Date() ? (
+                                                <Badge variant="destructive" className="text-[10px] font-bengali">ডেডলাইন শেষ</Badge>
+                                            ) : (
+                                                <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-bold font-bengali">
+                                                    <Clock className="w-3 h-3" />
+                                                    {new Date(hw.deadline).toLocaleDateString('bn-BD')}
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                                <CardTitle className="mt-3 text-lg leading-tight">{hw.title}</CardTitle>
-                                <CardDescription className="line-clamp-2 text-xs mt-1">{hw.description}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
-                                <div className="flex items-center justify-between pt-4 border-t border-zinc-100 italic text-[11px] text-zinc-400">
-                                    <span>Review Status: Not Submitted</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 mt-2">
-                                    <Button variant="outline" size="sm" className="gap-2 text-xs h-9">
-                                        <FileText className="w-3.5 h-3.5" />
-                                        Details
-                                    </Button>
-                                    <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-xs h-9 gap-2">
-                                        <Upload className="w-3.5 h-3.5" />
-                                        Submit
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
+                                        <CardTitle className="text-lg leading-tight font-bengali line-clamp-2">{hw.title}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
+                                        <p className="text-xs text-zinc-500 line-clamp-2 font-bengali">{hw.description}</p>
+                                        <div className="grid grid-cols-2 gap-2 mt-auto pt-4 border-t border-zinc-100">
+                                            <Link href={`/student/homework/${hw.id}`} className="w-full">
+                                                <Button variant="outline" size="sm" className="w-full gap-2 text-xs h-9 font-bengali">
+                                                    <FileText className="w-3.5 h-3.5" />
+                                                    বিস্তারিত
+                                                </Button>
+                                            </Link>
+                                            <Link href={`/student/homework/${hw.id}`} className="w-full">
+                                                <Button size="sm" className="w-full bg-teal-600 hover:bg-teal-700 text-xs h-9 gap-2 font-bengali">
+                                                    <Upload className="w-3.5 h-3.5" />
+                                                    জমা দিন
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="submitted" className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {submitted.length === 0 ? (
+                            <div className="col-span-full py-20 text-center text-zinc-500 italic font-bengali border rounded-xl bg-zinc-50/50">
+                                আপনি এখনো কোনো হোমওয়ার্ক জমা দেননি।
+                            </div>
+                        ) : (
+                            submitted.map((hw) => {
+                                const submission = hw.submissions[0];
+                                return (
+                                    <Card key={hw.id} className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 hover:ring-teal-500/20 transition-all flex flex-col h-full group">
+                                        <CardHeader className="pb-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <Badge variant="outline" className="font-bengali text-[10px]">{hw.batch.name}</Badge>
+                                                <div className="flex items-center gap-1 text-[10px] text-green-600 font-bold font-bengali">
+                                                    <CheckCircle2 className="w-3 h-3" />
+                                                    জমা দেওয়া হয়েছে
+                                                </div>
+                                            </div>
+                                            <CardTitle className="text-lg leading-tight font-bengali group-hover:text-teal-600 transition-colors">{hw.title}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
+                                            <div className="bg-zinc-50 dark:bg-zinc-900 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                                                <div className="flex items-center justify-between text-xs mb-2">
+                                                    <span className="text-zinc-500 font-bengali">জমার তারিখ:</span>
+                                                    <span className="font-medium font-bengali">{new Date(submission.submittedAt).toLocaleDateString("bn-BD")}</span>
+                                                </div>
+                                                {submission.grade ? (
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500 font-bengali text-xs">ফলাফল:</span>
+                                                        <Badge className="bg-green-600 hover:bg-green-700 font-bold text-xs gap-1">
+                                                            <Award className="w-3 h-3" />
+                                                            {submission.grade}
+                                                        </Badge>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-2 text-xs text-amber-600 font-medium font-bengali bg-amber-50 px-2 py-1 rounded w-fit ml-auto">
+                                                        <Clock className="w-3 h-3" />
+                                                        রিভিউ পেন্ডিং
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <Link href={`/student/homework/${hw.id}`} className="w-full mt-auto">
+                                                <Button variant="secondary" size="sm" className="w-full gap-2 text-xs h-9 font-bengali bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-200">
+                                                    <History className="w-3.5 h-3.5" />
+                                                    ফিডব্যাক দেখুন
+                                                </Button>
+                                            </Link>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })
+                        )}
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

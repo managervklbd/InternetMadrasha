@@ -14,10 +14,7 @@ import {
     TableHeader,
     TableRow
 } from "@/components/ui/table";
-import {
-    Download,
-    ArrowUpRight
-} from "lucide-react";
+import { Download, ArrowUpRight } from "lucide-react";
 
 import { FeePlansManager } from "@/components/admin/billing/FeePlansManager";
 import { FeeStructureTable } from "@/components/admin/billing/FeeStructureTable";
@@ -28,12 +25,16 @@ import { TreasuryCards } from "@/components/admin/billing/TreasuryCards";
 import { StudentPaymentHistory } from "@/components/admin/billing/StudentPaymentHistory";
 import { ExportReportButton } from "@/components/admin/billing/ExportReportButton";
 import { GenerateInvoiceButton } from "@/components/admin/billing/GenerateInvoiceButton";
+import { getAdminViewMode } from "@/lib/actions/settings-actions";
+import { ManualPaymentManager } from "@/components/admin/billing/ManualPaymentManager";
 
 export default async function BillingPage() {
-    const stats = await getFinancialSummary();
-    const history = await getStudentPaymentHistory();
+    const viewMode = await getAdminViewMode();
+    const stats = await getFinancialSummary(viewMode === "OFFLINE" ? "OFFLINE" : "ONLINE");
+    const history = await getStudentPaymentHistory(viewMode === "OFFLINE" ? "OFFLINE" : "ONLINE");
     const settings = await getSiteSettings();
-    const recentTransactions = await getRecentTransactions(10);
+    const recentTransactions = await getRecentTransactions(10, viewMode === "OFFLINE" ? "OFFLINE" : "ONLINE");
+
 
     return (
         <div className="space-y-8">
@@ -48,16 +49,29 @@ export default async function BillingPage() {
                 </div>
             </div>
 
-            <TreasuryCards stats={stats} />
+            {/* Offline Mode Indicator or specific UI adjustment if needed */}
+            {/* <TreasuryCards stats={stats} /> Note: Stats might need filtering later */}
+            <TreasuryCards stats={stats} viewMode={viewMode || "ONLINE"} />
 
             <div className="space-y-8">
-                <Tabs defaultValue="structure" className="space-y-6">
+                <Tabs defaultValue={viewMode === "OFFLINE" ? "manual-payment" : "structure"} className="space-y-6">
                     <TabsList className="bg-zinc-100 dark:bg-zinc-800 p-1">
+                        {viewMode === "OFFLINE" && (
+                            <TabsTrigger value="manual-payment" className="font-bengali text-teal-700 bg-teal-50 data-[state=active]:bg-teal-600 data-[state=active]:text-white">
+                                ম্যানুয়াল পেমেন্ট
+                            </TabsTrigger>
+                        )}
                         <TabsTrigger value="overview" className="font-bengali">ওভারভিউ</TabsTrigger>
                         <TabsTrigger value="history" className="font-bengali">পেমেন্ট ইতিহাস</TabsTrigger>
                         <TabsTrigger value="structure" className="font-bengali">ফি স্ট্রাকচার</TabsTrigger>
                         <TabsTrigger value="plans" className="font-bengali">কাস্টম প্ল্যান</TabsTrigger>
                     </TabsList>
+
+                    {viewMode === "OFFLINE" && (
+                        <TabsContent value="manual-payment">
+                            <ManualPaymentManager />
+                        </TabsContent>
+                    )}
 
                     <TabsContent value="overview" className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -180,7 +194,7 @@ export default async function BillingPage() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <FeeStructureTable />
+                                <FeeStructureTable viewMode={viewMode || "ONLINE"} />
                             </CardContent>
                         </Card>
                     </TabsContent>

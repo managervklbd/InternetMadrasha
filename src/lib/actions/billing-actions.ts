@@ -50,6 +50,112 @@ export async function deletePlan(id: string) {
  * Logic to ensure a student has an invoice for the current month.
  * Can be called during student creation or bulk generation.
  */
+/**
+ * Helper to calculate applicable monthly and admission fees based on student mode and tier.
+ */
+function calculateApplicableFees(student: any, batch: any, department: any, course: any) {
+    let monthlyAmount = 0;
+    let admissionAmount = 0;
+
+    const isOffline = student.mode === "OFFLINE";
+    const isSadka = student.feeTier === "SADKA";
+
+    // 1. Calculate Monthly Fee
+    if (isOffline) {
+        if (isSadka) {
+            monthlyAmount = batch.sadkaFeeOffline ?? department.sadkaFeeOffline ?? course.sadkaFeeOffline ?? 0;
+        } else {
+            monthlyAmount = batch.monthlyFeeOffline ?? department.monthlyFeeOffline ?? course.monthlyFeeOffline ?? 0;
+        }
+    } else {
+        // Online
+        if (isSadka) {
+            monthlyAmount = batch.sadkaFee ?? department.sadkaFee ?? course.sadkaFee ?? 0;
+        } else {
+            monthlyAmount = batch.monthlyFee ?? department.monthlyFee ?? course.monthlyFee ?? 0;
+        }
+    }
+
+    // 2. Calculate Admission Fee
+    if (isOffline) {
+        admissionAmount = batch.admissionFeeOffline ?? department.admissionFeeOffline ?? course.admissionFeeOffline ?? 0;
+    } else {
+        admissionAmount = batch.admissionFee ?? department.admissionFee ?? course.admissionFee ?? 0;
+    }
+
+    return { monthlyAmount, admissionAmount };
+}
+
+/**
+ * Get the calculated monthly fee for a student.
+ * Useful for client-side fee display.
+ */
+export async function getStudentMonthlyFee(studentId: string) {
+    const student = await prisma.studentProfile.findUnique({
+        where: { id: studentId },
+        include: {
+            enrollments: {
+                include: {
+                    batch: {
+                        include: {
+                            department: {
+                                include: { course: true }
+                            }
+                        }
+                    }
+                },
+                orderBy: { joinedAt: 'desc' },
+                take: 1
+            },
+            planHistory: {
+                include: { plan: true },
+                orderBy: { startDate: 'desc' },
+                take: 1
+            }
+        }
+    });
+
+    if (!student || !student.activeStatus) return { success: false, error: "Student not found or inactive" };
+
+    // Get Paid Months
+    const paidInvoices = await prisma.monthlyInvoice.findMany({
+        where: {
+            studentId,
+            status: { in: ['PAID'] } // Can include others if needed
+        },
+        select: { month: true, year: true }
+    });
+
+    // Check for Active Custom Plan
+    const activePlan = student.planHistory[0]?.plan;
+    if (activePlan) {
+        return { success: true, amount: activePlan.monthlyFee, paidMonths: paidInvoices };
+    }
+
+    // Check Academic Structure
+    const enrollment = student.enrollments[0];
+    if (enrollment && enrollment.batch) {
+        const batch = enrollment.batch;
+        const dept = batch.department;
+        const course = batch.department.course;
+
+        const { monthlyAmount } = calculateApplicableFees(student, batch, dept, course);
+        return {
+            success: true,
+            amount: monthlyAmount,
+            paidMonths: paidInvoices,
+            enrollmentStart: batch.startDate,
+            enrollmentEnd: batch.endDate
+        };
+    }
+
+    return { success: true, amount: 0, paidMonths: paidInvoices };
+}
+
+/**
+ * Logic to ensure a student has an invoice for the current month.
+ * Can be called during student creation or bulk generation.
+ */
 export async function syncStudentMonthlyInvoice(studentId: string) {
     const date = new Date();
     const month = date.getMonth() + 1;
@@ -97,23 +203,15 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
         const enrollment = student.enrollments[0];
         if (enrollment && enrollment.batch) {
             const batch = enrollment.batch;
-            const course = batch.department.course;
             const dept = batch.department;
+            const course = batch.department.course;
 
-            const s = student as any;
-            const b = batch as any;
-            const d = dept as any;
-            const c = course as any;
-
-            if (s.feeTier === "SADKA") {
-                monthlyAmount = b.sadkaFee ?? d.sadkaFee ?? c.sadkaFee ?? 0;
-            } else {
-                monthlyAmount = b.monthlyFee ?? d.monthlyFee ?? c.monthlyFee ?? 0;
-            }
+            const fees = calculateApplicableFees(student, batch, dept, course);
+            monthlyAmount = fees.monthlyAmount;
 
             const totalInvoices = await prisma.monthlyInvoice.count({ where: { studentId } });
             if (totalInvoices === 0 || (totalInvoices === 1 && (await prisma.monthlyInvoice.findFirst({ where: { studentId, month, year } })))) {
-                admissionAmount = b.admissionFee ?? d.admissionFee ?? c.admissionFee ?? 0;
+                admissionAmount = fees.admissionAmount;
             }
         }
     }

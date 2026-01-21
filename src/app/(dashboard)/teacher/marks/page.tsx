@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { getAssignedBatches } from "@/lib/actions/teacher-portal-actions";
 import { createAssessment } from "@/lib/actions/teacher-academic-actions";
+import { toast } from "sonner";
 
 export default function MarksPage() {
     const [batches, setBatches] = useState<any[]>([]);
@@ -47,10 +48,16 @@ export default function MarksPage() {
 
     useEffect(() => {
         const fetch = async () => {
-            const b = await getAssignedBatches();
-            setBatches(b);
-            if (b.length > 0) setSelectedBatchId(b[0].id);
-            setLoading(false);
+            try {
+                const b = await getAssignedBatches();
+                setBatches(b);
+                if (b.length > 0) setSelectedBatchId(b[0].id);
+            } catch (err) {
+                console.error(err);
+                toast.error("ব্যাচ লোড করতে সমস্যা হয়েছে।");
+            } finally {
+                setLoading(false);
+            }
         };
         fetch();
     }, []);
@@ -62,8 +69,8 @@ export default function MarksPage() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Grade Book</h1>
-                    <p className="text-zinc-500 text-lg">Conduct assessments and record student marks. Results stay as DRAFT until Admin publishes.</p>
+                    <h1 className="text-3xl font-bold tracking-tight font-bengali">গ্রেড বুক</h1>
+                    <p className="text-zinc-500 text-lg font-bengali">পরীক্ষা পরিচালনা করুন এবং শিক্ষার্থীদের নম্বর এন্ট্রি করুন। অ্যাডমিন পাবলিশ না করা পর্যন্ত ফলাফল ড্রাফট হিসেবে থাকবে।</p>
                 </div>
             </div>
 
@@ -72,51 +79,51 @@ export default function MarksPage() {
                 <div className="lg:col-span-1 space-y-6">
                     <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                         <CardHeader>
-                            <CardTitle className="text-lg">Assessment Setup</CardTitle>
+                            <CardTitle className="text-lg font-bengali">মূল্যায়ন সেটআপ</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label>Batch Context</Label>
+                                <Label className="font-bengali">ব্যাচ নির্বাচন</Label>
                                 <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Batch" />
+                                    <SelectTrigger className="font-bengali">
+                                        <SelectValue placeholder="ব্যাচ পছন্দ করুন" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {batches.map(b => (
-                                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                                            <SelectItem key={b.id} value={b.id} className="font-bengali">{b.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label>Evaluation Type</Label>
+                                <Label className="font-bengali">মূল্যায়নের ধরণ</Label>
                                 <Select onValueChange={setAssessmentName}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Type" />
+                                    <SelectTrigger className="font-bengali">
+                                        <SelectValue placeholder="ধরণ নির্বাচন করুন" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Monthly Test">Monthly Test</SelectItem>
-                                        <SelectItem value="Midterm Exam">Midterm Exam</SelectItem>
-                                        <SelectItem value="Final Exam">Final Exam</SelectItem>
-                                        <SelectItem value="Surprise Quiz">Surprise Quiz</SelectItem>
+                                        <SelectItem value="Monthly Test" className="font-bengali">মাসিক পরীক্ষা</SelectItem>
+                                        <SelectItem value="Midterm Exam" className="font-bengali">সাময়িক পরীক্ষা</SelectItem>
+                                        <SelectItem value="Final Exam" className="font-bengali">বার্ষিক পরীক্ষা</SelectItem>
+                                        <SelectItem value="Surprise Quiz" className="font-bengali">ক্লাস টেস্ট / কুইজ</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
                             <div className="space-y-2">
-                                <Label>Total Marks</Label>
+                                <Label className="font-bengali">মোট নম্বর</Label>
                                 <Input type="number" value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} />
                             </div>
-                            <Button className="w-full bg-teal-600 hover:bg-teal-700 gap-2 h-11">
+                            <Button className="w-full bg-teal-600 hover:bg-teal-700 gap-2 h-11 font-bengali">
                                 <Plus className="w-4 h-4" />
-                                Initialize Sheet
+                                শিট তৈরি করুন
                             </Button>
                         </CardContent>
                     </Card>
 
                     <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0" />
-                        <p className="text-xs text-orange-700 leading-relaxed">
-                            <strong>Safety Rule:</strong> Teachers can record marks but cannot modify them once results are published by the Admin. Always double-check before saving.
+                        <p className="text-xs text-orange-700 leading-relaxed font-bengali">
+                            <strong>সতর্কতা:</strong> শিক্ষকরা নম্বর এন্ট্রি করতে পারলেও, অ্যাডমিন পাবলিশ করার পর তা আর পরিবর্তন করা যাবে না। সংরক্ষণের আগে পুনরায় যাচাই করে নিন।
                         </p>
                     </div>
                 </div>
@@ -127,17 +134,17 @@ export default function MarksPage() {
                         <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 pb-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <CardTitle className="text-xl">Marks Entry Sheet</CardTitle>
-                                    <CardDescription>Enter obtained marks for each student below.</CardDescription>
+                                    <CardTitle className="text-xl font-bengali">নম্বর এন্ট্রি শিট</CardTitle>
+                                    <CardDescription className="font-bengali">নিচে প্রতিটি ছাত্রের প্রাপ্ত নম্বর ইনপুট দিন।</CardDescription>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" className="gap-2">
+                                    <Button variant="outline" size="sm" className="gap-2 font-bengali">
                                         <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                                        Import Excel
+                                        এক্সেল ফাইল
                                     </Button>
-                                    <Button size="sm" className="bg-teal-600 hover:bg-teal-700 gap-2">
+                                    <Button size="sm" className="bg-teal-600 hover:bg-teal-700 gap-2 font-bengali">
                                         <Save className="w-4 h-4" />
-                                        Save as Draft
+                                        ড্রাফট সেভ করুন
                                     </Button>
                                 </div>
                             </div>
@@ -146,17 +153,23 @@ export default function MarksPage() {
                             <Table>
                                 <TableHeader className="bg-zinc-50/50 dark:bg-zinc-900/50">
                                     <TableRow>
-                                        <TableHead className="w-[100px]">Roll ID</TableHead>
-                                        <TableHead>Student Name</TableHead>
-                                        <TableHead className="w-[150px]">Marks ({totalMarks})</TableHead>
-                                        <TableHead>Feedback / Note</TableHead>
+                                        <TableHead className="w-[120px] font-bengali">ছাত্র আইডি</TableHead>
+                                        <TableHead className="font-bengali">ছাত্রের নাম</TableHead>
+                                        <TableHead className="w-[150px] font-bengali">প্রাপ্ত নম্বর ({totalMarks})</TableHead>
+                                        <TableHead className="font-bengali">মন্তব্য</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {students.length === 0 ? (
+                                    {loading ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="h-40 text-center text-zinc-500 italic">
-                                                Select a batch to begin entry.
+                                            <TableCell colSpan={4} className="h-40 text-center text-zinc-500 italic font-bengali">
+                                                লোড হচ্ছে...
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : students.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-40 text-center text-zinc-500 italic font-bengali">
+                                                এন্ট্রি শুরু করতে ব্যাচ নির্বাচন করুন।
                                             </TableCell>
                                         </TableRow>
                                     ) : (
@@ -164,14 +177,14 @@ export default function MarksPage() {
                                             <TableRow key={student.id}>
                                                 <TableCell className="font-mono text-sm">{student.studentID}</TableCell>
                                                 <TableCell>
-                                                    <div className="font-semibold">{student.fullName}</div>
-                                                    <div className="text-xs text-zinc-500 uppercase tracking-tighter">{student.mode} Mode</div>
+                                                    <div className="font-semibold font-bengali">{student.fullName}</div>
+                                                    <div className="text-[10px] text-zinc-500 font-bengali">{student.mode === "ONLINE" ? "অনলাইন" : "অফলাইন"} মোড</div>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Input type="number" placeholder="00" className="h-9 w-24 text-center font-bold" />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Input placeholder="Excellent effort..." className="h-9" />
+                                                    <Input placeholder="মন্তব্য লিখুন..." className="h-9 font-bengali" />
                                                 </TableCell>
                                             </TableRow>
                                         ))

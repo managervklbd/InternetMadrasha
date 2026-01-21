@@ -19,7 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function AcademicStructureViewer() {
+import { getAdminViewMode } from "@/lib/actions/settings-actions";
+
+interface Props {
+    initialMode?: "ONLINE" | "OFFLINE";
+}
+
+export function AcademicStructureViewer({ initialMode }: Props) {
     const [structure, setStructure] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateCourseOpen, setIsCreateCourseOpen] = useState(false);
@@ -30,7 +36,10 @@ export function AcademicStructureViewer() {
     const refreshStructure = async () => {
         setLoading(true);
         try {
-            const data = await getAcademicStructure();
+            // Use initialMode if available, or fetch it (though we expect parent to pass it now)
+            // But getAdminViewMode is a server action, calling it here is fine too as a fallback/refresh
+            const mode = initialMode || await getAdminViewMode();
+            const data = await getAcademicStructure(mode);
             setStructure(data);
         } catch (err) {
             console.error(err);
@@ -42,7 +51,7 @@ export function AcademicStructureViewer() {
 
     useEffect(() => {
         refreshStructure();
-    }, []);
+    }, [initialMode]);
 
     const handleCreateCourse = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,11 +62,13 @@ export function AcademicStructureViewer() {
         const durationMonths = formData.get("durationMonths") ? Number(formData.get("durationMonths")) : undefined;
         const startDate = formData.get("startDate") ? new Date(formData.get("startDate") as string) : undefined;
         const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
+        const allowedMode = formData.get("allowedMode") as "ONLINE" | "OFFLINE" | undefined;
 
         try {
             const res = await createCourse({
                 name: newCourseName,
                 isSingleCourse,
+                allowedMode, // Pass the selected mode
                 durationMonths,
                 startDate,
                 endDate
@@ -123,6 +134,31 @@ export function AcademicStructureViewer() {
                                         এটি চেক করলে অটোমেটিক একটি বিভাগ এবং ব্যাচ তৈরি হবে। (যেমন: স্বল্পমেয়াদী কোর্সের জন্য)
                                     </p>
                                 </div>
+                            </div>
+
+                            <div className="space-y-4 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-md border">
+                                <div>
+                                    <Label className="font-bengali">কোর্সের মোড নির্ধারণ করুন</Label>
+                                    <div className="flex items-center gap-4 mt-1">
+                                        <div className="flex items-center gap-2">
+                                            <input type="radio" name="allowedMode" id="mode_offline" value="OFFLINE" defaultChecked />
+                                            <Label htmlFor="mode_offline" className="font-bengali cursor-pointer">অফলাইন</Label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input type="radio" name="allowedMode" id="mode_online" value="ONLINE" />
+                                            <Label htmlFor="mode_online" className="font-bengali cursor-pointer">অনলাইন</Label>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-zinc-500 font-bengali mt-1">
+                                        নতুন কোর্সের জন্য ডিফল্ট মোড।
+                                    </p>
+                                </div>
+
+                                {isSingleCourse && (
+                                    <p className="text-xs text-teal-600 font-bengali bg-teal-50 p-2 rounded border border-teal-100">
+                                        একক কোর্স হিসেবে অটোমেটিক ব্যাচ তৈরি হবে।
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

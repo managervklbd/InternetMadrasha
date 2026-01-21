@@ -44,6 +44,7 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
     // Batch Creation State
     const [isAddingBatch, setIsAddingBatch] = useState(false);
     const [newBatchName, setNewBatchName] = useState("");
+    const [newBatchMode, setNewBatchMode] = useState<"ONLINE" | "OFFLINE">("OFFLINE");
     const [loading, setLoading] = useState(false);
 
     const handleSave = () => {
@@ -67,8 +68,8 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
                 name: newBatchName,
                 departmentId: department.id,
                 type: "SEMESTER",
-                allowedGender: "MALE", // Default, can be updated later if needed
-                allowedMode: "OFFLINE",
+                allowedGender: "MALE",
+                allowedMode: newBatchMode,
                 startDate,
                 endDate
             }) as any;
@@ -217,6 +218,34 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
                                     />
                                 </div>
 
+                                <div className="space-y-1 bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-md border border-zinc-100 dark:border-zinc-800">
+                                    <Label className="text-[10px] uppercase font-bold text-zinc-400 block mb-1 ml-1">মোড নির্ধারণ করুন</Label>
+                                    <div className="flex items-center gap-4 ml-1">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                name="newBatchMode"
+                                                id={`mode_offline_${department.id}`}
+                                                value="OFFLINE"
+                                                checked={newBatchMode === "OFFLINE"}
+                                                onChange={() => setNewBatchMode("OFFLINE")}
+                                            />
+                                            <Label htmlFor={`mode_offline_${department.id}`} className="font-bengali text-xs cursor-pointer">অফলাইন</Label>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="radio"
+                                                name="newBatchMode"
+                                                id={`mode_online_${department.id}`}
+                                                value="ONLINE"
+                                                checked={newBatchMode === "ONLINE"}
+                                                onChange={() => setNewBatchMode("ONLINE")}
+                                            />
+                                            <Label htmlFor={`mode_online_${department.id}`} className="font-bengali text-xs cursor-pointer">অনলাইন</Label>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-1">
                                         <Label className="text-[10px] uppercase font-bold text-zinc-400">শুরুর তারিখ</Label>
@@ -254,6 +283,7 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
                                     batch={batch}
                                     onEdit={handleEditBatch}
                                     onDelete={handleDeleteBatch}
+                                    onRefresh={onRefresh}
                                 />
                             ))
                         ) : (

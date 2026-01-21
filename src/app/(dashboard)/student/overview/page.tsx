@@ -19,6 +19,7 @@ import {
     Globe
 } from "lucide-react";
 import Link from "next/link";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export default async function StudentDashboard() {
     const data = await getStudentDashboardData();
@@ -30,11 +31,34 @@ export default async function StudentDashboard() {
         homeworkCount,
         attendanceToday,
         monthlyFee,
-        currentPlanName
+        currentPlanName,
+        subjects
     } = data;
 
     const isUnpaid = latestInvoice?.status === "UNPAID";
     const isOffline = profile.mode === "OFFLINE";
+
+    const currentEnrollment = (profile as any).enrollments?.[0];
+
+    // Helper to format generic time strings "HH:mm" -> "hh:mm AM/PM"
+    const formatTime = (timeStr: string) => {
+        if (!timeStr) return "";
+        try {
+            // Check if it's already a full date
+            const date = new Date(timeStr);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            // Assume "HH:mm" or "HH:mm:ss"
+            const [hours, minutes] = timeStr.split(':');
+            const d = new Date();
+            d.setHours(parseInt(hours), parseInt(minutes));
+            return d.toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+            return timeStr;
+        }
+    };
 
     return (
         <div className="space-y-8">
@@ -47,22 +71,22 @@ export default async function StudentDashboard() {
                                 <AlertCircle className="w-5 h-5 text-red-600" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-red-900 dark:text-red-400">পেমেন্ট প্রয়োজন</h4>
-                                <p className="text-sm text-red-700 dark:text-red-500">আপনার এই মাসের বেতন বকেয়া রয়েছে। ক্লাসের অ্যাক্সেস সীমাবদ্ধ করা হয়েছে।</p>
+                                <h4 className="font-bold text-red-900 dark:text-red-400 font-bengali">পেমেন্ট প্রয়োজন</h4>
+                                <p className="text-sm text-red-700 dark:text-red-500 font-bengali">আপনার এই মাসের বেতন বকেয়া রয়েছে। ক্লাসের অ্যাক্সেস সীমাবদ্ধ করা হয়েছে।</p>
                             </div>
                         </div>
                         <Link href="/student/billing">
-                            <Button className="bg-red-600 hover:bg-red-700">এখনই পরিশোধ করুন</Button>
+                            <Button className="bg-red-600 hover:bg-red-700 font-bengali">এখনই পরিশোধ করুন</Button>
                         </Link>
                     </div>
                 )}
 
                 {isOffline && (
-                    <div className="bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-blue-900 p-4 rounded-xl flex items-center gap-4">
+                    <div className="bg-blue-50 border border-blue-200 dark:bg-blue-950/20 dark:border-red-900 p-4 rounded-xl flex items-center gap-4">
                         <Globe className="w-6 h-6 text-blue-600" />
                         <div>
-                            <h4 className="font-bold text-blue-900 dark:text-blue-400">অফলাইন হাজিরা মোড</h4>
-                            <p className="text-sm text-blue-700 dark:text-blue-500">আপনার হাজিরা মাদ্রাসায় সরাসরি আপনার ওস্তাদ দ্বারা চিহ্নিত করা হয়।</p>
+                            <h4 className="font-bold text-blue-900 dark:text-blue-400 font-bengali">অফলাইন হাজিরা মোড</h4>
+                            <p className="text-sm text-blue-700 dark:text-blue-500 font-bengali">আপনার হাজিরা মাদ্রাসায় সরাসরি আপনার ওস্তাদ দ্বারা চিহ্নিত করা হয়।</p>
                         </div>
                     </div>
                 )}
@@ -71,90 +95,163 @@ export default async function StudentDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-zinc-500">দৈনিক ক্লাস</CardTitle>
+                        <CardTitle className="text-sm font-medium text-zinc-500 font-bengali">দৈনিক ক্লাস</CardTitle>
                         <Calendar className="h-4 w-4 text-teal-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{sessions.length}</div>
-                        <p className="text-xs text-zinc-500 mt-1">আজকের শিডিউল</p>
+                        <p className="text-xs text-zinc-500 mt-1 font-bengali">আজকের শিডিউল</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-zinc-500">পেমেন্ট স্ট্যাটাস</CardTitle>
+                        <CardTitle className="text-sm font-medium text-zinc-500 font-bengali">পেমেন্ট স্ট্যাটাস</CardTitle>
                         <CreditCard className="h-4 w-4 text-teal-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold ${isUnpaid ? 'text-red-600' : 'text-green-600'}`}>
-                            {latestInvoice?.status || "কোন ইনভয়েস নেই"}
+                        <div className={`text-2xl font-bold font-bengali ${isUnpaid ? 'text-red-600' : 'text-green-600'}`}>
+                            {latestInvoice?.status === 'PAID' ? 'পরিশোধিত' : latestInvoice?.status === 'UNPAID' ? 'বকেয়া' : "কোন ইনভয়েস নেই"}
                         </div>
-                        <p className="text-xs text-zinc-500 mt-1">মাস: {latestInvoice?.month}/{latestInvoice?.year}</p>
+                        <p className="text-xs text-zinc-500 mt-1 font-bengali">মাস: {latestInvoice?.month}/{latestInvoice?.year}</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-zinc-500">এ্যাসাইনমেন্ট</CardTitle>
+                        <CardTitle className="text-sm font-medium text-zinc-500 font-bengali">এ্যাসাইনমেন্ট</CardTitle>
                         <BookOpen className="h-4 w-4 text-teal-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{homeworkCount}</div>
-                        <p className="text-xs text-zinc-500 mt-1">জমা দেওয়া বাকি</p>
+                        <p className="text-xs text-zinc-500 mt-1 font-bengali">জমা দেওয়া বাকি</p>
                     </CardContent>
                 </Card>
 
                 <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium text-zinc-500">আজকের উপস্থিতি</CardTitle>
+                        <CardTitle className="text-sm font-medium text-zinc-500 font-bengali">আজকের উপস্থিতি</CardTitle>
                         <CheckCircle2 className="h-4 w-4 text-teal-600" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{attendanceToday.length}</div>
-                        <p className="text-xs text-zinc-500 mt-1">সেশনে যোগদান/চিহ্নিত</p>
+                        <p className="text-xs text-zinc-500 mt-1 font-bengali">সেশনে যোগদান/চিহ্নিত</p>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
+                    {/* My Subjects Section */}
+                    <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 bg-teal-50/20 dark:bg-teal-900/10">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="flex items-center gap-2 font-bengali">
+                                <BookOpen className="w-5 h-5 text-teal-600" />
+                                আমার বিষয়সমূহ
+                            </CardTitle>
+                            <CardDescription className="font-bengali">আপনার বর্তমান ব্যাচে যে সকল বিষয় পড়ানো হচ্ছে।</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                                {subjects.length === 0 ? (
+                                    <div className="text-zinc-500 italic font-bengali py-4">কোনো বিষয় নির্ধারিত নেই।</div>
+                                ) : (
+                                    subjects.map((sub: any) => (
+                                        <Badge key={sub.id} variant="secondary" className="px-4 py-2 text-sm bg-white dark:bg-zinc-900 border-zinc-200 font-bengali">
+                                            {sub.name}
+                                        </Badge>
+                                    ))
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {/* Class Join Section */}
                     <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-950">
                         <CardHeader>
-                            <CardTitle>লাইভ ক্লাস</CardTitle>
-                            <CardDescription>আপনার নির্ধারিত অনলাইন ক্লাসে এখান থেকে সরাসরি যোগ দিন।</CardDescription>
+                            <CardTitle className="font-bengali">লাইভ ক্লাস</CardTitle>
+                            <CardDescription className="font-bengali">আপনার নির্ধারিত অনলাইন ক্লাসে এখান থেকে সরাসরি যোগ দিন।</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {sessions.length === 0 ? (
-                                    <div className="text-center py-12 text-zinc-500 italic">আজকের জন্য কোনো ক্লাস নির্ধারিত নেই।</div>
-                                ) : (
-                                    sessions.map((session) => (
-                                        <div key={session.id} className="flex items-center justify-between p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
-                                                    <Video className="w-6 h-6 text-teal-600" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold">{session.batch.name}</h4>
-                                                    <p className="text-xs text-zinc-500">ওস্তাদ: Muhammad Abdullah</p>
-                                                </div>
-                                            </div>
+                                {!isOffline ? (
+                                    /* ================= ONLINE STUDENT VIEW ================= */
+                                    (data as any).onlineLiveClasses?.length > 0 ? (
+                                        (data as any).onlineLiveClasses.map((liveClass: any) => (
+                                            <div key={liveClass.id} className="flex flex-col gap-4 p-5 rounded-2xl bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
+                                                            <Video className="w-6 h-6 text-teal-600" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-teal-900 dark:text-teal-100">{liveClass.title}</h4>
+                                                            <p className="text-xs text-teal-700 dark:text-teal-400 font-bengali">
+                                                                ওস্তাদ: {liveClass.teacher?.fullName || "নির্ধারিত নেই"}
+                                                            </p>
+                                                        </div>
+                                                    </div>
 
-                                            {isUnpaid ? (
-                                                <Button disabled className="gap-2 bg-zinc-200 text-zinc-500">
-                                                    <Lock className="w-4 h-4" />
-                                                    লক করা
-                                                </Button>
-                                            ) : isOffline ? (
-                                                <Badge variant="outline">শুধুমাত্র অফলাইন</Badge>
-                                            ) : (
-                                                <Button className="bg-teal-600 hover:bg-teal-700 gap-2">
-                                                    ক্লাসে যোগ দিন
-                                                </Button>
-                                            )}
-                                        </div>
-                                    ))
+                                                    {isUnpaid ? (
+                                                        <Button disabled className="gap-2 bg-zinc-200 text-zinc-500 font-bengali">
+                                                            <Lock className="w-4 h-4" />
+                                                            লক করা
+                                                        </Button>
+                                                    ) : (
+                                                        <a href={liveClass.liveLink} target="_blank" rel="noopener noreferrer">
+                                                            <Button className="bg-teal-600 hover:bg-teal-700 gap-2 font-bengali">
+                                                                ক্লাসে যোগ দিন
+                                                            </Button>
+                                                        </a>
+                                                    )}
+                                                </div>
+
+                                                {/* Show Session Times */}
+                                                {liveClass.sessionDetails && liveClass.sessionDetails.length > 0 && (
+                                                    <div className="flex gap-2 flex-wrap">
+                                                        {liveClass.sessionDetails.map((session: any) => (
+                                                            <Badge key={session.key} variant="secondary" className="bg-white dark:bg-zinc-900 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800">
+                                                                {session.label}: {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-12 text-zinc-500 italic font-bengali">আজকের জন্য কোনো লাইভ ক্লাস নির্ধারিত নেই।</div>
+                                    )
+                                ) : (
+                                    /* ================= OFFLINE STUDENT VIEW ================= */
+                                    sessions.length === 0 ? (
+                                        <div className="text-center py-12 text-zinc-500 italic font-bengali">আজকের জন্য কোনো ক্লাস নির্ধারিত নেই।</div>
+                                    ) : (
+                                        sessions.map((session) => (
+                                            <div key={session.id} className="flex items-center justify-between p-5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
+                                                        <Video className="w-6 h-6 text-teal-600" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex flex-wrap items-center gap-1 text-[10px] text-zinc-400 font-bengali mb-0.5">
+                                                            <span>{(session.batch as any).department?.course?.name}</span>
+                                                            <span>/</span>
+                                                            <span>{(session.batch as any).department?.name}</span>
+                                                        </div>
+                                                        <h4 className="font-bold">{(session.batch as any).name}</h4>
+                                                        <span className="text-[10px] text-teal-600 font-medium">সময়: {new Date(session.startTime).toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <p className="text-xs text-zinc-500 font-bengali">
+                                                            ওস্তাদ: {session.batch.teachers && session.batch.teachers.length > 0
+                                                                ? session.batch.teachers.map((t: any) => t.fullName).join(", ")
+                                                                : "নির্ধারিত নেই"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <Badge variant="outline" className="font-bengali">অফলাইন শিডিউল</Badge>
+                                            </div>
+                                        ))
+                                    )
                                 )}
                             </div>
                         </CardContent>
@@ -163,16 +260,16 @@ export default async function StudentDashboard() {
                     {/* Homework List Section */}
                     <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 bg-white dark:bg-zinc-950">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
+                            <CardTitle className="flex items-center gap-2 font-bengali">
                                 <BookOpen className="w-5 h-5 text-teal-600" />
                                 সক্রিয় হোমওয়ার্ক
                             </CardTitle>
-                            <CardDescription>আপনার জমা দেওয়ার বাকি থাকা কাজসমূহ।</CardDescription>
+                            <CardDescription className="font-bengali">আপনার জমা দেওয়ার বাকি থাকা কাজসমূহ।</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
                                 {homework.length === 0 ? (
-                                    <div className="text-center py-8 text-zinc-500 italic">নতুন কোনো হোমওয়ার্ক নেই।</div>
+                                    <div className="text-center py-8 text-zinc-500 italic font-bengali">নতুন কোনো হোমওয়ার্ক নেই।</div>
                                 ) : (
                                     homework.map((hw) => (
                                         <div key={hw.id} className="p-4 rounded-xl flex items-center justify-between bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800">
@@ -180,7 +277,7 @@ export default async function StudentDashboard() {
                                                 <h4 className="font-bold">{hw.title}</h4>
                                                 <div className="flex items-center gap-3 mt-1">
                                                     <Badge variant="secondary" className="text-[10px]">{hw.batch.name}</Badge>
-                                                    <span className="text-[10px] text-zinc-500">ডেডলাইন: {new Date(hw.deadline).toLocaleDateString('bn-BD')}</span>
+                                                    <span className="text-[10px] text-zinc-500 font-bengali">ডেডলাইন: {new Date(hw.deadline).toLocaleDateString('bn-BD')}</span>
                                                 </div>
                                             </div>
                                             <Link href={`/student/homework/${hw.id}`}>
@@ -197,14 +294,11 @@ export default async function StudentDashboard() {
                 {/* Quick Links / Profile Info */}
                 <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                     <CardHeader>
-                        <CardTitle>আমার এনরোলমেন্ট</CardTitle>
-                        <CardDescription>একাডেমিক পরিচয় এবং প্ল্যান বিস্তারিত।</CardDescription>
+                        <CardTitle className="font-bengali">আমার এনরোলমেন্ট</CardTitle>
+                        <CardDescription className="font-bengali">একাডেমিক পরিচয় এবং প্ল্যান বিস্তারিত।</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-zinc-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden">
-                                <span className="text-2xl font-bold text-zinc-400">{profile.fullName[0]}</span>
-                            </div>
                             <div>
                                 <h3 className="font-bold text-lg">{profile.fullName}</h3>
                                 <p className="text-sm text-zinc-500 uppercase font-mono tracking-tighter">ID: {profile.studentID}</p>
@@ -213,21 +307,29 @@ export default async function StudentDashboard() {
 
                         <div className="pt-4 border-t border-zinc-100 space-y-3">
                             <div className="flex justify-between text-sm">
-                                <span className="text-zinc-500">বর্তমান প্ল্যান</span>
+                                <span className="text-zinc-500 font-bengali">মারহালা (কোর্স)</span>
+                                <span className="font-bold font-bengali">{(profile as any).department?.course?.name || "প্রযোজ্য নয়"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500 font-bengali">বিভাগ</span>
+                                <span className="font-bold font-bengali">{(profile as any).department?.name || "প্রযোজ্য নয়"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-500 font-bengali">সেমিস্টার (ব্যাচ)</span>
+                                <span className="font-bold font-bengali">{currentEnrollment?.batch?.name || "প্রযোজ্য নয়"}</span>
+                            </div>
+                            <div className="flex justify-between text-sm border-t pt-2 mt-2">
+                                <span className="text-zinc-500 font-bengali">বর্তমান প্ল্যান</span>
                                 <span className="font-bold text-teal-600 font-bengali">{currentPlanName}</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span className="text-zinc-500">মাসিক খরচ</span>
+                                <span className="text-zinc-500 font-bengali">মাসিক খরচ</span>
                                 <span className="font-bold text-teal-900 dark:text-teal-100">৳{monthlyFee}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                                <span className="text-zinc-500">আবাসিক অবস্থা</span>
-                                <span className="font-bold capitalize">{profile.residency.toLowerCase()}</span>
                             </div>
                         </div>
 
                         <Link href="/student/profile">
-                            <Button variant="outline" className="w-full mt-4 h-11">সম্পূর্ণ প্রোফাইল দেখুন</Button>
+                            <Button variant="outline" className="w-full mt-4 h-11 font-bengali">সম্পূর্ণ প্রোফাইল দেখুন</Button>
                         </Link>
                     </CardContent>
                 </Card>

@@ -28,6 +28,9 @@ export function MonthlyLiveClassModal({
     const [selectedCourse, setSelectedCourse] = useState("");
     const [selectedDept, setSelectedDept] = useState("");
     const [selectedBatch, setSelectedBatch] = useState("");
+    const [sessionConfigs, setSessionConfigs] = useState<any[]>([]);
+    const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
 
     const departments = selectedCourse ? academicData.find(c => c.id === selectedCourse)?.departments || [] : [];
     const batches = selectedDept ? departments.find((d: any) => d.id === selectedDept)?.batches || [] : [];
@@ -35,7 +38,8 @@ export function MonthlyLiveClassModal({
     useEffect(() => {
         if (open) {
             getTeachers().then(setTeachers);
-            getAcademicStructure().then(data => {
+            // STRICT FILTERING: Live Classes are only for ONLINE batches
+            getAcademicStructure("ONLINE").then(data => {
                 setAcademicData(data);
 
                 // Pre-select if initialData exists (Need to find parents)

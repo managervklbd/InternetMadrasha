@@ -19,7 +19,8 @@ import {
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { SidebarContent } from "@/components/layout/SidebarContent";
 import { ModeToggle } from "@/components/layout/ModeToggle";
-import { getSiteSettings } from "@/lib/actions/settings-actions";
+import { getSiteSettings, getAdminViewMode, setAdminViewMode } from "@/lib/actions/settings-actions";
+import { ViewModeToggle } from "@/components/layout/ViewModeToggle";
 
 export default async function DashboardLayout({
     children,
@@ -29,6 +30,7 @@ export default async function DashboardLayout({
     const session = await auth();
     const role = session?.user?.role || "GUEST";
     const settings = await getSiteSettings();
+    const viewMode = await getAdminViewMode();
 
     const adminLinks = [
         {
@@ -68,20 +70,31 @@ export default async function DashboardLayout({
 
     const teacherLinks = [
         {
-            title: "Overview",
+            title: "সারসংক্ষেপ",
             items: [
                 { href: "/teacher/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
             ]
         },
         {
-            title: "Teaching",
+            title: "শিক্ষাদান ও মূল্যায়ন",
             items: [
-                { href: "/teacher/batches", label: "আমার ক্লাস", iconName: "BookOpen" },
-                { href: "/teacher/live-classes", label: "আমার লাইভ ক্লাস", iconName: "Video" },
+                { href: "/teacher/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },
                 { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
+                { href: "/teacher/homework", label: "হোমওয়ার্ক / অ্যাসাইনমেন্ট", iconName: "BookOpen" },
+                { href: "/teacher/marks", label: "গ্রেড বুক (নম্বর এন্ট্রি)", iconName: "CalendarCheck" },
             ]
         }
     ];
+
+    let studentMode = "ONLINE";
+    if (role === "STUDENT" && session?.user?.id) {
+        const { prisma } = await import("@/lib/db");
+        const profile = await prisma.studentProfile.findUnique({
+            where: { userId: session.user.id },
+            select: { mode: true }
+        });
+        if (profile) studentMode = profile.mode;
+    }
 
     const studentLinks = [
         {
@@ -94,8 +107,9 @@ export default async function DashboardLayout({
         {
             title: "Academic",
             items: [
-                { href: "/student/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },
+                ...(studentMode === "ONLINE" ? [{ href: "/student/live-classes", label: "লাইভ ক্লাস", iconName: "Video" }] : []),
                 { href: "/student/attendance", label: "হাজিরা রিপোর্ট", iconName: "Calendar" },
+                { href: "/student/homework", label: "হোমওয়ার্ক / অ্যাসাইনমেন্ট", iconName: "BookOpen" },
             ]
         },
         {
@@ -113,8 +127,13 @@ export default async function DashboardLayout({
         await signOut();
     }
 
+    async function toggleViewMode(mode: "ONLINE" | "OFFLINE") {
+        "use server";
+        await setAdminViewMode(mode);
+    }
+
     return (
-        <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans print:h-auto print:overflow-visible">
+        <div className={`flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans print:h-auto print:overflow-visible ${viewMode === 'ONLINE' ? 'theme-online' : 'theme-offline'}`}>
             {/* Desktop Sidebar */}
             <aside className="w-72 hidden md:flex border-r border-teal-800 flex-col relative overflow-hidden shadow-2xl print:hidden">
                 <SidebarContent
@@ -123,6 +142,7 @@ export default async function DashboardLayout({
                     signOutAction={handleSignOut}
                     brandName={settings?.madrasaName || "ইন্টারনেট মাদ্রাসা"}
                     brandLogo={settings?.madrasaLogo}
+                    viewMode={role === 'ADMIN' ? viewMode : undefined}
                 />
             </aside>
 
@@ -136,12 +156,17 @@ export default async function DashboardLayout({
                             signOutAction={handleSignOut}
                             brandName={settings?.madrasaName || "ইন্টারনেট মাদ্রাসা"}
                             brandLogo={settings?.madrasaLogo}
+                            viewMode={role === 'ADMIN' ? viewMode : undefined}
                         />
 
                         <div>
-                            <h2 className="text-xl md:text-2xl font-bold font-bengali text-teal-900 dark:text-teal-50">
+                            <h2 className="text-xl md:text-2xl font-bold font-bengali text-teal-900 dark:text-teal-50 flex items-center gap-2">
                                 {role === "ADMIN" ? "অ্যাডমিন প্যানেল" : role === "TEACHER" ? "শিক্ষক ড্যাশবোর্ড" : "ছাত্র ড্যাশবোর্ড"}
+                                {role === "ADMIN" && (
+                                    <ViewModeToggle currentMode={viewMode} onToggle={toggleViewMode} />
+                                )}
                             </h2>
+
                             <p className="hidden md:block text-xs text-zinc-500 font-medium">বিসমিল্লাহির রাহমানির রাহিম</p>
                         </div>
                     </div>

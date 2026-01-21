@@ -28,6 +28,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 interface CourseItemProps {
     course: {
@@ -41,6 +42,11 @@ interface CourseItemProps {
 
 export function CourseItem({ course, onRefresh }: CourseItemProps) {
     const [isOpen, setIsOpen] = useState(false);
+
+    // Calculate available modes
+    const modes = Array.from(new Set(course.departments.flatMap(d => d.batches?.map((b: any) => b.allowedMode) || [])));
+    const hasOnline = modes.includes("ONLINE");
+    const hasOffline = modes.includes("OFFLINE");
 
     // Dept Creation State
     const [isAddingDept, setIsAddingDept] = useState(false);
@@ -179,11 +185,15 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
                                     {course.durationMonths && (
                                         <>
                                             <span>•</span>
-                                            <span className="font-medium text-teal-600 dark:text-teal-400">
-                                                মেয়াদ: {course.durationMonths.toLocaleString('bn-BD')} মাস
+                                            <span className="font-medium text-teal-600 dark:text-teal-400 whitespace-nowrap">
+                                                মেয়াদ: {course.durationMonths} মাস
                                             </span>
                                         </>
                                     )}
+                                    <div className="flex gap-1 ml-2">
+                                        {hasOnline && <Badge variant="secondary" className="text-[10px] h-5 px-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200">অনলাইন</Badge>}
+                                        {hasOffline && <Badge variant="secondary" className="text-[10px] h-5 px-1 bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 border-zinc-200">অফলাইন</Badge>}
+                                    </div>
                                 </div>
                             </div>
                         </>
@@ -236,62 +246,64 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
             </div>
 
             {/* Body */}
-            {isOpen && (
-                <div className="p-4 pt-0 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-black/20">
-                    <div className="space-y-3 mt-4">
-                        {/* Add Department Form */}
-                        {isAddingDept && (
-                            <form onSubmit={handleCreateDepartment} className="flex items-center gap-2 p-3 bg-white dark:bg-zinc-900 rounded-lg border border-teal-200 dark:border-teal-900 shadow-sm animate-in fade-in slide-in-from-top-2">
-                                <Input
-                                    className="font-bengali focus-visible:ring-teal-500"
-                                    placeholder="বিভাগের নাম লিখুন..."
-                                    value={newDeptName}
-                                    onChange={(e) => setNewDeptName(e.target.value)}
-                                    autoFocus
-                                />
-                                <Input
-                                    className="w-32 font-mono uppercase focus-visible:ring-teal-500"
-                                    placeholder="CODE (e.g. MZN)"
-                                    maxLength={3}
-                                    value={newDeptCode}
-                                    onChange={(e) => setNewDeptCode(e.target.value.toUpperCase())}
-                                />
-                                <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white font-bengali gap-1" disabled={loading}>
-                                    {loading ? "যোগ হচ্ছে..." : "সংরক্ষণ করুন"}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsAddingDept(false)}
-                                    className="text-zinc-500"
-                                >
-                                    বাতিল
-                                </Button>
-                            </form>
-                        )}
+            {
+                isOpen && (
+                    <div className="p-4 pt-0 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-black/20">
+                        <div className="space-y-3 mt-4">
+                            {/* Add Department Form */}
+                            {isAddingDept && (
+                                <form onSubmit={handleCreateDepartment} className="flex items-center gap-2 p-3 bg-white dark:bg-zinc-900 rounded-lg border border-teal-200 dark:border-teal-900 shadow-sm animate-in fade-in slide-in-from-top-2">
+                                    <Input
+                                        className="font-bengali focus-visible:ring-teal-500"
+                                        placeholder="বিভাগের নাম লিখুন..."
+                                        value={newDeptName}
+                                        onChange={(e) => setNewDeptName(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <Input
+                                        className="w-32 font-mono uppercase focus-visible:ring-teal-500"
+                                        placeholder="CODE (e.g. MZN)"
+                                        maxLength={3}
+                                        value={newDeptCode}
+                                        onChange={(e) => setNewDeptCode(e.target.value.toUpperCase())}
+                                    />
+                                    <Button type="submit" size="sm" className="bg-teal-600 hover:bg-teal-700 text-white font-bengali gap-1" disabled={loading}>
+                                        {loading ? "যোগ হচ্ছে..." : "সংরক্ষণ করুন"}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setIsAddingDept(false)}
+                                        className="text-zinc-500"
+                                    >
+                                        বাতিল
+                                    </Button>
+                                </form>
+                            )}
 
-                        {/* Departments List */}
-                        {course.departments.length > 0 ? (
-                            course.departments.map(dept => (
-                                <DepartmentItem
-                                    key={dept.id}
-                                    department={dept}
-                                    onEdit={handleEditDepartment}
-                                    onDelete={handleDeleteDepartment}
-                                    onRefresh={onRefresh}
-                                />
-                            ))
-                        ) : (
-                            !isAddingDept && (
-                                <p className="text-center text-sm text-zinc-400 py-4 font-bengali">
-                                    এই কোর্সে কোনো বিভাগ নেই
-                                </p>
-                            )
-                        )}
+                            {/* Departments List */}
+                            {course.departments.length > 0 ? (
+                                course.departments.map(dept => (
+                                    <DepartmentItem
+                                        key={dept.id}
+                                        department={dept}
+                                        onEdit={handleEditDepartment}
+                                        onDelete={handleDeleteDepartment}
+                                        onRefresh={onRefresh}
+                                    />
+                                ))
+                            ) : (
+                                !isAddingDept && (
+                                    <p className="text-center text-sm text-zinc-400 py-4 font-bengali">
+                                        এই কোর্সে কোনো বিভাগ নেই
+                                    </p>
+                                )
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

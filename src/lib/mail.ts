@@ -152,3 +152,118 @@ export async function sendPasswordResetEmail(email: string, resetLink: string) {
         return { success: false, error: "Failed to send email" };
     }
 }
+
+export async function sendPaymentConfirmationEmail(
+    email: string,
+    studentName: string,
+    amount: number,
+    transactionId: string,
+    items: { description: string; amount: number }[]
+) {
+    try {
+        const settings = await prisma.siteSettings.findFirst({
+            where: { id: 1 },
+        });
+
+        if (!settings || !settings.smtpHost || !settings.smtpUser || !settings.smtpPass) {
+            console.error("SMTP settings not configured");
+            return { success: false, error: "SMTP Not Configured" };
+        }
+
+        const isSecure = settings.smtpSecure || false;
+        const port = settings.smtpPort || 587;
+        const shouldUseSecure = port === 465 ? true : (port === 587 ? false : isSecure);
+
+        const transporter = nodemailer.createTransport({
+            host: settings.smtpHost,
+            port: port,
+            secure: shouldUseSecure,
+            auth: {
+                user: settings.smtpUser,
+                pass: settings.smtpPass,
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+        });
+
+        const logoUrl = settings.madrasaLogo || "https://placehold.co/100x100?text=Logo";
+        const date = new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' });
+
+        const itemsHtml = items.map(item => `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 12px; color: #374151;">${item.description}</td>
+                <td style="padding: 12px; text-align: right; color: #111827; font-weight: 500;">BDT ${item.amount}</td>
+            </tr>
+        `).join('');
+
+        const mailOptions = {
+            from: `"${settings.madrasaName}" <${settings.smtpUser}>`,
+            to: email,
+            subject: `Payment Confirmation - ${transactionId}`,
+            html: `
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;">
+                    <!-- Header -->
+                    <div style="background-color: #0d9488; padding: 30px 20px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">${settings.madrasaName}</h1>
+                        <p style="color: #ccfbf1; margin: 5px 0 0;">Payment Receipt</p>
+                    </div>
+
+                    <!-- Content -->
+                    <div style="padding: 40px 30px;">
+                        <p style="font-size: 16px; color: #374151; margin-top: 0;">Dear <strong>${studentName}</strong>,</p>
+                        <p style="font-size: 16px; color: #374151; line-height: 1.5;">
+                            We have received your payment. Thank you for staying with us.
+                        </p>
+
+                        <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 25px 0;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: #6b7280; font-size: 14px;">Transaction ID</span>
+                                <span style="color: #111827; font-weight: 600; font-size: 14px;">${transactionId}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #6b7280; font-size: 14px;">Date</span>
+                                <span style="color: #111827; font-weight: 600; font-size: 14px;">${date}</span>
+                            </div>
+                        </div>
+
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+                            <thead>
+                                <tr style="background-color: #f9fafb; text-align: left;">
+                                    <th style="padding: 12px; color: #6b7280; font-weight: 600; font-size: 13px; text-transform: uppercase;">Description</th>
+                                    <th style="padding: 12px; text-align: right; color: #6b7280; font-weight: 600; font-size: 13px; text-transform: uppercase;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsHtml}
+                                <tr>
+                                    <td style="padding: 12px; font-weight: bold; color: #111827; border-top: 2px solid #e5e7eb;">Total</td>
+                                    <td style="padding: 12px; text-align: right; font-weight: bold; color: #0d9488; font-size: 18px; border-top: 2px solid #e5e7eb;">BDT ${amount}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <p style="font-size: 14px; color: #6b7280; margin-top: 30px; text-align: center;">
+                            If you have any questions about this payment, please contact the administration office.
+                        </p>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #f3f4f6;">
+                        <p style="font-size: 12px; color: #6b7280; margin: 0;">
+                            &copy; ${new Date().getFullYear()} ${settings.madrasaName}.
+                        </p>
+                    </div>
+                </div>
+            `,
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Payment Invoice Email sent: %s", info.messageId);
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error sending payment email:", error);
+        return { success: false, error: "Failed to send payment email" };
+    }
+}

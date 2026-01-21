@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { SidebarContent } from "./SidebarContent";
 
-export function MobileSidebar({ role, links, signOutAction, brandName, brandLogo }: { role: string, links: any[], signOutAction: () => Promise<void>, brandName: string, brandLogo?: string | null }) {
+export function MobileSidebar({ role, links, signOutAction, brandName, brandLogo, viewMode }: {
+    role: string,
+    links: any[],
+    signOutAction: () => Promise<void>,
+    brandName: string,
+    brandLogo?: string | null,
+    viewMode?: "ONLINE" | "OFFLINE"
+}) {
     return (
         <Sheet>
             <SheetTrigger asChild>
@@ -21,6 +28,7 @@ export function MobileSidebar({ role, links, signOutAction, brandName, brandLogo
                     signOutAction={signOutAction}
                     brandName={brandName}
                     brandLogo={brandLogo}
+                    viewMode={viewMode}
                 />
             </SheetContent>
         </Sheet>
