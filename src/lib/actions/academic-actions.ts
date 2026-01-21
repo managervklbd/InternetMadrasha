@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { BatchType, Gender, StudentMode } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 
 export async function createCourse(data: {
     name: string;
@@ -63,6 +64,7 @@ export async function createCourse(data: {
             });
         }
 
+        revalidatePath("/admin/billing");
         return { success: true, data: course };
     } catch (error: any) {
         console.error("Error creating course:", error);
@@ -91,6 +93,7 @@ export async function createDepartment(name: string, courseId: string, code?: st
                 code: deptCode // Updated property
             }
         });
+        revalidatePath("/admin/billing");
         return { success: true, data: department };
     } catch (error: any) {
         return { success: false, error: "বিভাগ তৈরি করতে ব্যর্থ হয়েছে।" };
@@ -138,6 +141,7 @@ export async function createBatch(data: {
                 endDate: data.endDate
             },
         });
+        revalidatePath("/admin/billing");
         return { success: true, data: batch };
     } catch (error: any) {
         console.error("Error creating batch:", error);
@@ -149,6 +153,7 @@ export async function deleteBatch(id: string) {
     if (!id) return { success: false, error: "ID required" };
     try {
         await prisma.batch.delete({ where: { id } });
+        revalidatePath("/admin/billing");
         return { success: true };
     } catch (error) {
         console.error("Error deleting batch:", error);
@@ -164,6 +169,7 @@ export async function updateCourse(id: string, data: {
     name: string;
     monthlyFee?: number;
     admissionFee?: number;
+    sadkaFee?: number;
     durationMonths?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
@@ -174,9 +180,11 @@ export async function updateCourse(id: string, data: {
                 name: data.name,
                 monthlyFee: data.monthlyFee,
                 admissionFee: data.admissionFee,
+                sadkaFee: data.sadkaFee,
                 durationMonths: data.durationMonths
             }
         });
+        revalidatePath("/admin/billing");
         return { success: true };
     } catch (error) {
         console.error("Error updating course:", error);
@@ -188,6 +196,7 @@ export async function deleteCourse(id: string) {
     if (!id) return { success: false, error: "ID required" };
     try {
         await prisma.course.delete({ where: { id } });
+        revalidatePath("/admin/billing");
         return { success: true };
     } catch (error) {
         console.error("Error deleting course:", error);
@@ -195,15 +204,24 @@ export async function deleteCourse(id: string) {
     }
 }
 
-export async function updateDepartment(id: string, name: string) {
-    if (!id || !name) return { success: false, error: "ID and Name required" };
+export async function updateDepartment(id: string, data: {
+    name: string;
+    monthlyFee?: number;
+    sadkaFee?: number;
+    admissionFee?: number;
+}) {
+    if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
         await prisma.department.update({
             where: { id },
             data: {
-                name,
+                name: data.name,
+                monthlyFee: data.monthlyFee,
+                sadkaFee: data.sadkaFee,
+                admissionFee: data.admissionFee,
             }
         });
+        revalidatePath("/admin/billing");
         return { success: true };
     } catch (error) {
         console.error("Error updating department:", error);
@@ -215,6 +233,7 @@ export async function deleteDepartment(id: string) {
     if (!id) return { success: false, error: "ID required" };
     try {
         await prisma.department.delete({ where: { id } });
+        revalidatePath("/admin/billing");
         return { success: true };
     } catch (error) {
         console.error("Error deleting department:", error);
@@ -225,6 +244,8 @@ export async function deleteDepartment(id: string) {
 export async function updateBatch(id: string, data: {
     name: string;
     monthlyFee?: number;
+    sadkaFee?: number;
+    admissionFee?: number;
     startDate?: Date;
     endDate?: Date;
 }) {
@@ -235,10 +256,13 @@ export async function updateBatch(id: string, data: {
             data: {
                 name: data.name,
                 monthlyFee: data.monthlyFee,
+                sadkaFee: data.sadkaFee,
+                admissionFee: data.admissionFee,
                 startDate: data.startDate,
                 endDate: data.endDate
             }
         });
+        revalidatePath("/admin/billing");
         return { success: true };
     } catch (error) {
         console.error("Error updating batch:", error);

@@ -468,3 +468,69 @@ enum FeeTier {
   GENERAL
   SADKA
 }
+
+model Donor {
+  id          String     @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  
+  // New fields for Committee/Monthly support
+  committee   String?    // e.g. "313 Badri Committee"
+  type        String?    @default("GENERAL") // MONTHLY, GENERAL
+  fixedAmount Float?     @default(0)
+  notes       String?
+
+  donations   Donation[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model CommitteeMember {
+  // Keeping this for now, but might migrate to Donor with type=COMMITTEE if user prefers single table
+  // But user said "Committee... is one, Donor... is another". 
+  // Ideally, Committee Members ARE Donors who pay monthly. 
+  // Let's keep this model if it's used for literal board members, 
+  // but the screenshot shown "Add Donor" includes "Committee Name".
+  // This implies the "Donor" entity creates the link.
+  id                 String     @id @default(cuid())
+  name               String
+  phone              String?
+  email              String?
+  role               String     @default("Member")
+  active             Boolean    @default(true)
+  collectedDonations Donation[]
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+model Donation {
+  id            String          @id @default(cuid())
+  amount        Float
+  purpose       DonationPurpose @default(DONATION)
+  paymentMethod PaymentMethod   @default(CASH)
+  transactionId String?
+  date          DateTime        @default(now())
+  receiptNo     String?         @unique
+  notes         String?
+  
+  donorId       String?
+  donor         Donor?          @relation(fields: [donorId], references: [id])
+  
+  collectedById String?
+  collectedBy   CommitteeMember? @relation(fields: [collectedById], references: [id])
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+enum DonationPurpose {
+  ZAKAT
+  SADAQAH
+  NAFL
+  DONATION
+  LILLAH_BOARDING
+  CONSTRUCTION
+  OTHER
+}

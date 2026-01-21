@@ -160,7 +160,7 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
         return { success: true, created: true, invoice };
     }
 
-    return { success: false, error: "No fee amount found for student" };
+    return { success: true, skipped: true, reason: "Zero total amount" };
 }
 
 export async function generateMonthlyInvoices() {
@@ -171,20 +171,100 @@ export async function generateMonthlyInvoices() {
             select: { id: true }
         });
 
-        let count = 0;
+        let createdCount = 0;
+        let updatedCount = 0;
+        let existedCount = 0;
+        let skippedCount = 0;
+        let errorCount = 0;
+
         for (const student of students) {
-            const res = await syncStudentMonthlyInvoice(student.id);
-            if (res.success && (res as any).created) {
-                count++;
+            try {
+                const res = await syncStudentMonthlyInvoice(student.id);
+                if (res && res.success) {
+                    if ((res as any).created) createdCount++;
+                    else if ((res as any).updated) updatedCount++;
+                    else if ((res as any).alreadyExisted) existedCount++;
+                    else if ((res as any).skipped) skippedCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (err) {
+                console.error(`Error for student ${student.id}:`, err);
+                errorCount++;
             }
         }
 
         const { revalidatePath } = await import("next/cache");
         revalidatePath("/admin/billing");
 
-        return { success: true, count };
+        return {
+            success: true,
+            created: createdCount,
+            updated: updatedCount,
+            existed: existedCount,
+            skipped: skippedCount,
+            errors: errorCount,
+            total: students.length
+        };
     } catch (error) {
         console.error("Error generating invoices:", error);
         return { success: false, error: "Failed to generate invoices" };
+    }
+}
+
+export async function getStudentInvoices(studentId: string) {
+    try {
+        const invoices = await prisma.monthlyInvoice.findMany({
+            where: { studentId },
+            include: {
+                transactions: true,
+                plan: true
+            },
+            orderBy: [
+                { year: 'desc' },
+                { month: 'desc' }
+            ]
+        });
+        return invoices;
+    } catch (error) {
+        console.error("Error fetching student invoices:", error);
+        return [];
+    }
+}
+
+export async function getInvoiceById(id: string) {
+    try {
+        const invoice = await prisma.monthlyInvoice.findUnique({
+            where: { id },
+            include: {
+                student: {
+                    include: {
+                        enrollments: {
+                            include: {
+                                batch: {
+                                    include: {
+                                        department: {
+                                            include: { course: true }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        department: {
+                            include: { course: true }
+                        },
+                        user: {
+                            select: { email: true }
+                        }
+                    }
+                },
+                plan: true,
+                transactions: true
+            }
+        });
+        return invoice;
+    } catch (error) {
+        console.error("Error fetching invoice:", error);
+        return null;
     }
 }

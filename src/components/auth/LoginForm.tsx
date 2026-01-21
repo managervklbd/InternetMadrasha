@@ -93,6 +93,11 @@ export default function LoginForm() {
                             </button>
                         </div>
                     </div>
+                    <div className="flex justify-end">
+                        <a href="/auth/forgot-password" className="text-sm font-bold text-teal-600 hover:text-teal-700 hover:underline transition-colors">
+                            পাসওয়ার্ড ভুলে গেছেন?
+                        </a>
+                    </div>
 
                     <Button
                         disabled={isLoading}

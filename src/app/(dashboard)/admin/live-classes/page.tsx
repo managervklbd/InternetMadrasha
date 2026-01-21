@@ -30,6 +30,7 @@ import { getSessionConfigs } from "@/lib/actions/session-config-actions";
 import { MonthlyLiveClassModal } from "@/components/admin/live-classes/MonthlyLiveClassModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SessionConfigManager } from "@/components/admin/live-classes/SessionConfigManager";
+import { AttendanceListModal } from "@/components/teacher/live-classes/AttendanceListModal";
 
 export default function AdminLiveClassesPage() {
     const [classes, setClasses] = useState<any[]>([]);
@@ -37,6 +38,8 @@ export default function AdminLiveClassesPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedClass, setSelectedClass] = useState<any>(null);
     const [sessionConfigs, setSessionConfigs] = useState<any[]>([]);
+    const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
+    const [selectedAttendanceClassId, setSelectedAttendanceClassId] = useState<string | null>(null);
 
     const refreshClasses = async () => {
         setLoading(true);
@@ -202,6 +205,16 @@ export default function AdminLiveClassesPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem
                                                             onClick={() => {
+                                                                setSelectedAttendanceClassId(item.id);
+                                                                setIsAttendanceModalOpen(true);
+                                                            }}
+                                                            className="font-bengali cursor-pointer"
+                                                        >
+                                                            <Users className="w-4 h-4 mr-2" />
+                                                            হাজিরা দেখুন
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() => {
                                                                 setSelectedClass(item);
                                                                 setIsCreateModalOpen(true);
                                                             }}
@@ -238,6 +251,13 @@ export default function AdminLiveClassesPage() {
                 onOpenChange={setIsCreateModalOpen}
                 onSuccess={refreshClasses}
                 initialData={selectedClass}
+            />
+
+            <AttendanceListModal
+                open={isAttendanceModalOpen}
+                onOpenChange={setIsAttendanceModalOpen}
+                classId={selectedAttendanceClassId}
+                className={classes.find(c => c.id === selectedAttendanceClassId)?.title}
             />
         </div>
     );

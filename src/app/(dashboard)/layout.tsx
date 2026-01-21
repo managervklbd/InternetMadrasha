@@ -31,33 +31,79 @@ export default async function DashboardLayout({
     const settings = await getSiteSettings();
 
     const adminLinks = [
-        { href: "/admin/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
-        { href: "/admin/students", label: "ছাত্র ব্যবস্থাপনা", iconName: "Users" },
-        { href: "/admin/teachers", label: "শিক্ষক তালিকা", iconName: "UserCircle" },
-        { href: "/admin/academics", label: "একাডেমিক সেটআপ", iconName: "BookOpen" },
-        { href: "/admin/billing", label: "হিসাব ও পেমেন্ট", iconName: "CreditCard" },
-        { href: "/admin/reports/financial", label: "আর্থিক প্রতিবেদন", iconName: "PieChart" },
-        { href: "/admin/reports/students", label: "ছাত্র পরিসংখ্যান", iconName: "Users" },
-        { href: "/admin/reports/attendance", label: "হাজিরা রিপোর্ট", iconName: "CalendarCheck" },
-        { href: "/admin/attendance", label: "হাজিরা ইনপুট", iconName: "Calendar" },
-        { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
-        { href: "/admin/audit", label: "অডিট লগ", iconName: "ShieldAlert" },
-        { href: "/admin/settings", label: "সেটিংস", iconName: "Settings" },
+        {
+            title: "Overview",
+            items: [
+                { href: "/admin/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
+                { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
+                { href: "/admin/attendance", label: "হাজিরা ইনপুট", iconName: "Calendar" },
+            ]
+        },
+        {
+            title: "Academic & Users",
+            items: [
+                { href: "/admin/students", label: "ছাত্র ব্যবস্থাপনা", iconName: "Users" },
+                { href: "/admin/teachers", label: "শিক্ষক তালিকা", iconName: "UserCircle" },
+                { href: "/admin/academics", label: "একাডেমিক সেটআপ", iconName: "BookOpen" },
+            ]
+        },
+        {
+            title: "Finance & Reports",
+            items: [
+                { href: "/admin/billing", label: "হিসাব ও পেমেন্ট", iconName: "CreditCard" },
+                { href: "/admin/donations", label: "কমিটি / দান", iconName: "HeartHandshake" },
+                { href: "/admin/reports/financial", label: "আর্থিক প্রতিবেদন", iconName: "PieChart" },
+                { href: "/admin/reports/students", label: "ছাত্র পরিসংখ্যান", iconName: "Users" },
+                { href: "/admin/reports/attendance", label: "হাজিরা রিপোর্ট", iconName: "CalendarCheck" },
+            ]
+        },
+        {
+            title: "System Parameters",
+            items: [
+                { href: "/admin/audit", label: "অডিট লগ", iconName: "ShieldAlert" },
+                { href: "/admin/settings", label: "সেটিংস", iconName: "Settings" },
+            ]
+        }
     ];
 
     const teacherLinks = [
-        { href: "/teacher/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
-        { href: "/teacher/batches", label: "আমার ক্লাস", iconName: "BookOpen" },
-        { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
-        { href: "/teacher/live-classes", label: "আমার লাইভ ক্লাস", iconName: "Video" },
+        {
+            title: "Overview",
+            items: [
+                { href: "/teacher/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
+            ]
+        },
+        {
+            title: "Teaching",
+            items: [
+                { href: "/teacher/batches", label: "আমার ক্লাস", iconName: "BookOpen" },
+                { href: "/teacher/live-classes", label: "আমার লাইভ ক্লাস", iconName: "Video" },
+                { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
+            ]
+        }
     ];
 
     const studentLinks = [
-        { href: "/student/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
-        { href: "/student/profile", label: "আমার প্রোফাইল", iconName: "UserCircle" },
-        { href: "/student/attendance", label: "হাজিরা রিপোর্ট", iconName: "Calendar" },
-        { href: "/student/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },
-        { href: "/student/billing", label: "পেমেন্ট হিস্ট্রি", iconName: "CreditCard" },
+        {
+            title: "Overview",
+            items: [
+                { href: "/student/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
+                { href: "/student/profile", label: "আমার প্রোফাইল", iconName: "UserCircle" },
+            ]
+        },
+        {
+            title: "Academic",
+            items: [
+                { href: "/student/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },
+                { href: "/student/attendance", label: "হাজিরা রিপোর্ট", iconName: "Calendar" },
+            ]
+        },
+        {
+            title: "Finance",
+            items: [
+                { href: "/student/billing", label: "পেমেন্ট হিস্ট্রি", iconName: "CreditCard" },
+            ]
+        }
     ];
 
     const links = role === "ADMIN" ? adminLinks : role === "TEACHER" ? teacherLinks : studentLinks;

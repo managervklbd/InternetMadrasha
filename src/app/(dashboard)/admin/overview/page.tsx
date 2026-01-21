@@ -97,16 +97,44 @@ export default async function AdminOverview() {
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                 <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                     <CardHeader>
-                        <CardTitle>সাম্প্রতিক কার্যকলাপ</CardTitle>
-                        <CardDescription>সাম্প্রতিক ছাত্র ভর্তি এবং ইনভয়েস ইভেন্ট।</CardDescription>
+                        <CardTitle className="font-bengali">সাম্প্রতিক কার্যকলাপ</CardTitle>
+                        <CardDescription className="font-bengali">সাম্প্রতিক ছাত্র ভর্তি এবং ইনভয়েস ইভেন্ট।</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-sm text-zinc-500 text-center py-12 italic">
-                            এই সেশনে কোনো সাম্প্রতিক ইভেন্ট নেই।
-                        </div>
+                        {stats.activities && stats.activities.length > 0 ? (
+                            <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                {stats.activities.map((activity: any) => (
+                                    <div key={activity.id} className="flex items-start gap-4 group">
+                                        <div className={`mt-1 h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${activity.type === 'ENROLLMENT'
+                                            ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20'
+                                            : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20'
+                                            }`}>
+                                            {activity.type === 'ENROLLMENT' ? <Users className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 font-bengali truncate">
+                                                    {activity.title}
+                                                </p>
+                                                <time className="text-[10px] text-zinc-400 font-mono shrink-0">
+                                                    {new Date(activity.date).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short' })}
+                                                </time>
+                                            </div>
+                                            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bengali mt-0.5">
+                                                {activity.type === 'ENROLLMENT' ? 'নতুন ভর্তি:' : 'পেমেন্ট সংগ্রহ:'} {activity.subtitle}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-zinc-500 text-center py-12 italic font-bengali">
+                                এই সেশনে কোনো সাম্প্রতিক ইভেন্ট নেই।
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

@@ -12,6 +12,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+import { Hind_Siliguri } from "next/font/google";
+
+const hindSiliguri = Hind_Siliguri({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["bengali"],
+  variable: "--font-bengali",
+  display: "swap",
+});
+
 import { Providers } from "@/components/providers";
 import { getSiteSettings } from "@/lib/actions/settings-actions";
 
@@ -45,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${hindSiliguri.variable} antialiased`}
         suppressHydrationWarning
       >
         <Providers>

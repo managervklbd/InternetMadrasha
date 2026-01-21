@@ -78,7 +78,7 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
     };
 
     const handleEditDepartment = async (id: string, newName: string) => {
-        const res = await updateDepartment(id, newName) as any;
+        const res = await updateDepartment(id, { name: newName }) as any;
         if (res.success) {
             toast.success("বিভাগ আপডেট হয়েছে");
             onRefresh();

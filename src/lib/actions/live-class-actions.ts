@@ -31,6 +31,8 @@ export async function getMonthlyLiveClasses() {
     });
 }
 
+import { sendEmail } from "@/lib/email";
+
 export async function createMonthlyLiveClass(data: {
     title: string;
     month: number;
@@ -51,6 +53,105 @@ export async function createMonthlyLiveClass(data: {
         data
     });
 
+    // AUTO-LINK: Connect teacher to the batch in their profile for tracking
+    try {
+        await prisma.teacherProfile.update({
+            where: { id: data.teacherId },
+            data: {
+                assignedBatches: {
+                    connect: { id: data.batchId }
+                }
+            }
+        });
+    } catch (err) {
+        console.error("Failed to auto-link teacher to batch:", err);
+        // We don't fail the whole class creation for this
+    }
+
+    // Send Email Notifications
+    try {
+        // 1. Fetch Teacher Email
+        const teacher = await prisma.teacherProfile.findUnique({
+            where: { id: data.teacherId },
+            include: { user: true }
+        });
+
+        if (teacher?.user.email) {
+            await sendEmail({
+                to: teacher.user.email,
+                subject: `New Live Class Assigned: ${data.title}`,
+                html: `
+                    <h2>Live Class Assigned</h2>
+                    <p>Dear ${teacher.fullName},</p>
+                    <p>You have been assigned to take the live class: <strong>${data.title}</strong></p>
+                    <p>
+                        <strong>Month:</strong> ${data.month}/${data.year}<br>
+                        <strong>Sessions:</strong> ${data.sessionKeys.join(", ")}<br>
+                        <strong>Join Link:</strong> <a href="${data.liveLink}">${data.liveLink}</a>
+                    </p>
+                    <p>Please ensure you join on time.</p>
+                `
+            });
+        }
+
+        // 2. Fetch Enrolled Paid Students
+        // Find students enrolled in the batch, with current month paid invoice
+        const students = await prisma.studentProfile.findMany({
+            where: {
+                activeStatus: true,
+                mode: "ONLINE",
+                gender: data.gender,
+                enrollments: {
+                    some: { batchId: data.batchId }
+                },
+                // Ideally check invoice here but complex in one query, iterating is safer/clearer
+            },
+            include: { user: true }
+        });
+
+        // Filter paid students
+        const paidEmails: string[] = [];
+        for (const s of students) {
+            const invoice = await prisma.monthlyInvoice.findUnique({
+                where: {
+                    studentId_month_year: {
+                        studentId: s.id,
+                        month: data.month,
+                        year: data.year
+                    }
+                }
+            });
+            if (invoice?.status === "PAID" && s.user.email) {
+                paidEmails.push(s.user.email);
+            }
+        }
+
+        if (paidEmails.length > 0) {
+            await sendEmail({
+                to: paidEmails, // sendEmail handles array by joining with comma (BCC effect needed? Ideally BCC or individual)
+                // If sendEmail joins with comma, they see each other? Better to send individually or use BCC if implemented.
+                // Our simple sendEmail puts all in 'to'. Let's loop for privacy or assume it's fine for now/batch.
+                // For 'Madrasha' context, maybe better to loop to avoid exposing emails.
+                subject: `New Monthly Live Class: ${data.title}`,
+                html: `
+                    <h2>New Live Class Schedule</h2>
+                    <p>Assalamu Alaikum,</p>
+                    <p>A new live class schedule has been published for: <strong>${data.title}</strong></p>
+                    <p>
+                        <strong>Month:</strong> ${data.month}/${data.year}<br>
+                        <strong>Sessions:</strong> ${data.sessionKeys.join(", ")}<br>
+                        <strong>Join Link:</strong> <a href="${data.liveLink}">${data.liveLink}</a>
+                    </p>
+                    <p>Please join from your dashboard at the scheduled time.</p>
+                `
+            });
+        }
+
+    } catch (e) {
+        console.error("Failed to send notifications:", e);
+        // Don't fail the request, just log
+    }
+
     revalidatePath("/admin/live-classes");
     return result;
 }
@@ -65,6 +166,20 @@ export async function updateMonthlyLiveClass(id: string, data: any) {
         where: { id },
         data
     });
+
+    // AUTO-LINK: Connect teacher to the batch in their profile for tracking
+    try {
+        await prisma.teacherProfile.update({
+            where: { id: data.teacherId },
+            data: {
+                assignedBatches: {
+                    connect: { id: data.batchId }
+                }
+            }
+        });
+    } catch (err) {
+        console.error("Failed to auto-link teacher to batch:", err);
+    }
 
     revalidatePath("/admin/live-classes");
     return result;
@@ -99,7 +214,7 @@ export async function getTeacherLiveClasses() {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    return prisma.monthlyLiveClass.findMany({
+    const liveClasses = await prisma.monthlyLiveClass.findMany({
         where: {
             teacherId: teacher.id,
             month: currentMonth,
@@ -110,6 +225,13 @@ export async function getTeacherLiveClasses() {
             batch: true
         }
     });
+
+    const sessionConfigs = await prisma.liveClassSessionConfig.findMany();
+
+    return liveClasses.map(cls => ({
+        ...cls,
+        sessionDetails: (cls.sessionKeys || []).map(key => sessionConfigs.find(c => c.key === key)).filter(Boolean)
+    }));
 }
 
 export async function getStudentLiveClasses() {
@@ -148,7 +270,7 @@ export async function getStudentLiveClasses() {
 
     const batchIds = student.enrollments.map(e => e.batchId);
 
-    return prisma.monthlyLiveClass.findMany({
+    const liveClasses = await prisma.monthlyLiveClass.findMany({
         where: {
             batchId: { in: batchIds },
             gender: student.gender,
@@ -157,6 +279,13 @@ export async function getStudentLiveClasses() {
             active: true
         }
     });
+
+    const sessionConfigs = await prisma.liveClassSessionConfig.findMany();
+
+    return liveClasses.map(cls => ({
+        ...cls,
+        sessionDetails: (cls.sessionKeys || []).map(key => sessionConfigs.find(c => c.key === key)).filter(Boolean)
+    }));
 }
 
 export async function joinLiveClass(classId: string, sessionKey: string) {

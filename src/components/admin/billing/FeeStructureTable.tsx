@@ -25,26 +25,29 @@ export function FeeStructureTable() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+    const [changes, setChanges] = useState<Record<string, { monthlyFee?: string, sadkaFee?: string }>>({});
 
-    const refreshStructure = async () => {
-        setLoading(true);
+    const refreshStructure = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const data = await getAcademicStructure();
             setStructure(data);
-            // Default expand all
-            const initialExpanded: Record<string, boolean> = {};
-            data.forEach((course: any) => {
-                initialExpanded[course.id] = true;
-                course.departments.forEach((dept: any) => {
-                    initialExpanded[dept.id] = true;
+            // Don't reset expanded state on refresh
+            if (Object.keys(expanded).length === 0) {
+                const initialExpanded: Record<string, boolean> = {};
+                data.forEach((course: any) => {
+                    initialExpanded[course.id] = true;
+                    course.departments.forEach((dept: any) => {
+                        initialExpanded[dept.id] = true;
+                    });
                 });
-            });
-            setExpanded(initialExpanded);
+                setExpanded(initialExpanded);
+            }
         } catch (err) {
             console.error(err);
             toast.error("স্ট্রাকচার লোড করতে ব্যর্থ হয়েছে");
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
@@ -56,56 +59,58 @@ export function FeeStructureTable() {
         setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const handleSave = async (id: string, type: 'COURSE' | 'DEPT' | 'BATCH', name: string, monthlyFee: string, sadkaFee: string) => {
+    const handleFieldChange = (id: string, field: 'monthlyFee' | 'sadkaFee', value: string) => {
+        setChanges(prev => ({
+            ...prev,
+            [id]: {
+                ...(prev[id] || {}),
+                [field]: value
+            }
+        }));
+    };
+
+    const handleSave = async (id: string, type: 'COURSE' | 'DEPT' | 'BATCH', name: string, originalMonthly: any, originalSadka: any) => {
         setSaving(id);
-        const mFee = monthlyFee ? parseFloat(monthlyFee) : undefined;
-        const sFee = sadkaFee ? parseFloat(sadkaFee) : undefined;
+
+        // Use changed value if it exists, otherwise use original
+        const mValue = changes[id]?.monthlyFee !== undefined ? changes[id].monthlyFee : originalMonthly;
+        const sValue = changes[id]?.sadkaFee !== undefined ? changes[id].sadkaFee : originalSadka;
+
+        const mFee = mValue !== null && mValue !== undefined && mValue !== "" ? parseFloat(mValue) : undefined;
+        const sFee = sValue !== null && sValue !== undefined && sValue !== "" ? parseFloat(sValue) : undefined;
 
         try {
             let res;
             if (type === 'COURSE') {
-                res = await updateCourse(id, name, mFee, sFee);
+                res = await updateCourse(id, { name, monthlyFee: mFee, sadkaFee: sFee });
             } else if (type === 'DEPT') {
-                res = await updateDepartment(id, name, mFee, sFee);
+                res = await updateDepartment(id, { name, monthlyFee: mFee, sadkaFee: sFee });
             } else {
-                res = await updateBatch(id, name, mFee, sFee);
+                res = await updateBatch(id, { name, monthlyFee: mFee, sadkaFee: sFee });
             }
 
             if (res.success) {
                 toast.success("ফি আপডেট সফল হয়েছে");
+                // Clear changes for this ID
+                setChanges(prev => {
+                    const newChanges = { ...prev };
+                    delete newChanges[id];
+                    return newChanges;
+                });
+                // Refresh data silently
+                await refreshStructure(true);
             } else {
-                toast.error("আপডেট ব্যর্থ হয়েছে");
+                toast.error(res.error || "আপডেট ব্যর্থ হয়েছে");
             }
         } catch (error) {
+            console.error("Save error:", error);
             toast.error("ত্রুটি হয়েছে");
         } finally {
             setSaving(null);
         }
     };
 
-    const FeeInput = ({ value, onChange, placeholder }: { value: any, onChange: (val: string) => void, placeholder: string }) => (
-        <Input
-            type="number"
-            className="h-8 w-24 font-bengali bg-white dark:bg-zinc-900"
-            placeholder={placeholder}
-            defaultValue={value}
-            onBlur={(e) => onChange(e.target.value)}
-        />
-    );
-
-    const RowAction = ({ onSave }: { onSave: () => void }) => (
-        <Button
-            size="sm"
-            variant="ghost"
-            onClick={onSave}
-            disabled={saving !== null}
-            className="h-8 w-8 p-0 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-        >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-        </Button>
-    );
-
-    if (loading) return <div className="text-center py-20 bg-white rounded-lg border">লোড হচ্ছে...</div>;
+    if (loading && structure.length === 0) return <div className="text-center py-20 bg-white rounded-lg border">লোড হচ্ছে...</div>;
 
     return (
         <div className="rounded-md border bg-zinc-50/50 dark:bg-zinc-900/50 overflow-hidden">
@@ -121,8 +126,7 @@ export function FeeStructureTable() {
                 <TableBody>
                     {structure.map((course) => {
                         const isExpanded = expanded[course.id];
-                        let courseMFee = course.monthlyFee;
-                        let courseSFee = course.sadkaFee;
+                        const hasCourseChanges = changes[course.id] !== undefined;
 
                         return (
                             <Fragment key={course.id}>
@@ -137,28 +141,38 @@ export function FeeStructureTable() {
                                     </TableCell>
                                     <TableCell>
                                         <FeeInput
+                                            id={course.id}
+                                            field="monthlyFee"
                                             value={course.monthlyFee}
+                                            changedValue={changes[course.id]?.monthlyFee}
                                             placeholder="কোর্স ডিফল্ট"
-                                            onChange={(val) => courseMFee = val}
+                                            onChange={handleFieldChange}
                                         />
                                     </TableCell>
                                     <TableCell>
                                         <FeeInput
+                                            id={course.id}
+                                            field="sadkaFee"
                                             value={course.sadkaFee}
+                                            changedValue={changes[course.id]?.sadkaFee}
                                             placeholder="কোর্স ডিফল্ট"
-                                            onChange={(val) => courseSFee = val}
+                                            onChange={handleFieldChange}
                                         />
                                     </TableCell>
                                     <TableCell>
-                                        <RowAction onSave={() => handleSave(course.id, 'COURSE', course.name, courseMFee, courseSFee)} />
+                                        <RowAction
+                                            id={course.id}
+                                            savingId={saving}
+                                            hasChanges={hasCourseChanges}
+                                            onSave={() => handleSave(course.id, 'COURSE', course.name, course.monthlyFee, course.sadkaFee)}
+                                        />
                                     </TableCell>
                                 </TableRow>
 
                                 {/* Departments */}
                                 {isExpanded && course.departments.map((dept: any) => {
                                     const isDeptExpanded = expanded[dept.id];
-                                    let deptMFee = dept.monthlyFee;
-                                    let deptSFee = dept.sadkaFee;
+                                    const hasDeptChanges = changes[dept.id] !== undefined;
 
                                     return (
                                         <Fragment key={dept.id}>
@@ -172,27 +186,37 @@ export function FeeStructureTable() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <FeeInput
+                                                        id={dept.id}
+                                                        field="monthlyFee"
                                                         value={dept.monthlyFee}
+                                                        changedValue={changes[dept.id]?.monthlyFee}
                                                         placeholder={course.monthlyFee || "0"}
-                                                        onChange={(val) => deptMFee = val}
+                                                        onChange={handleFieldChange}
                                                     />
                                                 </TableCell>
                                                 <TableCell>
                                                     <FeeInput
+                                                        id={dept.id}
+                                                        field="sadkaFee"
                                                         value={dept.sadkaFee}
+                                                        changedValue={changes[dept.id]?.sadkaFee}
                                                         placeholder={course.sadkaFee || "0"}
-                                                        onChange={(val) => deptSFee = val}
+                                                        onChange={handleFieldChange}
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <RowAction onSave={() => handleSave(dept.id, 'DEPT', dept.name, deptMFee, deptSFee)} />
+                                                    <RowAction
+                                                        id={dept.id}
+                                                        savingId={saving}
+                                                        hasChanges={hasDeptChanges}
+                                                        onSave={() => handleSave(dept.id, 'DEPT', dept.name, dept.monthlyFee, dept.sadkaFee)}
+                                                    />
                                                 </TableCell>
                                             </TableRow>
 
                                             {/* Batches */}
                                             {isDeptExpanded && dept.batches.map((batch: any) => {
-                                                let batchMFee = batch.monthlyFee;
-                                                let batchSFee = batch.sadkaFee;
+                                                const hasBatchChanges = changes[batch.id] !== undefined;
                                                 return (
                                                     <TableRow key={batch.id} className="hover:bg-zinc-50">
                                                         <TableCell className="font-bengali pl-20 flex items-center gap-2">
@@ -201,20 +225,31 @@ export function FeeStructureTable() {
                                                         </TableCell>
                                                         <TableCell>
                                                             <FeeInput
+                                                                id={batch.id}
+                                                                field="monthlyFee"
                                                                 value={batch.monthlyFee}
+                                                                changedValue={changes[batch.id]?.monthlyFee}
                                                                 placeholder={dept.monthlyFee || course.monthlyFee || "0"}
-                                                                onChange={(val) => batchMFee = val}
+                                                                onChange={handleFieldChange}
                                                             />
                                                         </TableCell>
                                                         <TableCell>
                                                             <FeeInput
+                                                                id={batch.id}
+                                                                field="sadkaFee"
                                                                 value={batch.sadkaFee}
+                                                                changedValue={changes[batch.id]?.sadkaFee}
                                                                 placeholder={dept.sadkaFee || course.sadkaFee || "0"}
-                                                                onChange={(val) => batchSFee = val}
+                                                                onChange={handleFieldChange}
                                                             />
                                                         </TableCell>
                                                         <TableCell>
-                                                            <RowAction onSave={() => handleSave(batch.id, 'BATCH', batch.name, batchMFee, batchSFee)} />
+                                                            <RowAction
+                                                                id={batch.id}
+                                                                savingId={saving}
+                                                                hasChanges={hasBatchChanges}
+                                                                onSave={() => handleSave(batch.id, 'BATCH', batch.name, batch.monthlyFee, batch.sadkaFee)}
+                                                            />
                                                         </TableCell>
                                                     </TableRow>
                                                 );
@@ -228,5 +263,36 @@ export function FeeStructureTable() {
                 </TableBody>
             </Table>
         </div>
+    );
+}
+
+// Sub-components moved outside to prevent focus loss during re-renders
+function FeeInput({ id, field, value, changedValue, placeholder, onChange }: any) {
+    const displayValue = changedValue !== undefined ? changedValue : (value ?? "");
+
+    return (
+        <Input
+            type="number"
+            className={`h-8 w-24 font-bengali bg-white dark:bg-zinc-900 ${changedValue !== undefined ? 'border-orange-400 ring-1 ring-orange-200' : ''}`}
+            placeholder={placeholder}
+            value={displayValue}
+            onChange={(e) => onChange(id, field, e.target.value)}
+        />
+    );
+}
+
+function RowAction({ id, savingId, onSave, hasChanges }: any) {
+    const isSaving = savingId === id;
+
+    return (
+        <Button
+            size="sm"
+            variant={hasChanges ? "default" : "ghost"}
+            onClick={onSave}
+            disabled={savingId !== null}
+            className={`h-8 w-8 p-0 ${hasChanges ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'text-teal-600 hover:text-teal-700 hover:bg-teal-50'}`}
+        >
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        </Button>
     );
 }

@@ -117,7 +117,7 @@ export function InvoiceTable({ invoices, upcoming = [] }: { invoices: any[], upc
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
                                             {inv.status === "PAID" ? (
-                                                <Link href={`/student/billing/invoice/${inv.id}`} target="_blank">
+                                                <Link href={`/invoice/${inv.id}`} target="_blank">
                                                     <Button variant="outline" size="sm" className="gap-2 border-zinc-200 hover:bg-zinc-100">
                                                         <Download className="w-3.5 h-3.5" />
                                                         Invoice

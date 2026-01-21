@@ -24,20 +24,39 @@ export function MonthlyLiveClassModal({
     initialData?: any;
 }) {
     const [teachers, setTeachers] = useState<any[]>([]);
-    const [batches, setBatches] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [sessionConfigs, setSessionConfigs] = useState<any[]>([]);
-    // Support both new sessionKeys and legacy sessions (mapped if possible, or just default empty)
-    const [selectedSessions, setSelectedSessions] = useState<string[]>(initialData?.sessionKeys || initialData?.sessions || []);
+    const [academicData, setAcademicData] = useState<any[]>([]);
+    const [selectedCourse, setSelectedCourse] = useState("");
+    const [selectedDept, setSelectedDept] = useState("");
+    const [selectedBatch, setSelectedBatch] = useState("");
+
+    const departments = selectedCourse ? academicData.find(c => c.id === selectedCourse)?.departments || [] : [];
+    const batches = selectedDept ? departments.find((d: any) => d.id === selectedDept)?.batches || [] : [];
 
     useEffect(() => {
         if (open) {
             getTeachers().then(setTeachers);
             getAcademicStructure().then(data => {
-                const allBatches = data.flatMap(course =>
-                    course.departments.flatMap(dept => dept.batches)
-                );
-                setBatches(allBatches);
+                setAcademicData(data);
+
+                // Pre-select if initialData exists (Need to find parents)
+                if (initialData?.batchId) {
+                    const batchId = initialData.batchId;
+                    // Find course and dept for this batch
+                    for (const c of data) {
+                        for (const d of c.departments) {
+                            if (d.batches.some((b: any) => b.id === batchId)) {
+                                setSelectedCourse(c.id);
+                                setSelectedDept(d.id);
+                                setSelectedBatch(batchId);
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    setSelectedCourse("");
+                    setSelectedDept("");
+                    setSelectedBatch("");
+                }
             });
             getSessionConfigs().then(setSessionConfigs);
 
@@ -156,18 +175,58 @@ export function MonthlyLiveClassModal({
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label className="font-bengali text-zinc-900 dark:text-zinc-100">ব্যাচ / মারহালা</Label>
-                            <Select name="batchId" defaultValue={initialData?.batchId}>
-                                <SelectTrigger className="bg-white dark:bg-zinc-950 font-bengali"><SelectValue placeholder="ব্যাচ নির্বাচন করুন" /></SelectTrigger>
-                                <SelectContent>
-                                    {batches.map(b => (
-                                        <SelectItem key={b.id} value={b.id} className="font-bengali">
-                                            {b.department?.course?.name} - {b.department?.name} ({b.name})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        {/* 3-Step Hierarchical Selection */}
+                        <div className="space-y-4 border p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+                            <h3 className="font-bengali font-bold text-sm text-zinc-500">একাডেমিক তথ্য</h3>
+
+                            <div className="space-y-2">
+                                <Label className="font-bengali text-zinc-900 dark:text-zinc-100">মারহালা / ক্লাস</Label>
+                                <Select
+                                    value={selectedCourse}
+                                    onValueChange={(val) => {
+                                        setSelectedCourse(val);
+                                        setSelectedDept("");
+                                        setSelectedBatch("");
+                                    }}
+                                >
+                                    <SelectTrigger className="bg-white dark:bg-zinc-950 font-bengali"><SelectValue placeholder="মারহালা নির্বাচন করুন" /></SelectTrigger>
+                                    <SelectContent>
+                                        {academicData.map((c: any) => <SelectItem key={c.id} value={c.id} className="font-bengali">{c.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="font-bengali text-zinc-900 dark:text-zinc-100">বিভাগ</Label>
+                                <Select
+                                    value={selectedDept}
+                                    onValueChange={(val) => {
+                                        setSelectedDept(val);
+                                        setSelectedBatch("");
+                                    }}
+                                    disabled={!selectedCourse}
+                                >
+                                    <SelectTrigger className="bg-white dark:bg-zinc-950 font-bengali"><SelectValue placeholder="বিভাগ নির্বাচন করুন" /></SelectTrigger>
+                                    <SelectContent>
+                                        {departments.map((d: any) => <SelectItem key={d.id} value={d.id} className="font-bengali">{d.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="font-bengali text-zinc-900 dark:text-zinc-100">সেমিস্টার / ব্যাচ</Label>
+                                <Select name="batchId" value={selectedBatch} onValueChange={setSelectedBatch} disabled={!selectedDept}>
+                                    <SelectTrigger className="bg-white dark:bg-zinc-950 font-bengali"><SelectValue placeholder="সেমিস্টার নির্বাচন করুন" /></SelectTrigger>
+                                    <SelectContent>
+                                        {batches.map((b: any) => (
+                                            <SelectItem key={b.id} value={b.id} className="font-bengali">
+                                                {b.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {selectedBatch && <input type="hidden" name="batchId" value={selectedBatch} />}
+                            </div>
                         </div>
 
                         <div className="space-y-3">

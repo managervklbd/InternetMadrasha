@@ -13,6 +13,7 @@ import LoginForm from "@/components/auth/LoginForm";
 import { ModeToggle } from "@/components/layout/ModeToggle";
 
 export default async function LoginPage() {
+
   const settings = await getSiteSettings();
   const madrasaName = settings?.madrasaName || "ইন্টারনেট মাদ্রাসা"; // Fallback if not set
 
@@ -36,26 +37,6 @@ export default async function LoginPage() {
           </div>
 
           <h1 className="mb-4 text-5xl font-black text-white lg:text-6xl tracking-tight font-bengali">{madrasaName}</h1>
-
-          {/* Feature Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-xl">
-            <FeatureCard
-              icon={<Users className="w-8 h-8 text-white" />}
-              label="ছাত্র ব্যবস্থাপনা"
-            />
-            <FeatureCard
-              icon={<BookOpen className="w-8 h-8 text-white" />}
-              label="একাডেমিক ট্র্যাকিং"
-            />
-            <FeatureCard
-              icon={<Award className="w-8 h-8 text-white" />}
-              label="ফলাফল প্রকাশ"
-            />
-            <FeatureCard
-              icon={<ShieldCheck className="w-8 h-8 text-white" />}
-              label="নিরাপদ সিস্টেম"
-            />
-          </div>
 
           <p className="mt-16 text-sm text-teal-100/60 font-medium">© {new Date().getFullYear()} সর্বস্বত্ব সংরক্ষিত</p>
         </div>

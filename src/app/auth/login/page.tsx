@@ -35,11 +35,6 @@ export default async function LoginPage() {
             <div className="flex items-center justify-center p-8 lg:p-12 bg-zinc-50 dark:bg-black">
                 <div className="w-full max-w-md space-y-4">
                     <LoginForm />
-                    <div className="text-center">
-                        <Link href="/auth/forgot-password" className="text-sm text-teal-600 hover:underline font-bengali">
-                            পাসওয়ার্ড ভুলে গেছেন?
-                        </Link>
-                    </div>
                 </div>
             </div>
         </div>

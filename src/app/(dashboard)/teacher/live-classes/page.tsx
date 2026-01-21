@@ -81,11 +81,24 @@ export default function TeacherLiveClassesPage() {
                                         <span>সেশনসমূহ:</span>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        {item.sessions.map((s: string) => (
-                                            <Badge key={s} variant="secondary" className="font-bengali uppercase">
-                                                {s === "MORNING" ? "সকাল" : s === "NOON" ? "দুপুর" : "রাত"}
-                                            </Badge>
-                                        ))}
+                                        {item.sessionDetails && item.sessionDetails.length > 0 ? (
+                                            item.sessionDetails.map((s: any) => (
+                                                <div key={s.key} className="flex flex-col">
+                                                    <Badge variant="secondary" className="font-bengali uppercase">
+                                                        {s.label}
+                                                    </Badge>
+                                                    <span className="text-[9px] text-zinc-500 font-mono pl-1">
+                                                        {s.startTime}-{s.endTime}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            item.sessions?.map((s: string) => (
+                                                <Badge key={s} variant="secondary" className="font-bengali uppercase">
+                                                    {s === "MORNING" ? "সকাল" : s === "NOON" ? "দুপুর" : "রাত"}
+                                                </Badge>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
 

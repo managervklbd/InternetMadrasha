@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { ManualPasswordReset } from "@/components/admin/students/ManualPasswordReset";
 import { StudentProfileActions } from "@/components/admin/students/StudentProfileActions";
 import { ProfileEditTrigger } from "@/components/shared/ProfileEditTrigger";
+import { PaymentHistoryModal } from "@/components/admin/students/PaymentHistoryModal";
 
 export default async function StudentProfilePage({ params }: { params: { id: string } }) {
     const student = await getStudentById(params.id);
@@ -168,9 +169,7 @@ export default async function StudentProfilePage({ params }: { params: { id: str
                             </div>
 
                             <div className="mt-4 text-center">
-                                <Button variant="outline" className="w-full font-bengali" disabled>
-                                    পেমেন্ট ইতিহাস দেখুন (Coming Soon)
-                                </Button>
+                                <PaymentHistoryModal studentId={student.id} studentName={student.fullName} />
                             </div>
                         </CardContent>
                     </Card>

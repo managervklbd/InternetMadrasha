@@ -33,13 +33,18 @@ export async function getFinancialSummary() {
         }
     });
 
+    const totalCollectionsResult = await prisma.ledgerTransaction.aggregate({
+        where: {
+            dr_cr: "CR",
+        },
+        _sum: {
+            amount: true,
+        },
+    });
+
     const fundBreakdown = await prisma.ledgerTransaction.groupBy({
         by: ['fundType'],
         where: {
-            transactionDate: {
-                gte: firstDayOfMonth,
-                lte: lastDayOfMonth,
-            },
             dr_cr: "CR",
         },
         _sum: {
@@ -49,6 +54,7 @@ export async function getFinancialSummary() {
 
     return {
         totalCollection: currentMonthCollections._sum.amount || 0,
+        allTimeTotal: totalCollectionsResult._sum.amount || 0,
         totalPending: pendingInvoices._sum.amount || 0,
         pendingCount: pendingInvoices._count.id || 0,
         fundBreakdown: fundBreakdown.map(f => ({
@@ -217,8 +223,8 @@ export async function getAdminOverviewStats() {
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    const totalStudents = await prisma.studentProfile.count(); // Total Students
-    const totalTeachers = await prisma.teacherProfile.count(); // Total Teachers
+    const totalStudents = await prisma.studentProfile.count();
+    const totalTeachers = await prisma.teacherProfile.count();
 
     const revenue = await prisma.ledgerTransaction.aggregate({
         where: {
@@ -233,18 +239,193 @@ export async function getAdminOverviewStats() {
         },
     });
 
-    // Active Batches (Sessions created today?) Or just Courses?
-    // Let's count Courses for now as "Batches" roughly
     const activeBatches = await prisma.batch.count({
         where: {
             active: true
         }
     });
 
+    // Fetch Recent Activities
+    const recentEnrollments = await prisma.enrollment.findMany({
+        take: 2,
+        orderBy: { joinedAt: 'desc' },
+        include: {
+            student: true,
+            batch: {
+                include: { department: true }
+            }
+        }
+    });
+
+    const recentTransactions = await prisma.ledgerTransaction.findMany({
+        take: 2,
+        where: { dr_cr: "CR" },
+        orderBy: { transactionDate: 'desc' },
+        include: {
+            invoice: {
+                include: { student: true }
+            }
+        }
+    });
+
+    const activities = [
+        ...recentEnrollments.map(e => ({
+            id: `en-${e.id}`,
+            type: 'ENROLLMENT' as const,
+            title: e.student.fullName,
+            subtitle: `${e.batch.department.name} - ${e.batch.name}`,
+            date: e.joinedAt,
+        })),
+        ...recentTransactions.map(t => {
+            let title = t.invoice?.student?.fullName || 'Anonymous';
+            let subtitle = '';
+
+            if (t.fundType === 'MONTHLY') {
+                subtitle = 'মাসিক ফি';
+            } else if (t.fundType === 'ADMISSION') {
+                subtitle = 'ভর্তি ফি';
+            } else if (t.fundType === 'DONATION') {
+                subtitle = 'দান (লিল্লাহ)';
+                if (t.description?.includes('Donation: ')) {
+                    title = t.description.split(' (')[0].replace('Donation: ', '');
+                } else if (t.description?.includes('Sync: Donation from ')) {
+                    title = t.description.replace('Sync: Donation from ', '');
+                }
+            } else if (t.fundType === 'DANA_COMMITTEE') {
+                subtitle = 'কমিটি দান';
+                if (t.description?.includes('Donation: ')) {
+                    title = t.description.split(' (')[0].replace('Donation: ', '');
+                } else if (t.description?.includes('Sync: Donation from ')) {
+                    title = t.description.replace('Sync: Donation from ', '');
+                }
+            }
+
+            return {
+                id: `tx-${t.id}`,
+                type: 'TRANSACTION' as const,
+                title: title === 'Anonymous' && t.description ? t.description : title,
+                subtitle: `${subtitle} - ৳${t.amount}`,
+                date: t.transactionDate,
+            };
+        })
+    ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 3);
+
     return {
         totalStudents,
         totalTeachers,
         totalRevenue: revenue._sum.amount || 0,
-        activeBatches
+        activeBatches,
+        activities
+    }
+}
+export async function getStudentPaymentHistory() {
+    try {
+        return await prisma.ledgerTransaction.findMany({
+            where: {
+                fundType: {
+                    in: [FundType.MONTHLY, FundType.ADMISSION]
+                },
+                dr_cr: "CR"
+            },
+            include: {
+                invoice: {
+                    include: {
+                        student: {
+                            include: {
+                                department: {
+                                    include: {
+                                        course: true
+                                    }
+                                }
+                            }
+                        },
+                        plan: true
+                    }
+                }
+            },
+            orderBy: {
+                transactionDate: 'desc'
+            },
+            take: 100
+        });
+    } catch (error) {
+        console.error("Error getting payment history:", error);
+        return [];
+    }
+}
+
+export async function exportFinancialReport() {
+    try {
+        const transactions = await prisma.ledgerTransaction.findMany({
+            where: {
+                dr_cr: "CR"
+            },
+            orderBy: {
+                transactionDate: 'desc'
+            },
+            include: {
+                invoice: {
+                    include: {
+                        student: true
+                    }
+                }
+            }
+        });
+
+        // Generate CSV header with BOM for Excel UTF-8 support
+        let csv = "\uFEFFDate,Reference,Fund Type,Amount,Student Name,Student ID,Description\n";
+
+        // Generate CSV rows
+        transactions.forEach(t => {
+            const date = new Date(t.transactionDate).toLocaleDateString("bn-BD");
+            const reference = t.referenceId || "N/A";
+            const fundType = t.fundType;
+            const amount = t.amount;
+            let name = t.invoice?.student?.fullName || "Anonymous";
+            const studentID = t.invoice?.student?.studentID || "N/A";
+            const description = t.description?.replace(/,/g, " ") || "";
+
+            // Fallback for donations/other transactions where student name is missing
+            if (name === "Anonymous" && description.includes("Donation:")) {
+                const match = description.match(/Donation: (.*?) \(/);
+                if (match && match[1]) {
+                    name = match[1];
+                }
+            } else if (name === "Anonymous" && description && description.includes(":")) {
+                // Generic fallback: use description if it seems like a name or title
+                name = description.split(":")[0].trim();
+            }
+
+            csv += `${date},${reference},${fundType},${amount},"${name}",${studentID},"${description}"\n`;
+        });
+
+        return { success: true, csv };
+    } catch (error) {
+        console.error("Error exporting report:", error);
+        return { success: false, error: "Failed to generate export" };
+    }
+}
+
+export async function getRecentTransactions(limit: number = 10) {
+    try {
+        return await prisma.ledgerTransaction.findMany({
+            where: {
+                dr_cr: "CR"
+            },
+            take: limit,
+            orderBy: {
+                transactionDate: 'desc'
+            },
+            include: {
+                invoice: {
+                    include: {
+                        student: true
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error getting recent transactions:", error);
+        return [];
     }
 }
