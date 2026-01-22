@@ -25,7 +25,14 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-    const [changes, setChanges] = useState<Record<string, { monthlyFee?: string, sadkaFee?: string, monthlyFeeOffline?: string, sadkaFeeOffline?: string }>>({});
+    const [changes, setChanges] = useState<Record<string, {
+        monthlyFee?: string,
+        sadkaFee?: string,
+        admissionFee?: string,
+        monthlyFeeOffline?: string,
+        sadkaFeeOffline?: string,
+        admissionFeeOffline?: string
+    }>>({});
 
     const refreshStructure = async (silent = false) => {
         if (!silent) setLoading(true);
@@ -59,7 +66,7 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
         setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const handleFieldChange = (id: string, field: 'monthlyFee' | 'sadkaFee' | 'monthlyFeeOffline' | 'sadkaFeeOffline', value: string) => {
+    const handleFieldChange = (id: string, field: 'monthlyFee' | 'sadkaFee' | 'admissionFee' | 'monthlyFeeOffline' | 'sadkaFeeOffline' | 'admissionFeeOffline', value: string) => {
         setChanges(prev => ({
             ...prev,
             [id]: {
@@ -82,8 +89,10 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
 
         const monthlyFee = getVal('monthlyFee', originalData.monthlyFee);
         const sadkaFee = getVal('sadkaFee', originalData.sadkaFee);
+        const admissionFee = getVal('admissionFee', originalData.admissionFee);
         const monthlyFeeOffline = getVal('monthlyFeeOffline', originalData.monthlyFeeOffline);
         const sadkaFeeOffline = getVal('sadkaFeeOffline', originalData.sadkaFeeOffline);
+        const admissionFeeOffline = getVal('admissionFeeOffline', originalData.admissionFeeOffline);
 
         try {
             let res;
@@ -91,8 +100,10 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                 name,
                 monthlyFee,
                 sadkaFee,
+                admissionFee,
                 monthlyFeeOffline,
-                sadkaFeeOffline
+                sadkaFeeOffline,
+                admissionFeeOffline
             };
 
             if (type === 'COURSE') {
@@ -135,10 +146,12 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                 <TableHeader>
                     <TableRow className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-100">
                         <TableHead className="w-[30%] font-bengali">একাডেমিক নাম</TableHead>
-                        {isOnline && <TableHead className="w-[15%] font-bengali text-center border-r">অনলাইন (রেগুলার)</TableHead>}
-                        {isOnline && <TableHead className="w-[15%] font-bengali text-center border-r">অনলাইন (সদকা)</TableHead>}
-                        {isOffline && <TableHead className="w-[15%] font-bengali text-center border-l bg-orange-50/50">অফলাইন (রেগুলার)</TableHead>}
-                        {isOffline && <TableHead className="w-[15%] font-bengali text-center bg-orange-50/50">অফলাইন (সদকা)</TableHead>}
+                        {isOnline && <TableHead className="w-[12%] font-bengali text-center border-r">মাসিক (Online)</TableHead>}
+                        {isOnline && <TableHead className="w-[12%] font-bengali text-center border-r">ভর্তি (Online)</TableHead>}
+                        {isOnline && <TableHead className="w-[12%] font-bengali text-center border-r">সদকা (Online)</TableHead>}
+                        {isOffline && <TableHead className="w-[12%] font-bengali text-center border-l bg-orange-50/50">মাসিক (Offline)</TableHead>}
+                        {isOffline && <TableHead className="w-[12%] font-bengali text-center bg-orange-50/50">ভর্তি (Offline)</TableHead>}
+                        {isOffline && <TableHead className="w-[12%] font-bengali text-center bg-orange-50/50">সদকা (Offline)</TableHead>}
                         <TableHead className="w-[10%]"></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -168,7 +181,17 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                     field="monthlyFee"
                                                     value={course.monthlyFee}
                                                     changedValue={changes[course.id]?.monthlyFee}
-                                                    placeholder="Online Default"
+                                                    placeholder="Mon"
+                                                    onChange={handleFieldChange}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="border-r">
+                                                <FeeInput
+                                                    id={course.id}
+                                                    field="admissionFee"
+                                                    value={course.admissionFee}
+                                                    changedValue={changes[course.id]?.admissionFee}
+                                                    placeholder="Adm"
                                                     onChange={handleFieldChange}
                                                 />
                                             </TableCell>
@@ -178,7 +201,7 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                     field="sadkaFee"
                                                     value={course.sadkaFee}
                                                     changedValue={changes[course.id]?.sadkaFee}
-                                                    placeholder="Online Sadka"
+                                                    placeholder="Sadka"
                                                     onChange={handleFieldChange}
                                                 />
                                             </TableCell>
@@ -194,7 +217,17 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                     field="monthlyFeeOffline"
                                                     value={course.monthlyFeeOffline}
                                                     changedValue={changes[course.id]?.monthlyFeeOffline}
-                                                    placeholder="Offline Default"
+                                                    placeholder="Mon"
+                                                    onChange={handleFieldChange}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="bg-orange-50/30">
+                                                <FeeInput
+                                                    id={course.id}
+                                                    field="admissionFeeOffline"
+                                                    value={course.admissionFeeOffline}
+                                                    changedValue={changes[course.id]?.admissionFeeOffline}
+                                                    placeholder="Adm"
                                                     onChange={handleFieldChange}
                                                 />
                                             </TableCell>
@@ -204,7 +237,7 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                     field="sadkaFeeOffline"
                                                     value={course.sadkaFeeOffline}
                                                     changedValue={changes[course.id]?.sadkaFeeOffline}
-                                                    placeholder="Offline Sadka"
+                                                    placeholder="Sadka"
                                                     onChange={handleFieldChange}
                                                 />
                                             </TableCell>
@@ -252,6 +285,16 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                         <TableCell className="border-r">
                                                             <FeeInput
                                                                 id={dept.id}
+                                                                field="admissionFee"
+                                                                value={dept.admissionFee}
+                                                                changedValue={changes[dept.id]?.admissionFee}
+                                                                placeholder={course.admissionFee || "0"}
+                                                                onChange={handleFieldChange}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="border-r">
+                                                            <FeeInput
+                                                                id={dept.id}
                                                                 field="sadkaFee"
                                                                 value={dept.sadkaFee}
                                                                 changedValue={changes[dept.id]?.sadkaFee}
@@ -271,6 +314,16 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                                 value={dept.monthlyFeeOffline}
                                                                 changedValue={changes[dept.id]?.monthlyFeeOffline}
                                                                 placeholder={course.monthlyFeeOffline || "0"}
+                                                                onChange={handleFieldChange}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell className="bg-orange-50/30">
+                                                            <FeeInput
+                                                                id={dept.id}
+                                                                field="admissionFeeOffline"
+                                                                value={dept.admissionFeeOffline}
+                                                                changedValue={changes[dept.id]?.admissionFeeOffline}
+                                                                placeholder={course.admissionFeeOffline || "0"}
                                                                 onChange={handleFieldChange}
                                                             />
                                                         </TableCell>
@@ -322,6 +375,16 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                                 <TableCell className="border-r">
                                                                     <FeeInput
                                                                         id={batch.id}
+                                                                        field="admissionFee"
+                                                                        value={batch.admissionFee}
+                                                                        changedValue={changes[batch.id]?.admissionFee}
+                                                                        placeholder={dept.admissionFee || course.admissionFee || "0"}
+                                                                        onChange={handleFieldChange}
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="border-r">
+                                                                    <FeeInput
+                                                                        id={batch.id}
                                                                         field="sadkaFee"
                                                                         value={batch.sadkaFee}
                                                                         changedValue={changes[batch.id]?.sadkaFee}
@@ -341,6 +404,16 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                                                         value={batch.monthlyFeeOffline}
                                                                         changedValue={changes[batch.id]?.monthlyFeeOffline}
                                                                         placeholder={dept.monthlyFeeOffline || course.monthlyFeeOffline || "0"}
+                                                                        onChange={handleFieldChange}
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="bg-orange-50/30">
+                                                                    <FeeInput
+                                                                        id={batch.id}
+                                                                        field="admissionFeeOffline"
+                                                                        value={batch.admissionFeeOffline}
+                                                                        changedValue={changes[batch.id]?.admissionFeeOffline}
+                                                                        placeholder={dept.admissionFeeOffline || course.admissionFeeOffline || "0"}
                                                                         onChange={handleFieldChange}
                                                                     />
                                                                 </TableCell>

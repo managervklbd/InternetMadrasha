@@ -25,8 +25,15 @@ interface BatchItemProps {
         name: string;
         startDate?: any;
         endDate?: any;
+
         teachers?: any[];
         allowedMode?: string;
+        monthlyFee?: number | null;
+        admissionFee?: number | null;
+        monthlyFeeOffline?: number | null;
+        admissionFeeOffline?: number | null;
+        monthlyFeeProbashi?: number | null;
+        admissionFeeProbashi?: number | null;
     };
     onEdit: (id: string, data: any) => void;
     onDelete: (id: string) => void;
@@ -39,6 +46,8 @@ export function BatchItem({ batch, onEdit, onDelete, onRefresh }: BatchItemProps
     const [newStartDate, setNewStartDate] = useState(batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : "");
     const [newEndDate, setNewEndDate] = useState(batch.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : "");
     const [newMode, setNewMode] = useState(batch.allowedMode || "OFFLINE");
+
+
     const [isDeleting, setIsDeleting] = useState(false);
     const [isAssigningTeachers, setIsAssigningTeachers] = useState(false);
 

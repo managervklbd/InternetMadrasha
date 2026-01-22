@@ -36,6 +36,12 @@ interface CourseItemProps {
         name: string;
         durationMonths?: number | null;
         departments: any[];
+        monthlyFee?: number | null;
+        admissionFee?: number | null;
+        monthlyFeeOffline?: number | null;
+        admissionFeeOffline?: number | null;
+        monthlyFeeProbashi?: number | null;
+        admissionFeeProbashi?: number | null;
     };
     onRefresh: () => void;
 }
@@ -58,6 +64,8 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
     const [isEditingCourse, setIsEditingCourse] = useState(false);
     const [courseName, setCourseName] = useState(course.name);
     const [courseDuration, setCourseDuration] = useState(course.durationMonths || 12);
+
+
 
     // --- Dept Handlers ---
     const handleCreateDepartment = async (e: React.FormEvent) => {
@@ -83,8 +91,8 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
         }
     };
 
-    const handleEditDepartment = async (id: string, newName: string) => {
-        const res = await updateDepartment(id, { name: newName }) as any;
+    const handleEditDepartment = async (id: string, data: any) => {
+        const res = await updateDepartment(id, data) as any;
         if (res.success) {
             toast.success("বিভাগ আপডেট হয়েছে");
             onRefresh();
@@ -144,31 +152,34 @@ export function CourseItem({ course, onRefresh }: CourseItemProps) {
             >
                 <div className="flex items-center gap-3 flex-1">
                     {isEditingCourse ? (
-                        <div className="flex items-center gap-2 p-1 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-black text-zinc-400 ml-1">কোর্সের নাম</label>
-                                <Input
-                                    value={courseName}
-                                    onChange={(e) => setCourseName(e.target.value)}
-                                    className="h-9 w-64 font-bengali"
-                                    autoFocus
-                                />
+                        <div className="flex flex-col gap-2 p-2 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-800 animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                            <div className="flex gap-2">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] uppercase font-black text-zinc-400 ml-1">কোর্সের নাম</label>
+                                    <Input
+                                        value={courseName}
+                                        onChange={(e) => setCourseName(e.target.value)}
+                                        className="h-8 w-64 font-bengali"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] uppercase font-black text-zinc-400 ml-1">মেয়াদ (মাস)</label>
+                                    <Input
+                                        type="number"
+                                        value={courseDuration}
+                                        onChange={(e) => setCourseDuration(Number(e.target.value))}
+                                        className="h-8 w-24 font-bengali"
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-black text-zinc-400 ml-1">মেয়াদ (মাস)</label>
-                                <Input
-                                    type="number"
-                                    value={courseDuration}
-                                    onChange={(e) => setCourseDuration(Number(e.target.value))}
-                                    className="h-9 w-24 font-bengali"
-                                />
-                            </div>
-                            <div className="flex items-end h-16 pb-1">
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 hover:bg-green-50" onClick={handleUpdateCourse}>
-                                    <Check className="w-5 h-5" />
+
+                            <div className="flex justify-end pt-1">
+                                <Button size="sm" variant="ghost" className="h-7 text-green-600 hover:bg-green-50 gap-1" onClick={handleUpdateCourse}>
+                                    <Check className="w-4 h-4" /> Save
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-stone-500 hover:bg-zinc-100" onClick={() => setIsEditingCourse(false)}>
-                                    <X className="w-5 h-5" />
+                                <Button size="sm" variant="ghost" className="h-7 text-stone-500 hover:bg-zinc-100 gap-1" onClick={() => setIsEditingCourse(false)}>
+                                    <X className="w-4 h-4" /> Cancel
                                 </Button>
                             </div>
                         </div>

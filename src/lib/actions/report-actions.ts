@@ -11,69 +11,71 @@ export async function getFinancialSummary(mode?: "ONLINE" | "OFFLINE") {
     const modeFilter = mode ? { mode } : undefined;
     const invoiceFilter = mode ? { student: modeFilter } : undefined;
 
-    const currentMonthCollections = await prisma.ledgerTransaction.aggregate({
-        where: {
-            transactionDate: {
-                gte: firstDayOfMonth,
-                lte: lastDayOfMonth,
+    const [currentMonthCollections, pendingInvoices, totalCollectionsResult, fundBreakdown] = await Promise.all([
+        prisma.ledgerTransaction.aggregate({
+            where: {
+                transactionDate: {
+                    gte: firstDayOfMonth,
+                    lte: lastDayOfMonth,
+                },
+                dr_cr: "CR",
+                OR: [
+                    { invoice: invoiceFilter },
+                    // Include donations/committee funds if mode is OFFLINE or untyped (since they don't have student invoices)
+                    ...(mode === "OFFLINE" || !mode ? [{
+                        fundType: { in: [FundType.DANA_COMMITTEE, FundType.DONATION] }
+                    }] : [])
+                ]
             },
-            dr_cr: "CR",
-            OR: [
-                { invoice: invoiceFilter },
-                // Include donations/committee funds if mode is OFFLINE or untyped (since they don't have student invoices)
-                ...(mode === "OFFLINE" || !mode ? [{
-                    fundType: { in: [FundType.DANA_COMMITTEE, FundType.DONATION] }
-                }] : [])
-            ]
-        },
-        _sum: {
-            amount: true,
-        },
-    });
+            _sum: {
+                amount: true,
+            },
+        }),
 
-    const pendingInvoices = await prisma.monthlyInvoice.aggregate({
-        where: {
-            status: InvoiceStatus.UNPAID,
-            student: modeFilter
-        },
-        _sum: {
-            amount: true,
-        },
-        _count: {
-            id: true,
-        }
-    });
+        prisma.monthlyInvoice.aggregate({
+            where: {
+                status: InvoiceStatus.UNPAID,
+                student: modeFilter
+            },
+            _sum: {
+                amount: true,
+            },
+            _count: {
+                id: true,
+            }
+        }),
 
-    const totalCollectionsResult = await prisma.ledgerTransaction.aggregate({
-        where: {
-            dr_cr: "CR",
-            OR: [
-                { invoice: invoiceFilter },
-                ...(mode === "OFFLINE" || !mode ? [{
-                    fundType: { in: [FundType.DANA_COMMITTEE, FundType.DONATION] }
-                }] : [])
-            ]
-        },
-        _sum: {
-            amount: true,
-        },
-    });
+        prisma.ledgerTransaction.aggregate({
+            where: {
+                dr_cr: "CR",
+                OR: [
+                    { invoice: invoiceFilter },
+                    ...(mode === "OFFLINE" || !mode ? [{
+                        fundType: { in: [FundType.DANA_COMMITTEE, FundType.DONATION] }
+                    }] : [])
+                ]
+            },
+            _sum: {
+                amount: true,
+            },
+        }),
 
-    const fundBreakdown = await prisma.ledgerTransaction.groupBy({
-        by: ['fundType'],
-        where: {
-            dr_cr: "CR",
-            OR: [
-                { invoice: invoiceFilter },
-                ...(mode === "OFFLINE" || !mode ? [{
-                    fundType: { in: [FundType.DANA_COMMITTEE, FundType.DONATION] }
-                }] : [])
-            ]
-        },
-        _sum: {
-            amount: true,
-        },
-    });
+        prisma.ledgerTransaction.groupBy({
+            by: ['fundType'],
+            where: {
+                dr_cr: "CR",
+                OR: [
+                    { invoice: invoiceFilter },
+                    ...(mode === "OFFLINE" || !mode ? [{
+                        fundType: { in: [FundType.DANA_COMMITTEE, FundType.DONATION] }
+                    }] : [])
+                ]
+            },
+            _sum: {
+                amount: true,
+            },
+        })
+    ]);
 
     return {
         totalCollection: currentMonthCollections._sum.amount || 0,
@@ -138,29 +140,28 @@ export async function getRevenueTrend() {
 }
 
 export async function getStudentDemographics() {
-    const totalStudents = await prisma.studentProfile.count();
-    const activeStudents = await prisma.studentProfile.count({ where: { activeStatus: true } });
-
-    const genderData = await prisma.studentProfile.groupBy({
-        by: ['gender'],
-        _count: {
-            id: true,
-        }
-    });
-
-    const residencyData = await prisma.studentProfile.groupBy({
-        by: ['residency'],
-        _count: {
-            id: true,
-        }
-    });
-
-    const modeData = await prisma.studentProfile.groupBy({
-        by: ['mode'],
-        _count: {
-            id: true,
-        }
-    });
+    const [totalStudents, activeStudents, genderData, residencyData, modeData] = await Promise.all([
+        prisma.studentProfile.count(),
+        prisma.studentProfile.count({ where: { activeStatus: true } }),
+        prisma.studentProfile.groupBy({
+            by: ['gender'],
+            _count: {
+                id: true,
+            }
+        }),
+        prisma.studentProfile.groupBy({
+            by: ['residency'],
+            _count: {
+                id: true,
+            }
+        }),
+        prisma.studentProfile.groupBy({
+            by: ['mode'],
+            _count: {
+                id: true,
+            }
+        })
+    ]);
 
     return {
         stats: {
@@ -178,41 +179,41 @@ export async function getAttendanceStats() {
     const now = new Date();
     const startOfDay = new Date(now.setHours(0, 0, 0, 0));
     const endOfDay = new Date(now.setHours(23, 59, 59, 999));
-
-    const todayStats = await prisma.attendance.groupBy({
-        by: ['status'],
-        where: {
-            classSession: {
-                date: {
-                    gte: startOfDay,
-                    lte: endOfDay
-                }
-            }
-        },
-        _count: {
-            id: true,
-        }
-    });
-
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const monthAttendance = await prisma.attendance.findMany({
-        where: {
-            status: 'PRESENT',
-            classSession: {
-                date: {
-                    gte: firstDayOfMonth
+    const [todayStats, monthAttendance] = await Promise.all([
+        prisma.attendance.groupBy({
+            by: ['status'],
+            where: {
+                classSession: {
+                    date: {
+                        gte: startOfDay,
+                        lte: endOfDay
+                    }
+                }
+            },
+            _count: {
+                id: true,
+            }
+        }),
+        prisma.attendance.findMany({
+            where: {
+                status: 'PRESENT',
+                classSession: {
+                    date: {
+                        gte: firstDayOfMonth
+                    }
+                }
+            },
+            select: {
+                classSession: {
+                    select: {
+                        date: true
+                    }
                 }
             }
-        },
-        select: {
-            classSession: {
-                select: {
-                    date: true
-                }
-            }
-        }
-    });
+        })
+    ]);
 
     const dailyMap = new Map<string, number>();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -248,81 +249,76 @@ export async function getAdminOverviewStats(mode?: "ONLINE" | "OFFLINE") {
 
     const modeFilter = mode ? (mode === "ONLINE" ? "ONLINE" : "OFFLINE") : undefined;
 
-    const totalStudents = await prisma.studentProfile.count({
-        where: modeFilter ? { mode: modeFilter } : undefined
-    });
-
-    // Filter teachers who have at least one batch of this mode
-    const totalTeachers = await prisma.teacherProfile.count({
-        where: modeFilter ? {
-            assignedBatches: {
-                some: {
-                    allowedMode: modeFilter
-                }
-            }
-        } : undefined
-    });
-
-    const revenue = await prisma.ledgerTransaction.aggregate({
-        where: {
-            transactionDate: {
-                gte: firstDayOfMonth,
-                lte: lastDayOfMonth,
-            },
-            dr_cr: "CR",
-            // Filter revenue by student mode if mode is selected
-            invoice: modeFilter ? {
-                student: {
-                    mode: modeFilter
+    const [totalStudents, totalTeachers, revenue, activeBatches, recentEnrollments, recentTransactions] = await Promise.all([
+        prisma.studentProfile.count({
+            where: modeFilter ? { mode: modeFilter } : undefined
+        }),
+        prisma.teacherProfile.count({
+            where: modeFilter ? {
+                assignedBatches: {
+                    some: {
+                        allowedMode: modeFilter
+                    }
                 }
             } : undefined
-        },
-        _sum: {
-            amount: true,
-        },
-    });
-
-    const activeBatches = await prisma.batch.count({
-        where: {
-            active: true,
-            allowedMode: modeFilter
-        }
-    });
-
-    // Fetch Recent Activities
-    const recentEnrollments = await prisma.enrollment.findMany({
-        take: 2,
-        orderBy: { joinedAt: 'desc' },
-        where: modeFilter ? {
-            batch: {
+        }),
+        prisma.ledgerTransaction.aggregate({
+            where: {
+                transactionDate: {
+                    gte: firstDayOfMonth,
+                    lte: lastDayOfMonth,
+                },
+                dr_cr: "CR",
+                // Filter revenue by student mode if mode is selected
+                invoice: modeFilter ? {
+                    student: {
+                        mode: modeFilter
+                    }
+                } : undefined
+            },
+            _sum: {
+                amount: true,
+            },
+        }),
+        prisma.batch.count({
+            where: {
+                active: true,
                 allowedMode: modeFilter
             }
-        } : undefined,
-        include: {
-            student: true,
-            batch: {
-                include: { department: true }
-            }
-        }
-    });
-
-    const recentTransactions = await prisma.ledgerTransaction.findMany({
-        take: 2,
-        where: {
-            dr_cr: "CR",
-            invoice: modeFilter ? {
-                student: {
-                    mode: modeFilter
+        }),
+        prisma.enrollment.findMany({
+            take: 2,
+            orderBy: { joinedAt: 'desc' },
+            where: modeFilter ? {
+                batch: {
+                    allowedMode: modeFilter
                 }
-            } : undefined
-        },
-        orderBy: { transactionDate: 'desc' },
-        include: {
-            invoice: {
-                include: { student: true }
+            } : undefined,
+            include: {
+                student: true,
+                batch: {
+                    include: { department: true }
+                }
             }
-        }
-    });
+        }),
+        prisma.ledgerTransaction.findMany({
+            take: 2,
+            where: {
+                dr_cr: "CR",
+                invoice: modeFilter ? {
+                    student: {
+                        mode: modeFilter
+                    }
+                } : undefined
+            },
+            orderBy: { transactionDate: 'desc' },
+            include: {
+                invoice: {
+                    include: { student: true }
+                }
+            }
+        })
+    ]);
 
     const activities = [
         ...recentEnrollments.map(e => ({

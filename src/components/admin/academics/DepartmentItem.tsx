@@ -27,8 +27,14 @@ interface DepartmentItemProps {
         id: string;
         name: string;
         batches: any[];
+        monthlyFee?: number | null;
+        admissionFee?: number | null;
+        monthlyFeeOffline?: number | null;
+        admissionFeeOffline?: number | null;
+        monthlyFeeProbashi?: number | null;
+        admissionFeeProbashi?: number | null;
     };
-    onEdit: (id: string, newName: string) => void;
+    onEdit: (id: string, data: any) => void;
     onDelete: (id: string) => void;
     onRefresh: () => void;
 }
@@ -39,6 +45,8 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
     // Dept Edit State
     const [isEditing, setIsEditing] = useState(false);
     const [newName, setNewName] = useState(department.name);
+
+
     const [isDeleting, setIsDeleting] = useState(false);
 
     // Batch Creation State
@@ -48,9 +56,9 @@ export function DepartmentItem({ department, onEdit, onDelete, onRefresh }: Depa
     const [loading, setLoading] = useState(false);
 
     const handleSave = () => {
-        if (newName.trim() !== department.name) {
-            onEdit(department.id, newName);
-        }
+        onEdit(department.id, {
+            name: newName
+        });
         setIsEditing(false);
     };
 

@@ -172,7 +172,7 @@ model BatchSubject {
   id        String  @id @default(cuid())
   batchId   String
   subjectId String
-  batch     Batch   @relation(fields: [batchId], references: [id])
+  batch     Batch   @relation(fields: [batchId], references: [id], onDelete: Cascade)
   subject   Subject @relation(fields: [subjectId], references: [id])
 
   @@unique([batchId, subjectId])
@@ -192,7 +192,7 @@ model ClassSession {
   startTime  DateTime
   endTime    DateTime
   attendance Attendance[]
-  batch      Batch        @relation(fields: [batchId], references: [id])
+  batch      Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
 }
 
 model Enrollment {
@@ -201,7 +201,7 @@ model Enrollment {
   batchId   String
   joinedAt  DateTime       @default(now())
   isAdmissionFeePaid Boolean @default(false)
-  batch     Batch          @relation(fields: [batchId], references: [id])
+  batch     Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
   student   StudentProfile @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, batchId])
@@ -296,7 +296,7 @@ model Homework {
   attachments String[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
-  batch       Batch                @relation(fields: [batchId], references: [id])
+  batch       Batch                @relation(fields: [batchId], references: [id], onDelete: Cascade)
   teacher     TeacherProfile       @relation(fields: [teacherId], references: [id])
   submissions HomeworkSubmission[]
 }
@@ -388,7 +388,7 @@ model MonthlyLiveClass {
   updatedAt   DateTime              @updatedAt
   sessionKeys String[]              @default([])
   attendance  LiveClassAttendance[]
-  batch       Batch                 @relation(fields: [batchId], references: [id])
+  batch       Batch                 @relation(fields: [batchId], references: [id], onDelete: Cascade)
   teacher     TeacherProfile        @relation(fields: [teacherId], references: [id])
 
   @@index([month, year, gender, active])
@@ -472,7 +472,7 @@ model Lesson {
   teacherId   String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
-  batch       Batch            @relation(fields: [batchId], references: [id])
+  batch       Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
   teacher     TeacherProfile?  @relation(fields: [teacherId], references: [id])
   resources   LessonResource[]
 }
