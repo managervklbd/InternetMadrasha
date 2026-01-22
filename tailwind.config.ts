@@ -58,6 +58,7 @@ const config: Config = {
 			},
 			fontFamily: {
 				bengali: ["var(--font-bengali)", "sans-serif"],
+				sans: ["var(--font-bengali)", "ui-sans-serif", "system-ui", "sans-serif"],
 			}
 		}
 	},

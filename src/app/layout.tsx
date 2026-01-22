@@ -32,15 +32,40 @@ export async function generateMetadata(): Promise<Metadata> {
     console.error("Failed to fetch site settings for metadata:", error);
     // Continue with undefined settings (which falls back to defaults)
   }
+
+  const title = settings?.madrasaName || "মাদ্রাসা ম্যানেজমেন্ট সিস্টেম";
+  const description = settings?.madrasaName
+    ? `${settings.madrasaName} - একটি আধুনিক এবং পূর্ণাঙ্গ মাদ্রাসা ম্যানেজমেন্ট সিস্টেম।`
+    : "আধুনিক মাদ্রাসা ম্যানেজমেন্ট সিস্টেম - সহজে মাদ্রাসা পরিচালনার জন্য।";
+
   return {
     title: {
-      default: settings?.madrasaName || "মাদ্রাসা ম্যানেজমেন্ট সিস্টেম",
-      template: `%s | ${settings?.madrasaName || "Madrasa System"}`,
+      default: title,
+      template: `%s | ${title}`,
     },
-    description: "আধুনিক মাদ্রাসা ম্যানেজমেন্ট সিস্টেম",
+    description: description,
+    applicationName: "Internet Madrasha",
+    authors: [{ name: "Maxtechbd", url: "https://maxtechbd.com" }],
+    generator: "Next.js",
+    keywords: ["Madrasa", "Management", "System", "Education", "Bangladesh", "Islamic", "School", "Software"],
     icons: {
       icon: settings?.madrasaLogo || "/favicon.ico",
-    }
+      apple: settings?.madrasaLogo || "/favicon.ico",
+    },
+    openGraph: {
+      title: title,
+      description: description,
+      siteName: title,
+      type: "website",
+      locale: "bn_BD",
+      images: settings?.madrasaLogo ? [{ url: settings.madrasaLogo }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: title,
+      description: description,
+      images: settings?.madrasaLogo ? [settings.madrasaLogo] : [],
+    },
   };
 }
 

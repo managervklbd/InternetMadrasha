@@ -74,6 +74,7 @@ model TeacherProfile {
   payments        TeacherPayment[]
   user            User               @relation(fields: [userId], references: [id])
   assignedBatches Batch[]            @relation("TeacherBatches")
+  lessons         Lesson[]
 }
 
 model TeacherPayment {
@@ -81,9 +82,12 @@ model TeacherPayment {
   teacherId     String
   month         Int
   year          Int
-  amount        Float
+  amount        Float          // This will represent totalAmount now
+  basicSalary   Float          @default(0)
+  bonus         Float?         @default(0)
+  deduction     Float?         @default(0)
   paymentDate   DateTime      @default(now())
-  status        PaymentStatus @default(PAID) // Reusing PaymentStatus or creating new? Using InvoiceStatus alias or string? Let's use string or new enum.
+  status        PaymentStatus @default(PAID) 
   method        PaymentMethod
   transactionId String?
   note          String?
@@ -164,6 +168,7 @@ model Batch {
   homeworks     Homework[]
   liveClasses   MonthlyLiveClass[]
   teachers      TeacherProfile[]   @relation("TeacherBatches")
+  lessons       Lesson[]
 }
 
 model BatchSubject {
@@ -545,4 +550,36 @@ enum DonationPurpose {
   LILLAH_BOARDING
   CONSTRUCTION
   OTHER
+}
+
+model Lesson {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  batchId     String
+  teacherId   String?          // Can be null if created by Admin
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  batch       Batch            @relation(fields: [batchId], references: [id])
+  teacher     TeacherProfile?  @relation(fields: [teacherId], references: [id])
+  resources   LessonResource[]
+}
+
+model LessonResource {
+  id          String       @id @default(cuid())
+  title       String
+  type        ResourceType @default(FILE)
+  url         String
+  lessonId    String
+  createdAt   DateTime     @default(now())
+  
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+enum ResourceType {
+  VIDEO
+  PDF
+  IMAGE
+  FILE
 }

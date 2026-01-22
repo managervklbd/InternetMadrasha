@@ -85,7 +85,7 @@ export async function sendCredentialEmail(email: string, name: string, password:
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log("Email sent: %s", info.messageId);
+
         return { success: true };
 
     } catch (error) {
@@ -144,7 +144,7 @@ export async function sendPasswordResetEmail(email: string, resetLink: string) {
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log("Reset email sent: %s", info.messageId);
+
         return { success: true };
 
     } catch (error) {
@@ -259,7 +259,7 @@ export async function sendPaymentConfirmationEmail(
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log("Payment Invoice Email sent: %s", info.messageId);
+
         return { success: true };
 
     } catch (error) {

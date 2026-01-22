@@ -53,6 +53,7 @@ export default async function DashboardLayout({
             title: "Finance & Reports",
             items: [
                 { href: "/admin/billing", label: "হিসাব ও পেমেন্ট", iconName: "CreditCard" },
+                { href: "/admin/payroll", label: "শিক্ষক বেতন", iconName: "Banknote" },
                 { href: "/admin/donations", label: "কমিটি / দান", iconName: "HeartHandshake" },
                 { href: "/admin/reports/financial", label: "আর্থিক প্রতিবেদন", iconName: "PieChart" },
                 { href: "/admin/reports/students", label: "ছাত্র পরিসংখ্যান", iconName: "Users" },
@@ -79,9 +80,17 @@ export default async function DashboardLayout({
             title: "শিক্ষাদান ও মূল্যায়ন",
             items: [
                 { href: "/teacher/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },
+                { href: "/teacher/lessons", label: "ভিডিও লেসন ও রিসোর্স", iconName: "BookOpen" },
+                { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
                 { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
                 { href: "/teacher/homework", label: "হোমওয়ার্ক / অ্যাসাইনমেন্ট", iconName: "BookOpen" },
                 { href: "/teacher/marks", label: "গ্রেড বুক (নম্বর এন্ট্রি)", iconName: "CalendarCheck" },
+            ]
+        },
+        {
+            title: "Finance",
+            items: [
+                { href: "/teacher/payroll", label: "বেতন বিবরণী", iconName: "CreditCard" },
             ]
         }
     ];
@@ -108,6 +117,7 @@ export default async function DashboardLayout({
             title: "Academic",
             items: [
                 ...(studentMode === "ONLINE" ? [{ href: "/student/live-classes", label: "লাইভ ক্লাস", iconName: "Video" }] : []),
+                { href: "/student/lessons", label: "ভিডিও লেসন ও রিসোর্স", iconName: "BookOpen" },
                 { href: "/student/attendance", label: "হাজিরা রিপোর্ট", iconName: "Calendar" },
                 { href: "/student/homework", label: "হোমওয়ার্ক / অ্যাসাইনমেন্ট", iconName: "BookOpen" },
             ]
@@ -135,7 +145,7 @@ export default async function DashboardLayout({
     return (
         <div className={`flex h-screen bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans print:h-auto print:overflow-visible ${viewMode === 'ONLINE' ? 'theme-online' : 'theme-offline'}`}>
             {/* Desktop Sidebar */}
-            <aside className="w-72 hidden md:flex border-r border-teal-800 flex-col relative overflow-hidden shadow-2xl print:hidden">
+            <aside className="w-72 hidden lg:flex border-r border-teal-800 flex-col relative overflow-hidden shadow-2xl print:hidden">
                 <SidebarContent
                     role={role}
                     links={links}

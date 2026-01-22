@@ -121,7 +121,7 @@ export async function requestPasswordReset(email: string) {
 
         if (!user) {
             // For security, do not reveal if user exists.
-            console.log("Password reset requested for non-existent email:", email);
+
             return { success: true, message: "If an account exists, a reset link has been sent." };
         }
 

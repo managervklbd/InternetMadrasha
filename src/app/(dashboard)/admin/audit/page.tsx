@@ -2,9 +2,29 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { getAuditLogs } from "@/lib/actions/audit-actions";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Info } from "lucide-react";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
+
+// Action mapping for human readability
+const ACTION_LABELS: Record<string, string> = {
+    "CREATE_LESSON": "নতুন পাঠ তৈরি",
+    "DELETE_LESSON": "পাঠ মুছে ফেলা",
+    "ADD_RESOURCE": "রিসোর্স যোগ",
+    "DELETE_RESOURCE": "রিসোর্স মুছে ফেলা",
+    "CREATE_COURSE": "কোর্স তৈরি",
+    "CREATE_DEPARTMENT": "বিভাগ তৈরি",
+    "CREATE_SEMESTER": "সেমিস্টার তৈরি",
+    "CREATE_BATCH": "ব্যাচ তৈরি",
+    "USER_CREATE_AUTO": "অটো ইউজার তৈরি",
+    // Add more as needed
+};
 
 export default async function AuditPage() {
     const logs = await getAuditLogs(100);
@@ -42,22 +62,52 @@ export default async function AuditPage() {
                             {logs.length > 0 ? (
                                 logs.map((log) => (
                                     <TableRow key={log.id}>
-                                        <TableCell className="font-mono text-xs">
-                                            {new Date(log.createdAt).toLocaleString('bn-BD')}
+                                        <TableCell className="font-mono text-xs whitespace-nowrap">
+                                            {new Date(log.createdAt).toLocaleString('bn-BD', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className="font-bold">
-                                                {log.action}
+                                            <Badge variant="outline" className="font-bold whitespace-nowrap">
+                                                {ACTION_LABELS[log.action] || log.action}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span className="font-medium text-xs">{log.admin.email}</span>
+                                                <span className="font-medium text-xs">{log.admin.fullName || log.admin.email}</span>
                                                 <span className="text-[10px] text-zinc-500">{log.admin.role}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="max-w-xs truncate text-xs text-zinc-600 dark:text-zinc-400" title={JSON.stringify(log.details)}>
-                                            {log.targetModel}: {log.targetId}
+                                        <TableCell className="text-xs text-zinc-600 dark:text-zinc-400">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-semibold">{log.targetModel}</span>
+
+                                                {/* Details Viewer */}
+                                                {log.details && Object.keys(log.details as object).length > 0 && (
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className="h-6 w-fit px-2 text-xs text-blue-600 hover:text-blue-700 p-0 font-normal">
+                                                                <Info className="w-3 h-3 mr-1" />
+                                                                বিস্তারিত দেখুন
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-80">
+                                                            <div className="space-y-2">
+                                                                <h4 className="font-medium leading-none">অ্যাকশন ডিটেইলস</h4>
+                                                                <div className="text-xs text-muted-foreground bg-zinc-50 dark:bg-zinc-900 p-2 rounded-md font-mono">
+                                                                    <pre className="whitespace-pre-wrap break-all">
+                                                                        {JSON.stringify(log.details, null, 2)}
+                                                                    </pre>
+                                                                </div>
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="font-mono text-xs text-zinc-500">
                                             {log.ipAddress || "N/A"}
