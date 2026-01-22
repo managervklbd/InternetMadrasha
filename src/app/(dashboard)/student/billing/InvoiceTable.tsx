@@ -99,7 +99,7 @@ export function InvoiceTable({ invoices, upcoming = [] }: { invoices: any[], upc
                                     </TableCell>
                                     <TableCell className="font-medium">
                                         <div className="flex items-center gap-2">
-                                            {inv.month}/{inv.year}
+                                            {inv.month === 0 ? "Admission Fee" : `${inv.month}/${inv.year}`}
                                             {inv.status === "PAID" && (
                                                 <Badge variant="success" className="h-4 text-[9px] px-1 py-0">Verified</Badge>
                                             )}

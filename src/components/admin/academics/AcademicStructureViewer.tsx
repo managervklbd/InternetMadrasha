@@ -64,6 +64,13 @@ export function AcademicStructureViewer({ initialMode }: Props) {
         const endDate = formData.get("endDate") ? new Date(formData.get("endDate") as string) : undefined;
         const allowedMode = formData.get("allowedMode") as "ONLINE" | "OFFLINE" | undefined;
 
+        const monthlyFee = formData.get("monthlyFee") ? Number(formData.get("monthlyFee")) : undefined;
+        const admissionFee = formData.get("admissionFee") ? Number(formData.get("admissionFee")) : undefined;
+        const monthlyFeeOffline = formData.get("monthlyFeeOffline") ? Number(formData.get("monthlyFeeOffline")) : undefined;
+        const admissionFeeOffline = formData.get("admissionFeeOffline") ? Number(formData.get("admissionFeeOffline")) : undefined;
+        const admissionFeeProbashi = formData.get("admissionFeeProbashi") ? Number(formData.get("admissionFeeProbashi")) : undefined;
+        const monthlyFeeProbashi = formData.get("monthlyFeeProbashi") ? Number(formData.get("monthlyFeeProbashi")) : undefined;
+
         try {
             const res = await createCourse({
                 name: newCourseName,
@@ -71,7 +78,13 @@ export function AcademicStructureViewer({ initialMode }: Props) {
                 allowedMode, // Pass the selected mode
                 durationMonths,
                 startDate,
-                endDate
+                endDate,
+                monthlyFee,
+                admissionFee,
+                monthlyFeeOffline,
+                admissionFeeOffline,
+                admissionFeeProbashi,
+                monthlyFeeProbashi
             }) as any;
 
             if (res.success) {
@@ -120,6 +133,36 @@ export function AcademicStructureViewer({ initialMode }: Props) {
                                     onChange={(e) => setNewCourseName(e.target.value)}
                                     required
                                 />
+                            </div>
+
+                            <div className="space-y-4 p-3 bg-zinc-50 dark:bg-zinc-900 rounded-md border">
+                                <Label className="font-bengali font-bold text-zinc-700">ফি নির্ধারণ (ঐচ্ছিক)</Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bengali">ভর্তি ফি (অনলাইন)</Label>
+                                        <Input name="admissionFee" type="number" placeholder="0" className="bg-white h-8" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bengali">মাসিক ফি (অনলাইন)</Label>
+                                        <Input name="monthlyFee" type="number" placeholder="0" className="bg-white h-8" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bengali">ভর্তি ফি (অফলাইন)</Label>
+                                        <Input name="admissionFeeOffline" type="number" placeholder="0" className="bg-white h-8" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bengali">মাসিক ফি (অফলাইন)</Label>
+                                        <Input name="monthlyFeeOffline" type="number" placeholder="0" className="bg-white h-8" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bengali text-purple-600">ভর্তি ফি (প্রবাসী $)</Label>
+                                        <Input name="admissionFeeProbashi" type="number" placeholder="0" className="bg-white h-8 border-purple-200" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-bengali text-purple-600">মাসিক ফি (প্রবাসী $)</Label>
+                                        <Input name="monthlyFeeProbashi" type="number" placeholder="0" className="bg-white h-8 border-purple-200" />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="flex items-center space-x-2 border p-3 rounded-md bg-zinc-50 dark:bg-zinc-900">

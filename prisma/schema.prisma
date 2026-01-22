@@ -105,6 +105,9 @@ model Course {
   admissionFeeOffline Float?
   monthlyFeeOffline   Float?
   sadkaFeeOffline     Float?
+
+  admissionFeeProbashi Float?
+  monthlyFeeProbashi  Float?
   departments         Department[]
 }
 
@@ -119,6 +122,9 @@ model Department {
   admissionFeeOffline Float?
   monthlyFeeOffline   Float?
   sadkaFeeOffline     Float?
+
+  admissionFeeProbashi Float?
+  monthlyFeeProbashi  Float?
   batches             Batch[]
   course              Course           @relation(fields: [courseId], references: [id])
   students            StudentProfile[]
@@ -149,6 +155,9 @@ model Batch {
   admissionFeeOffline Float?
   monthlyFeeOffline   Float?
   sadkaFeeOffline     Float?
+
+  admissionFeeProbashi Float?
+  monthlyFeeProbashi  Float?
   department          Department         @relation(fields: [departmentId], references: [id])
   batchSubjects       BatchSubject[]
   sessions            ClassSession[]
@@ -191,6 +200,7 @@ model Enrollment {
   studentId String
   batchId   String
   joinedAt  DateTime       @default(now())
+  isAdmissionFeePaid Boolean @default(false)
   batch     Batch          @relation(fields: [batchId], references: [id])
   student   StudentProfile @relation(fields: [studentId], references: [id])
 

@@ -13,6 +13,10 @@ export async function createCourse(data: {
     allowedMode?: StudentMode;
     startDate?: Date;
     endDate?: Date;
+    monthlyFeeOffline?: number;
+    admissionFeeOffline?: number;
+    admissionFeeProbashi?: number;
+    monthlyFeeProbashi?: number;
 }) {
     if (!data.name || data.name.trim() === "") {
         return { success: false, error: "কোর্সের নাম আবশ্যক।" };
@@ -23,7 +27,11 @@ export async function createCourse(data: {
                 name: data.name,
                 monthlyFee: data.monthlyFee,
                 admissionFee: data.admissionFee,
-                durationMonths: data.durationMonths
+                durationMonths: data.durationMonths,
+                monthlyFeeOffline: data.monthlyFeeOffline,
+                admissionFeeOffline: data.admissionFeeOffline,
+                admissionFeeProbashi: data.admissionFeeProbashi,
+                monthlyFeeProbashi: data.monthlyFeeProbashi
             }
         });
 
@@ -35,7 +43,11 @@ export async function createCourse(data: {
                     code: data.name.substring(0, 3).toUpperCase(),
                     courseId: course.id,
                     monthlyFee: data.monthlyFee,
-                    admissionFee: data.admissionFee
+                    admissionFee: data.admissionFee,
+                    monthlyFeeOffline: data.monthlyFeeOffline,
+                    admissionFeeOffline: data.admissionFeeOffline,
+                    admissionFeeProbashi: data.admissionFeeProbashi,
+                    monthlyFeeProbashi: data.monthlyFeeProbashi
                 }
             });
 
@@ -59,6 +71,10 @@ export async function createCourse(data: {
                     active: true,
                     monthlyFee: data.monthlyFee,
                     admissionFee: data.admissionFee,
+                    monthlyFeeOffline: data.monthlyFeeOffline,
+                    admissionFeeOffline: data.admissionFeeOffline,
+                    admissionFeeProbashi: data.admissionFeeProbashi,
+                    monthlyFeeProbashi: data.monthlyFeeProbashi,
                     startDate: startDate,
                     endDate: endDate
                 }
@@ -76,7 +92,14 @@ export async function createCourse(data: {
     }
 }
 
-export async function createDepartment(name: string, courseId: string, code?: string) {
+export async function createDepartment(name: string, courseId: string, code?: string, fees?: {
+    monthlyFee?: number;
+    admissionFee?: number;
+    monthlyFeeOffline?: number;
+    admissionFeeOffline?: number;
+    admissionFeeProbashi?: number;
+    monthlyFeeProbashi?: number;
+}) {
     if (!name || !courseId) {
         return { success: false, error: "বিভাগের নাম এবং কোর্স আবশ্যক।" };
     }
@@ -91,7 +114,8 @@ export async function createDepartment(name: string, courseId: string, code?: st
             data: {
                 name,
                 courseId,
-                code: deptCode // Updated property
+                code: deptCode,
+                ...fees
             }
         });
         revalidatePath("/admin/billing");
@@ -102,53 +126,59 @@ export async function createDepartment(name: string, courseId: string, code?: st
 }
 
 export async function getAcademicStructure(mode?: StudentMode) {
-    return prisma.course.findMany({
-        where: mode ? {
-            OR: [
-                {
-                    departments: {
-                        some: {
-                            batches: {
-                                some: {
-                                    allowedMode: mode
+    try {
+        console.log("Fetching Academic Structure with mode:", mode);
+        return await prisma.course.findMany({
+            where: mode ? {
+                OR: [
+                    {
+                        departments: {
+                            some: {
+                                batches: {
+                                    some: {
+                                        allowedMode: mode
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        departments: {
+                            none: {}
+                        }
+                    },
+                    {
+                        departments: {
+                            some: {
+                                batches: {
+                                    none: {}
                                 }
                             }
                         }
                     }
-                },
-                {
-                    departments: {
-                        none: {}
-                    }
-                },
-                {
-                    departments: {
-                        some: {
-                            batches: {
-                                none: {}
+                ]
+            } : undefined,
+            include: {
+                departments: {
+                    include: {
+                        batches: {
+                            where: mode ? { allowedMode: mode } : undefined,
+                            include: {
+                                batchSubjects: {
+                                    include: { subject: true }
+                                },
+                                teachers: true
                             }
-                        }
-                    }
-                }
-            ]
-        } : undefined,
-        include: {
-            departments: {
-                include: {
-                    batches: {
-                        where: mode ? { allowedMode: mode } : undefined,
-                        include: {
-                            batchSubjects: {
-                                include: { subject: true }
-                            },
-                            teachers: true
-                        }
+                        },
+                        subjects: true,
                     },
-                    subjects: true,
                 },
             },
-        },
-    });
+        });
+    } catch (error) {
+        console.error("Critical Error in getAcademicStructure:", error);
+        throw error; // Re-throw to be handled by caller or Next.js
+    }
 }
 
 // --- Batch (Semester) Actions ---
@@ -161,6 +191,12 @@ export async function createBatch(data: {
     allowedMode: "ONLINE" | "OFFLINE";
     startDate?: Date;
     endDate?: Date;
+    monthlyFee?: number;
+    admissionFee?: number;
+    monthlyFeeOffline?: number;
+    admissionFeeOffline?: number;
+    admissionFeeProbashi?: number;
+    monthlyFeeProbashi?: number;
 }) {
     if (!data.name || !data.departmentId) {
         return { success: false, error: "Name and Department ID are required" };
@@ -176,7 +212,13 @@ export async function createBatch(data: {
                 allowedMode: data.allowedMode === "ONLINE" ? StudentMode.ONLINE : StudentMode.OFFLINE,
                 active: true,
                 startDate: data.startDate,
-                endDate: data.endDate
+                endDate: data.endDate,
+                monthlyFee: data.monthlyFee,
+                admissionFee: data.admissionFee,
+                monthlyFeeOffline: data.monthlyFeeOffline,
+                admissionFeeOffline: data.admissionFeeOffline,
+                admissionFeeProbashi: data.admissionFeeProbashi,
+                monthlyFeeProbashi: data.monthlyFeeProbashi
             },
         });
         revalidatePath("/admin/billing");
@@ -201,8 +243,6 @@ export async function deleteBatch(id: string) {
 
 // --- Update & Delete Actions for Course & Dept ---
 
-// --- Update & Delete Actions for Course & Dept ---
-
 export async function updateCourse(id: string, data: {
     name: string;
     monthlyFee?: number;
@@ -212,6 +252,8 @@ export async function updateCourse(id: string, data: {
     sadkaFeeOffline?: number;
     admissionFeeOffline?: number;
     durationMonths?: number;
+    admissionFeeProbashi?: number;
+    monthlyFeeProbashi?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
@@ -225,7 +267,9 @@ export async function updateCourse(id: string, data: {
                 monthlyFeeOffline: data.monthlyFeeOffline,
                 sadkaFeeOffline: data.sadkaFeeOffline,
                 admissionFeeOffline: data.admissionFeeOffline,
-                durationMonths: data.durationMonths
+                durationMonths: data.durationMonths,
+                admissionFeeProbashi: data.admissionFeeProbashi,
+                monthlyFeeProbashi: data.monthlyFeeProbashi
             }
         });
         revalidatePath("/admin/billing");
@@ -256,6 +300,8 @@ export async function updateDepartment(id: string, data: {
     monthlyFeeOffline?: number;
     sadkaFeeOffline?: number;
     admissionFeeOffline?: number;
+    admissionFeeProbashi?: number;
+    monthlyFeeProbashi?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
@@ -269,6 +315,8 @@ export async function updateDepartment(id: string, data: {
                 monthlyFeeOffline: data.monthlyFeeOffline,
                 sadkaFeeOffline: data.sadkaFeeOffline,
                 admissionFeeOffline: data.admissionFeeOffline,
+                admissionFeeProbashi: data.admissionFeeProbashi,
+                monthlyFeeProbashi: data.monthlyFeeProbashi
             }
         });
         revalidatePath("/admin/billing");
@@ -302,6 +350,8 @@ export async function updateBatch(id: string, data: {
     allowedMode?: StudentMode;
     startDate?: Date;
     endDate?: Date;
+    admissionFeeProbashi?: number;
+    monthlyFeeProbashi?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
@@ -317,7 +367,9 @@ export async function updateBatch(id: string, data: {
                 admissionFeeOffline: data.admissionFeeOffline,
                 allowedMode: data.allowedMode,
                 startDate: data.startDate,
-                endDate: data.endDate
+                endDate: data.endDate,
+                admissionFeeProbashi: data.admissionFeeProbashi,
+                monthlyFeeProbashi: data.monthlyFeeProbashi
             }
         });
         revalidatePath("/admin/billing");
