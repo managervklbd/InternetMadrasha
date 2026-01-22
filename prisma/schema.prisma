@@ -8,20 +8,20 @@ datasource db {
 }
 
 model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  password        String?
-  role            Role             @default(STUDENT)
-  status          AccountStatus    @default(INVITED)
-  invitationToken String?          @unique
-  resetToken      String?          @unique
+  id               String           @id @default(cuid())
+  email            String           @unique
+  password         String?
+  role             Role             @default(STUDENT)
+  status           AccountStatus    @default(INVITED)
+  invitationToken  String?          @unique
+  lastLogin        DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  resetToken       String?          @unique
   resetTokenExpiry DateTime?
-  lastLogin       DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  auditLogs       AdminActionLog[]
-  studentProfile  StudentProfile?
-  teacherProfile  TeacherProfile?
+  auditLogs        AdminActionLog[]
+  studentProfile   StudentProfile?
+  teacherProfile   TeacherProfile?
 }
 
 model StudentProfile {
@@ -54,87 +54,75 @@ model StudentProfile {
 }
 
 model TeacherProfile {
-  id              String             @id @default(cuid())
-  userId          String             @unique
-  fullName        String
-  gender          Gender
-  designation     String?            @default("Assistant Teacher")
-  phone           String?
-  address         String?
-  joiningDate     DateTime?          @default(now())
-  salary          Float?             @default(0)
-  paymentMethod   PaymentMethod?     @default(CASH)
-  bankAccountNumber String?
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  fullName            String
+  gender              Gender
+  specialization      String?
+  activeStatus        Boolean            @default(true)
+  address             String?
+  bankAccountNumber   String?
+  designation         String?            @default("Assistant Teacher")
+  joiningDate         DateTime?          @default(now())
+  nid                 String?
+  phone               String?
+  salary              Float?             @default(0)
   mobileBankingNumber String?
-  nid             String?
-  specialization  String?
-  activeStatus    Boolean            @default(true)
-  homeworks       Homework[]
-  liveClasses     MonthlyLiveClass[]
-  payments        TeacherPayment[]
-  user            User               @relation(fields: [userId], references: [id])
-  assignedBatches Batch[]            @relation("TeacherBatches")
-  lessons         Lesson[]
+  paymentMethod       PaymentMethod?     @default(CASH)
+  homeworks           Homework[]
+  lessons             Lesson[]
+  liveClasses         MonthlyLiveClass[]
+  payments            TeacherPayment[]
+  user                User               @relation(fields: [userId], references: [id])
+  assignedBatches     Batch[]            @relation("TeacherBatches")
 }
 
 model TeacherPayment {
-  id            String        @id @default(cuid())
+  id            String         @id @default(cuid())
   teacherId     String
   month         Int
   year          Int
-  amount        Float          // This will represent totalAmount now
-  basicSalary   Float          @default(0)
-  bonus         Float?         @default(0)
-  deduction     Float?         @default(0)
-  paymentDate   DateTime      @default(now())
-  status        PaymentStatus @default(PAID) 
+  amount        Float
+  paymentDate   DateTime       @default(now())
+  status        PaymentStatus  @default(PAID)
   method        PaymentMethod
   transactionId String?
   note          String?
+  basicSalary   Float          @default(0)
+  bonus         Float?         @default(0)
+  deduction     Float?         @default(0)
   teacher       TeacherProfile @relation(fields: [teacherId], references: [id])
 }
 
-enum PaymentMethod {
-  CASH
-  BANK
-  MOBILE_BANKING
-}
-
-enum PaymentStatus {
-  PAID
-  PENDING
-  FAILED
-}
-
 model Course {
-  id             String       @id @default(cuid())
-  name           String       @unique
-  code           String?
-  admissionFee   Float?
-  durationMonths Int?
-  monthlyFee     Float?
-  sadkaFee       Float?
-  monthlyFeeOffline Float?
-  sadkaFeeOffline   Float?
+  id                  String       @id @default(cuid())
+  name                String       @unique
+  code                String?
+  admissionFee        Float?
+  durationMonths      Int?
+  monthlyFee          Float?
+  sadkaFee            Float?
   admissionFeeOffline Float?
-  departments    Department[]
+  monthlyFeeOffline   Float?
+  sadkaFeeOffline     Float?
+  departments         Department[]
 }
 
 model Department {
-  id           String           @id @default(cuid())
-  name         String
-  code         String?
-  courseId     String
-  admissionFee Float?
-  monthlyFee   Float?
-  sadkaFee     Float?
-  monthlyFeeOffline Float?
-  sadkaFeeOffline   Float?
+  id                  String           @id @default(cuid())
+  name                String
+  code                String?
+  courseId            String
+  admissionFee        Float?
+  monthlyFee          Float?
+  sadkaFee            Float?
   admissionFeeOffline Float?
-  batches      Batch[]
-  course       Course           @relation(fields: [courseId], references: [id])
-  students     StudentProfile[]
-  subjects     Subject[]
+  monthlyFeeOffline   Float?
+  sadkaFeeOffline     Float?
+  batches             Batch[]
+  course              Course           @relation(fields: [courseId], references: [id])
+  students            StudentProfile[]
+  subjects            Subject[]
 }
 
 model Subject {
@@ -146,29 +134,29 @@ model Subject {
 }
 
 model Batch {
-  id            String             @id @default(cuid())
-  name          String
-  type          BatchType          @default(MONTHLY)
-  departmentId  String
-  allowedGender Gender
-  allowedMode   StudentMode        @default(OFFLINE)
-  startDate     DateTime?
-  endDate       DateTime?
-  active        Boolean            @default(true)
-  admissionFee  Float?
-  monthlyFee    Float?
-  sadkaFee      Float?
-  monthlyFeeOffline Float?
-  sadkaFeeOffline   Float?
+  id                  String             @id @default(cuid())
+  name                String
+  type                BatchType          @default(MONTHLY)
+  departmentId        String
+  allowedGender       Gender
+  allowedMode         StudentMode        @default(OFFLINE)
+  startDate           DateTime?
+  endDate             DateTime?
+  active              Boolean            @default(true)
+  admissionFee        Float?
+  monthlyFee          Float?
+  sadkaFee            Float?
   admissionFeeOffline Float?
-  department    Department         @relation(fields: [departmentId], references: [id])
-  batchSubjects BatchSubject[]
-  sessions      ClassSession[]
-  enrollments   Enrollment[]
-  homeworks     Homework[]
-  liveClasses   MonthlyLiveClass[]
-  teachers      TeacherProfile[]   @relation("TeacherBatches")
-  lessons       Lesson[]
+  monthlyFeeOffline   Float?
+  sadkaFeeOffline     Float?
+  department          Department         @relation(fields: [departmentId], references: [id])
+  batchSubjects       BatchSubject[]
+  sessions            ClassSession[]
+  enrollments         Enrollment[]
+  homeworks           Homework[]
+  lessons             Lesson[]
+  liveClasses         MonthlyLiveClass[]
+  teachers            TeacherProfile[]   @relation("TeacherBatches")
 }
 
 model BatchSubject {
@@ -310,9 +298,9 @@ model HomeworkSubmission {
   content     String?
   fileUrls    String[]
   submittedAt DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
   grade       String?
   feedback    String?
+  updatedAt   DateTime       @updatedAt
   homework    Homework       @relation(fields: [homeworkId], references: [id])
   student     StudentProfile @relation(fields: [studentId], references: [id])
 }
@@ -383,12 +371,12 @@ model MonthlyLiveClass {
   studentMode StudentMode           @default(ONLINE)
   teacherId   String
   batchId     String
-  sessionKeys String[]              @default([])
   sessions    LiveClassSession[]
   liveLink    String
   active      Boolean               @default(true)
   createdAt   DateTime              @default(now())
   updatedAt   DateTime              @updatedAt
+  sessionKeys String[]              @default([])
   attendance  LiveClassAttendance[]
   batch       Batch                 @relation(fields: [batchId], references: [id])
   teacher     TeacherProfile        @relation(fields: [teacherId], references: [id])
@@ -411,15 +399,94 @@ model LiveClassAttendance {
   id          String           @id @default(cuid())
   studentId   String
   liveClassId String
-  session     LiveClassSession @default(MORNING) // Keeping this for backward compatibility or make optional? It was required.
-  sessionKey  String?          // For dynamic sessions
-  sessionName String?          // Snapshot of the session label
+  session     LiveClassSession @default(MORNING)
   date        DateTime         @default(now())
   joinTime    DateTime         @default(now())
+  sessionKey  String?
+  sessionName String?
   liveClass   MonthlyLiveClass @relation(fields: [liveClassId], references: [id])
   student     StudentProfile   @relation(fields: [studentId], references: [id])
 
   @@index([studentId, date])
+}
+
+model Donor {
+  id          String     @id @default(cuid())
+  name        String
+  phone       String?
+  email       String?
+  address     String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  committee   String?
+  fixedAmount Float?     @default(0)
+  notes       String?
+  type        String?    @default("GENERAL")
+  donations   Donation[]
+}
+
+model CommitteeMember {
+  id                 String     @id @default(cuid())
+  name               String
+  phone              String?
+  email              String?
+  role               String     @default("Member")
+  active             Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  collectedDonations Donation[]
+}
+
+model Donation {
+  id            String           @id @default(cuid())
+  amount        Float
+  purpose       DonationPurpose  @default(DONATION)
+  paymentMethod PaymentMethod    @default(CASH)
+  transactionId String?
+  date          DateTime         @default(now())
+  receiptNo     String?          @unique
+  notes         String?
+  donorId       String?
+  collectedById String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  collectedBy   CommitteeMember? @relation(fields: [collectedById], references: [id])
+  donor         Donor?           @relation(fields: [donorId], references: [id])
+}
+
+model Lesson {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  batchId     String
+  teacherId   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  batch       Batch            @relation(fields: [batchId], references: [id])
+  teacher     TeacherProfile?  @relation(fields: [teacherId], references: [id])
+  resources   LessonResource[]
+}
+
+model LessonResource {
+  id        String       @id @default(cuid())
+  title     String
+  type      ResourceType @default(FILE)
+  url       String
+  lessonId  String
+  createdAt DateTime     @default(now())
+  lesson    Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+enum PaymentMethod {
+  CASH
+  BANK
+  MOBILE_BANKING
+}
+
+enum PaymentStatus {
+  PAID
+  PENDING
+  FAILED
 }
 
 enum Role {
@@ -486,62 +553,6 @@ enum FeeTier {
   SADKA
 }
 
-model Donor {
-  id          String     @id @default(cuid())
-  name        String
-  phone       String?
-  email       String?
-  address     String?
-  
-  // New fields for Committee/Monthly support
-  committee   String?    // e.g. "313 Badri Committee"
-  type        String?    @default("GENERAL") // MONTHLY, GENERAL
-  fixedAmount Float?     @default(0)
-  notes       String?
-
-  donations   Donation[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-}
-
-model CommitteeMember {
-  // Keeping this for now, but might migrate to Donor with type=COMMITTEE if user prefers single table
-  // But user said "Committee... is one, Donor... is another". 
-  // Ideally, Committee Members ARE Donors who pay monthly. 
-  // Let's keep this model if it's used for literal board members, 
-  // but the screenshot shown "Add Donor" includes "Committee Name".
-  // This implies the "Donor" entity creates the link.
-  id                 String     @id @default(cuid())
-  name               String
-  phone              String?
-  email              String?
-  role               String     @default("Member")
-  active             Boolean    @default(true)
-  collectedDonations Donation[]
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-}
-
-model Donation {
-  id            String          @id @default(cuid())
-  amount        Float
-  purpose       DonationPurpose @default(DONATION)
-  paymentMethod PaymentMethod   @default(CASH)
-  transactionId String?
-  date          DateTime        @default(now())
-  receiptNo     String?         @unique
-  notes         String?
-  
-  donorId       String?
-  donor         Donor?          @relation(fields: [donorId], references: [id])
-  
-  collectedById String?
-  collectedBy   CommitteeMember? @relation(fields: [collectedById], references: [id])
-  
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-}
-
 enum DonationPurpose {
   ZAKAT
   SADAQAH
@@ -550,31 +561,6 @@ enum DonationPurpose {
   LILLAH_BOARDING
   CONSTRUCTION
   OTHER
-}
-
-model Lesson {
-  id          String           @id @default(cuid())
-  title       String
-  description String?
-  batchId     String
-  teacherId   String?          // Can be null if created by Admin
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  
-  batch       Batch            @relation(fields: [batchId], references: [id])
-  teacher     TeacherProfile?  @relation(fields: [teacherId], references: [id])
-  resources   LessonResource[]
-}
-
-model LessonResource {
-  id          String       @id @default(cuid())
-  title       String
-  type        ResourceType @default(FILE)
-  url         String
-  lessonId    String
-  createdAt   DateTime     @default(now())
-  
-  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
 enum ResourceType {

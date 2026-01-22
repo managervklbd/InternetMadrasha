@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
     Card,
     CardContent,
@@ -140,22 +141,30 @@ export default async function AdminOverview() {
                         <CardDescription>সাধারণ প্রশাসনিক কাজ।</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-4">
-                        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
-                            <Users className="w-5 h-5" />
-                            ছাত্র যোগ করুন
-                        </Button>
-                        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
-                            <BookOpen className="w-5 h-5" />
-                            নতুন ব্যাচ
-                        </Button>
-                        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
-                            <CreditCard className="w-5 h-5" />
-                            বিল তৈরি করুন
-                        </Button>
-                        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
-                            <Settings className="w-5 h-5" />
-                            সাইট সেটিংস
-                        </Button>
+                        <Link href="/admin/students" className="block">
+                            <Button variant="outline" className="h-20 flex-col gap-2 border-dashed w-full">
+                                <Users className="w-5 h-5" />
+                                ছাত্র যোগ করুন
+                            </Button>
+                        </Link>
+                        <Link href="/admin/academics" className="block">
+                            <Button variant="outline" className="h-20 flex-col gap-2 border-dashed w-full">
+                                <BookOpen className="w-5 h-5" />
+                                নতুন ব্যাচ
+                            </Button>
+                        </Link>
+                        <Link href="/admin/billing" className="block">
+                            <Button variant="outline" className="h-20 flex-col gap-2 border-dashed w-full">
+                                <CreditCard className="w-5 h-5" />
+                                বিল তৈরি করুন
+                            </Button>
+                        </Link>
+                        <Link href="/admin/settings" className="block">
+                            <Button variant="outline" className="h-20 flex-col gap-2 border-dashed w-full">
+                                <Settings className="w-5 h-5" />
+                                সাইট সেটিংস
+                            </Button>
+                        </Link>
                     </CardContent>
                 </Card>
             </div>

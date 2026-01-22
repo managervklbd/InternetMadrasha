@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { logAdminAction } from "@/lib/audit";
 
 export async function getPlans() {
     return prisma.plan.findMany({
@@ -27,6 +28,7 @@ export async function createPlan(data: {
                 description: data.description
             }
         });
+        await logAdminAction("CREATE_PLAN", "Plan", plan.id, { name: plan.name, fee: plan.monthlyFee });
         return { success: true, data: plan };
     } catch (error) {
         console.error("Error creating plan:", error);
@@ -39,6 +41,7 @@ export async function deletePlan(id: string) {
 
     try {
         await prisma.plan.delete({ where: { id } });
+        await logAdminAction("DELETE_PLAN", "Plan", id, {});
         return { success: true };
     } catch (error) {
         console.error("Error deleting plan:", error);
@@ -295,7 +298,7 @@ export async function generateMonthlyInvoices() {
         const { revalidatePath } = await import("next/cache");
         revalidatePath("/admin/billing");
 
-        return {
+        const result = {
             success: true,
             created: createdCount,
             updated: updatedCount,
@@ -304,6 +307,16 @@ export async function generateMonthlyInvoices() {
             errors: errorCount,
             total: students.length
         };
+
+        if (createdCount > 0 || updatedCount > 0) {
+            await logAdminAction("GENERATE_INVOICES", "MonthlyInvoice", "BULK", {
+                created: createdCount,
+                updated: updatedCount,
+                totalProcessing: students.length
+            });
+        }
+
+        return result;
     } catch (error) {
         console.error("Error generating invoices:", error);
         return { success: false, error: "Failed to generate invoices" };

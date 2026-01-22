@@ -499,3 +499,57 @@ export async function getRecentTransactions(limit: number = 10, mode?: "ONLINE" 
         return [];
     }
 }
+
+export async function getAdminHomeworkReport(limit: number = 50, page: number = 1) {
+    try {
+        const skip = (page - 1) * limit;
+
+        const submissions = await prisma.homeworkSubmission.findMany({
+            take: limit,
+            skip: skip,
+            orderBy: {
+                submittedAt: 'desc'
+            },
+            include: {
+                student: {
+                    include: {
+                        department: true // To show batch/class context better if needed, or just rely on batch name from homework
+                    }
+                },
+                homework: {
+                    include: {
+                        batch: true,
+                        teacher: true
+                    }
+                }
+            }
+        });
+
+        const total = await prisma.homeworkSubmission.count();
+
+        return {
+            data: submissions.map(sub => ({
+                id: sub.id,
+                studentName: sub.student.fullName,
+                studentId: sub.student.studentID,
+                studentPhoto: sub.student.photoUrl,
+                homeworkTitle: sub.homework.title,
+                batchName: sub.homework.batch.name,
+                teacherName: sub.homework.teacher.fullName,
+                submittedAt: sub.submittedAt,
+                status: sub.grade ? 'GRADED' : 'SUBMITTED',
+                grade: sub.grade,
+                feedback: sub.feedback
+            })),
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
+    } catch (error) {
+        console.error("Error getting homework report:", error);
+        return { data: [], meta: { total: 0, page: 1, limit, totalPages: 0 } };
+    }
+}

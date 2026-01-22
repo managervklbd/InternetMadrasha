@@ -58,6 +58,7 @@ export default async function DashboardLayout({
                 { href: "/admin/reports/financial", label: "আর্থিক প্রতিবেদন", iconName: "PieChart" },
                 { href: "/admin/reports/students", label: "ছাত্র পরিসংখ্যান", iconName: "Users" },
                 { href: "/admin/reports/attendance", label: "হাজিরা রিপোর্ট", iconName: "CalendarCheck" },
+                { href: "/admin/homework", label: "হোমওয়ার্ক রিপোর্ট", iconName: "BookOpen" },
             ]
         },
         {
