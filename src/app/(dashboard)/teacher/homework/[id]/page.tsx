@@ -94,10 +94,10 @@ export default async function HomeworkReviewPage({ params: paramsPromise }: { pa
                                 <CardHeader className="pb-3 flex flex-row items-start justify-between gap-4">
                                     <div className="flex items-start gap-4">
                                         <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold uppercase shrink-0">
-                                            {sub.student.user.name?.[0] || <User className="w-5 h-5" />}
+                                            {sub.student.fullName?.[0] || <User className="w-5 h-5" />}
                                         </div>
                                         <div>
-                                            <CardTitle className="text-base font-bengali">{sub.student.user.name || "শিক্ষার্থী"}</CardTitle>
+                                            <CardTitle className="text-base font-bengali">{sub.student.fullName || "শিক্ষার্থী"}</CardTitle>
                                             <CardDescription className="font-bengali text-xs mt-1">
                                                 জমা দিয়েছে: {new Date(sub.submittedAt).toLocaleString("bn-BD", { dateStyle: 'long', timeStyle: 'short' })}
                                                 {new Date(sub.submittedAt) > new Date(homework.deadline) && (

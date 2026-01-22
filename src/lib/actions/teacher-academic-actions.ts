@@ -53,11 +53,7 @@ export async function getHomeworkById(homeworkId: string) {
             batch: true,
             submissions: {
                 include: {
-                    student: {
-                        include: {
-                            user: true
-                        }
-                    }
+                    student: true
                 },
                 orderBy: { submittedAt: 'desc' }
             }

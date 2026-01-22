@@ -120,6 +120,15 @@ export async function getAcademicStructure(mode?: StudentMode) {
                     departments: {
                         none: {}
                     }
+                },
+                {
+                    departments: {
+                        some: {
+                            batches: {
+                                none: {}
+                            }
+                        }
+                    }
                 }
             ]
         } : undefined,
