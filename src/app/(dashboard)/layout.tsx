@@ -13,7 +13,10 @@ import {
     PieChart,
     ShieldAlert,
     CalendarCheck,
-    Video
+    Video,
+    UserCheck,
+    TrendingDown,
+    Wallet
 } from "lucide-react";
 
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
@@ -37,28 +40,41 @@ export default async function DashboardLayout({
             title: "Overview",
             items: [
                 { href: "/admin/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
-                { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
-                { href: "/admin/attendance", label: "হাজিরা ইনপুট", iconName: "Calendar" },
             ]
         },
         {
-            title: "Academic & Users",
+            title: "Academic Management",
             items: [
-                { href: "/admin/students", label: "ছাত্র ব্যবস্থাপনা", iconName: "Users" },
-                { href: "/admin/teachers", label: "শিক্ষক তালিকা", iconName: "UserCircle" },
+                { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
+                { href: "/admin/attendance", label: "হাজিরা ইনপুট", iconName: "Calendar" },
+                { href: "/admin/homework", label: "হোমওয়ার্ক রিপোর্ট", iconName: "BookOpen" },
                 { href: "/admin/academics", label: "একাডেমিক সেটআপ", iconName: "BookOpen" },
             ]
         },
         {
-            title: "Finance & Reports",
+            title: "User Management",
+            items: [
+                { href: "/admin/students", label: "ছাত্র ব্যবস্থাপনা", iconName: "Users" },
+                { href: "/admin/teachers", label: "শিক্ষক তালিকা", iconName: "UserCircle" },
+            ]
+        },
+        {
+            title: "Finance",
             items: [
                 { href: "/admin/billing", label: "হিসাব ও পেমেন্ট", iconName: "CreditCard" },
                 { href: "/admin/payroll", label: "শিক্ষক বেতন", iconName: "Banknote" },
+                { href: "/admin/expenses", label: "খরচ ব্যবস্থাপনা", iconName: "TrendingDown" },
                 { href: "/admin/donations", label: "কমিটি / দান", iconName: "HeartHandshake" },
+            ]
+        },
+        {
+            title: "Reports",
+            items: [
                 { href: "/admin/reports/financial", label: "আর্থিক প্রতিবেদন", iconName: "PieChart" },
+                { href: "/admin/reports/profit-loss", label: "লাভ-ক্ষতি বিবরণী", iconName: "Wallet" },
                 { href: "/admin/reports/students", label: "ছাত্র পরিসংখ্যান", iconName: "Users" },
                 { href: "/admin/reports/attendance", label: "হাজিরা রিপোর্ট", iconName: "CalendarCheck" },
-                { href: "/admin/homework", label: "হোমওয়ার্ক রিপোর্ট", iconName: "BookOpen" },
+                { href: "/admin/teacher-attendance", label: "শিক্ষক হাজিরা", iconName: "UserCheck" },
             ]
         },
         {
@@ -72,18 +88,17 @@ export default async function DashboardLayout({
 
     const teacherLinks = [
         {
-            title: "সারসংক্ষেপ",
+            title: "Overview",
             items: [
                 { href: "/teacher/overview", label: "ড্যাশবোর্ড", iconName: "LayoutDashboard" },
             ]
         },
         {
-            title: "শিক্ষাদান ও মূল্যায়ন",
+            title: "Teaching & Assessment",
             items: [
                 { href: "/teacher/live-classes", label: "লাইভ ক্লাস", iconName: "Video" },
                 { href: "/teacher/lessons", label: "ভিডিও লেসন ও রিসোর্স", iconName: "BookOpen" },
-                { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
-                { href: "/teacher/attendance", label: "হাজিরা", iconName: "Calendar" },
+                { href: "/teacher/attendance", label: "ছাত্র হাজিরা", iconName: "Calendar" },
                 { href: "/teacher/homework", label: "হোমওয়ার্ক / অ্যাসাইনমেন্ট", iconName: "BookOpen" },
                 { href: "/teacher/marks", label: "গ্রেড বুক (নম্বর এন্ট্রি)", iconName: "CalendarCheck" },
             ]
@@ -91,6 +106,7 @@ export default async function DashboardLayout({
         {
             title: "Finance",
             items: [
+                { href: "/teacher/hajira", label: "আমার হাজিরা", iconName: "UserCheck" },
                 { href: "/teacher/payroll", label: "বেতন বিবরণী", iconName: "CreditCard" },
             ]
         }
@@ -193,7 +209,7 @@ export default async function DashboardLayout({
                     </div>
                 </header>
 
-                <div className="p-4 md:p-8">
+                <div key={viewMode} className="p-4 md:p-8">
                     {children}
                 </div>
             </main>

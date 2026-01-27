@@ -12,7 +12,10 @@ import {
     CreditCard,
     Plus,
     Settings,
-    UserCircle
+    UserCircle,
+    TrendingDown,
+    TrendingUp,
+    Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAdminOverviewStats } from "@/lib/actions/report-actions";
@@ -44,51 +47,53 @@ export default async function AdminOverview() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="border-t-4 border-amber-500 shadow-sm hover:shadow-md transition-shadow">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">মোট শিক্ষার্থী</CardTitle>
-                        <Users className="h-4 w-4 text-emerald-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">{stats?.totalStudents || 0}</div>
-                        <p className="text-xs text-muted-foreground">
-                            রেজিস্ট্রারকৃত সকল শিক্ষার্থী
-                        </p>
-                    </CardContent>
-                </Card>
                 <Card className="border-t-4 border-emerald-500 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">মোট শিক্ষক</CardTitle>
-                        <UserCircle className="h-4 w-4 text-emerald-600" />
+                        <CardTitle className="text-sm font-medium font-bengali">চলতি মাসের আয় (CR)</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">{stats?.totalTeachers || 0}</div>
-                        <p className="text-xs text-muted-foreground">
-                            নিয়োগপ্রাপ্ত শিক্ষক
+                        <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">৳ {stats?.totalRevenue?.toLocaleString('bn-BD') || 0}</div>
+                        <p className="text-xs text-muted-foreground font-bengali">
+                            মোট সংগৃহীত ফি ও দান
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="border-t-4 border-amber-500 shadow-sm hover:shadow-md transition-shadow">
+                <Card className="border-t-4 border-red-500 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">মোট আয় (চলতি মাস)</CardTitle>
-                        <CreditCard className="h-4 w-4 text-emerald-600" />
+                        <CardTitle className="text-sm font-medium font-bengali">চলতি মাসের ব্যয় (DR)</CardTitle>
+                        <TrendingDown className="h-4 w-4 text-red-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">৳ {stats?.totalRevenue?.toLocaleString('bn-BD') || 0}</div>
-                        <p className="text-xs text-muted-foreground">
-                            চলতি মাসের মোট কালেকশন
+                        <div className="text-2xl font-bold font-mono text-red-600 dark:text-red-400">৳ {stats?.totalExpenses?.toLocaleString('bn-BD') || 0}</div>
+                        <p className="text-xs text-muted-foreground font-bengali">
+                            বেতন ও মাদ্রাসার খরচ
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="border-t-4 border-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+                <Card className="border-t-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">মোট কোর্স</CardTitle>
-                        <BookOpen className="h-4 w-4 text-emerald-600" />
+                        <CardTitle className="text-sm font-medium font-bengali">নিট অবস্থা (Net P/L)</CardTitle>
+                        <Wallet className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold font-mono text-teal-600 dark:text-teal-400">{stats?.activeBatches || 0}</div>
-                        <p className="text-xs text-muted-foreground">
-                            একাডেমিক কোর্স সমূহ
+                        <div className={`text-2xl font-bold font-mono ${(stats?.totalRevenue - stats?.totalExpenses) >= 0 ? 'text-blue-600' : 'text-amber-600'}`}>
+                            ৳ {(stats?.totalRevenue - stats?.totalExpenses).toLocaleString('bn-BD')}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-bengali">
+                            চলতি মাসের লাভ/ক্ষতি
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="border-t-4 border-zinc-500 shadow-sm hover:shadow-md transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium font-bengali">মোট শিক্ষার্থী</CardTitle>
+                        <Users className="h-4 w-4 text-zinc-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold font-mono text-zinc-900 dark:text-zinc-100">{stats?.totalStudents || 0}</div>
+                        <p className="text-xs text-muted-foreground font-bengali">
+                            সর্বমোট ছাত্রসংখ্যা
                         </p>
                     </CardContent>
                 </Card>
@@ -159,8 +164,14 @@ export default async function AdminOverview() {
                                 বিল তৈরি করুন
                             </Button>
                         </Link>
+                        <Link href="/admin/expenses" className="block">
+                            <Button variant="outline" className="h-20 flex-col gap-2 border-dashed w-full font-bengali">
+                                <TrendingDown className="w-5 h-5 text-red-500" />
+                                নতুন খরচ
+                            </Button>
+                        </Link>
                         <Link href="/admin/settings" className="block">
-                            <Button variant="outline" className="h-20 flex-col gap-2 border-dashed w-full">
+                            <Button variant="outline" className="h-20 flex-col gap-2 border-dashed w-full font-bengali">
                                 <Settings className="w-5 h-5" />
                                 সাইট সেটিংস
                             </Button>

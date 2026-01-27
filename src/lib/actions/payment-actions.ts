@@ -223,6 +223,19 @@ export async function recordManualPayment(data: {
                     items
                 ).catch(err => console.error("Failed to send payment email:", err));
             });
+
+            // Send WhatsApp if student has WhatsApp number
+            if (student.whatsappNumber) {
+                import("@/lib/whatsapp").then(({ sendPaymentConfirmationWhatsApp }) => {
+                    sendPaymentConfirmationWhatsApp(
+                        student.whatsappNumber!,
+                        student.fullName,
+                        data.amount,
+                        tran_id,
+                        items
+                    ).catch(err => console.error("Failed to send payment WhatsApp:", err));
+                });
+            }
         }
 
         revalidatePath("/admin/billing");

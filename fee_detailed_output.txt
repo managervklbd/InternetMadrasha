@@ -1,0 +1,6 @@
+Found 1 courses.
+Course: হিফজ কোর্স
+  AdmFee (Online/General): 1500
+  AdmFeeOffline: null
+  AdmFeeProbashi: null
+  Dept: হিফজ কোর্স বিভাগ

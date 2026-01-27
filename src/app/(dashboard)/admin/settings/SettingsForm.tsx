@@ -30,6 +30,12 @@ interface SettingsData {
     sslStoreId?: string | null;
     sslStorePass?: string | null;
     sslIsSandbox?: boolean;
+    // WhatsApp
+    whatsappEnabled?: boolean;
+    whatsappProvider?: string | null;
+    whatsappApiKey?: string | null;
+    whatsappApiSecret?: string | null;
+    whatsappPhoneNumber?: string | null;
 }
 
 export default function SettingsForm({ initialData }: { initialData: SettingsData | null }) {
@@ -53,6 +59,12 @@ export default function SettingsForm({ initialData }: { initialData: SettingsDat
         sslStoreId: initialData?.sslStoreId || "",
         sslStorePass: initialData?.sslStorePass || "",
         sslIsSandbox: initialData?.sslIsSandbox ?? true,
+
+        whatsappEnabled: initialData?.whatsappEnabled ?? false,
+        whatsappProvider: initialData?.whatsappProvider || "META_CLOUD_API",
+        whatsappApiKey: initialData?.whatsappApiKey || "",
+        whatsappApiSecret: initialData?.whatsappApiSecret || "",
+        whatsappPhoneNumber: initialData?.whatsappPhoneNumber || "",
     });
 
     const handleChange = (field: keyof SettingsData, value: any) => {
@@ -90,9 +102,10 @@ export default function SettingsForm({ initialData }: { initialData: SettingsDat
     return (
         <form onSubmit={handleSubmit}>
             <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="general">সাধারণ তথ্য</TabsTrigger>
                     <TabsTrigger value="smtp">SMTP কনফিগারেশন</TabsTrigger>
+                    <TabsTrigger value="whatsapp">WhatsApp কনফিগারেশন</TabsTrigger>
                     <TabsTrigger value="ssl">পেমেন্ট গেটওয়ে (SSL)</TabsTrigger>
                 </TabsList>
 
@@ -243,6 +256,71 @@ export default function SettingsForm({ initialData }: { initialData: SettingsDat
                                     onCheckedChange={(checked) => handleChange("smtpSecure", checked === true)}
                                 />
                                 <Label htmlFor="smtpSecure">Use Secure Connection (SSL/TLS)</Label>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* WhatsApp Settings */}
+                <TabsContent value="whatsapp">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>WhatsApp কনফিগারেশন (Meta Cloud API)</CardTitle>
+                            <CardDescription>WhatsApp মেসেজ পাঠানোর জন্য কনফিগারেশন। বিনামূল্যে 1000 মেসেজ/মাস।</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center space-x-2 p-4 bg-blue-50 rounded-lg">
+                                <Checkbox
+                                    id="whatsappEnabled"
+                                    checked={formData.whatsappEnabled || false}
+                                    onCheckedChange={(checked) => handleChange("whatsappEnabled", checked === true)}
+                                />
+                                <Label htmlFor="whatsappEnabled" className="font-semibold">WhatsApp মেসেজিং সক্রিয় করুন</Label>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="whatsappProvider">Provider</Label>
+                                <Input
+                                    id="whatsappProvider"
+                                    value={formData.whatsappProvider || ""}
+                                    onChange={(e) => handleChange("whatsappProvider", e.target.value)}
+                                    placeholder="META_CLOUD_API"
+                                    disabled
+                                />
+                                <p className="text-sm text-gray-500">Meta WhatsApp Cloud API (Free)</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="whatsappApiKey">Access Token</Label>
+                                <Input
+                                    id="whatsappApiKey"
+                                    type="password"
+                                    value={formData.whatsappApiKey || ""}
+                                    onChange={(e) => handleChange("whatsappApiKey", e.target.value)}
+                                    placeholder="EAAxxxxxxxxxxxxxxx"
+                                />
+                                <p className="text-sm text-gray-500">Meta Developer Console থেকে Access Token কপি করুন</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="whatsappApiSecret">Phone Number ID</Label>
+                                <Input
+                                    id="whatsappApiSecret"
+                                    value={formData.whatsappApiSecret || ""}
+                                    onChange={(e) => handleChange("whatsappApiSecret", e.target.value)}
+                                    placeholder="123456789012345"
+                                />
+                                <p className="text-sm text-gray-500">WhatsApp Business Account থেকে Phone Number ID কপি করুন</p>
+                            </div>
+
+                            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <h4 className="font-semibold mb-2">📚 সেটআপ গাইড</h4>
+                                <p className="text-sm text-gray-700 mb-2">
+                                    Meta WhatsApp Cloud API সেটআপ করতে <code className="bg-white px-2 py-1 rounded">WHATSAPP_SETUP.md</code> ফাইলটি দেখুন।
+                                </p>
+                                <p className="text-sm text-gray-700">
+                                    বিনামূল্যে প্রতি মাসে 1000 মেসেজ পাঠাতে পারবেন!
+                                </p>
                             </div>
                         </CardContent>
                     </Card>

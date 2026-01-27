@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { login } from "@/lib/actions/auth-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginForm() {
     const [showPassword, setShowPassword] = useState(false);
@@ -106,6 +107,15 @@ export default function LoginForm() {
                         {isLoading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
                         {isLoading ? "অপেক্ষা করুন..." : "লগইন করুন"}
                     </Button>
+
+                    <div className="text-center mt-4">
+                        <p className="text-sm text-muted-foreground font-bengali">
+                            কোনো অ্যাকাউন্ট নেই?{' '}
+                            <Link href="/auth/register" className="font-bold text-teal-600 hover:text-teal-700 hover:underline transition-colors">
+                                নিবন্ধন করুন
+                            </Link>
+                        </p>
+                    </div>
 
                     <div className="flex items-center justify-center pt-4 border-t border-border/50">
                         <div className="flex items-center gap-2 text-muted-foreground font-medium">

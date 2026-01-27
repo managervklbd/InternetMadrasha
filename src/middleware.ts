@@ -10,6 +10,7 @@ export default auth((req) => {
     const isPaymentApiRoute = nextUrl.pathname.startsWith("/api/payment");
     const isAuthRoute = [
         "/auth/login",
+        "/auth/register",
         "/auth/invite",
         "/auth/forgot-password",
         "/auth/reset-password",

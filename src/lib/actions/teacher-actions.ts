@@ -9,6 +9,7 @@ export async function createTeacher(data: {
     email: string;
     designation: string;
     phone: string;
+    whatsappNumber?: string;
     gender: "MALE" | "FEMALE";
     joiningDate: Date;
     salary: number;
@@ -25,6 +26,7 @@ export async function createTeacher(data: {
         data: {
             designation: data.designation,
             phone: data.phone,
+            whatsappNumber: data.whatsappNumber,
             gender: data.gender,
             joiningDate: data.joiningDate,
             salary: data.salary,
@@ -109,6 +111,7 @@ export async function updateTeacher(id: string, data: {
     fullName: string;
     designation: string;
     phone: string;
+    whatsappNumber?: string;
     gender: "MALE" | "FEMALE";
     joiningDate: Date;
     salary: number;
@@ -131,6 +134,7 @@ export async function updateTeacher(id: string, data: {
             fullName: data.fullName,
             designation: data.designation,
             phone: data.phone,
+            whatsappNumber: data.whatsappNumber,
             gender: data.gender,
             joiningDate: data.joiningDate,
             salary: data.salary,

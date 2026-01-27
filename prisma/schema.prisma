@@ -66,6 +66,7 @@ model TeacherProfile {
   joiningDate         DateTime?          @default(now())
   nid                 String?
   phone               String?
+  whatsappNumber      String?
   salary              Float?             @default(0)
   mobileBankingNumber String?
   paymentMethod       PaymentMethod?     @default(CASH)
@@ -73,6 +74,7 @@ model TeacherProfile {
   lessons             Lesson[]
   liveClasses         MonthlyLiveClass[]
   payments            TeacherPayment[]
+  attendance          TeacherAttendance[]
   user                User               @relation(fields: [userId], references: [id])
   assignedBatches     Batch[]            @relation("TeacherBatches")
 }
@@ -92,6 +94,25 @@ model TeacherPayment {
   bonus         Float?         @default(0)
   deduction     Float?         @default(0)
   teacher       TeacherProfile @relation(fields: [teacherId], references: [id])
+}
+
+model TeacherAttendance {
+  id           String                  @id @default(cuid())
+  teacherId    String
+  date         DateTime                @db.Date
+  checkIn      DateTime
+  checkOut     DateTime?
+  status       TeacherAttendanceStatus @default(PRESENT)
+  workingHours Float?                  // Calculated hours
+  notes        String?
+  markedBy     String?                 // Admin ID if marked by admin
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  teacher      TeacherProfile          @relation(fields: [teacherId], references: [id])
+
+  @@unique([teacherId, date])
+  @@index([date])
+  @@index([teacherId, date])
 }
 
 model Course {
@@ -284,6 +305,24 @@ model LedgerTransaction {
   transactionDate DateTime        @default(now())
   referenceId     String?
   invoice         MonthlyInvoice? @relation(fields: [invoiceId], references: [id])
+  expense         Expense?
+}
+
+model Expense {
+  id              String            @id @default(cuid())
+  category        FundType          // Expense category
+  amount          Float
+  description     String
+  date            DateTime          @default(now())
+  paymentMethod   PaymentMethod?    // CASH, BANK, MOBILE_BANKING
+  receiptNumber   String?
+  vendor          String?           // Who was paid
+  notes           String?
+  createdBy       String?           // Admin user ID
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  ledgerEntry     LedgerTransaction @relation(fields: [ledgerEntryId], references: [id])
+  ledgerEntryId   String            @unique
 }
 
 model Homework {
@@ -355,9 +394,14 @@ model SiteSettings {
   smtpPort       Int?
   smtpSecure     Boolean @default(false)
   smtpUser       String?
-  sslIsSandbox   Boolean @default(true)
-  sslStoreId     String?
-  sslStorePass   String?
+  sslIsSandbox        Boolean @default(true)
+  sslStoreId          String?
+  sslStorePass        String?
+  whatsappEnabled     Boolean @default(false)
+  whatsappProvider    String?
+  whatsappApiKey      String?
+  whatsappApiSecret   String?
+  whatsappPhoneNumber String?
 }
 
 model AdminActionLog {
@@ -534,8 +578,20 @@ enum BatchType {
 enum FundType {
   ADMISSION
   MONTHLY
+  TUITION_FEE
   DONATION
   DANA_COMMITTEE
+  ZAKAT
+  SADAQAH
+  TEACHER_SALARY
+  UTILITY_EXPENSE
+  RENT_EXPENSE
+  MAINTENANCE_EXPENSE
+  OFFICE_EXPENSE
+  TRANSPORT_EXPENSE
+  MARKETING_EXPENSE
+  OTHER_INCOME
+  OTHER_EXPENSE
 }
 
 enum InvoiceStatus {
@@ -578,4 +634,13 @@ enum ResourceType {
   PDF
   IMAGE
   FILE
+}
+
+enum TeacherAttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  LEAVE
+  SICK_LEAVE
 }

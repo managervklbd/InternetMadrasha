@@ -8,6 +8,7 @@ import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
 import { logAdminAction } from "../audit";
 import { sendCredentialEmail, sendPasswordResetEmail } from "@/lib/mail";
+import { sendCredentialWhatsApp, sendPasswordResetWhatsApp } from "@/lib/whatsapp";
 
 /**
  * Creates a new user in INVITED status and returns the invitation link.
@@ -52,6 +53,17 @@ export async function inviteUser(email: string, role: Role, fullName: string) {
 
     // Send Credential Email
     await sendCredentialEmail(email, fullName, password, role);
+
+    // Send WhatsApp if teacher has phone number
+    if (role === "TEACHER") {
+        const teacherProfile = await prisma.teacherProfile.findUnique({
+            where: { userId: user.id },
+            select: { whatsappNumber: true }
+        });
+        if (teacherProfile?.whatsappNumber) {
+            await sendCredentialWhatsApp(teacherProfile.whatsappNumber, fullName, email, password, role);
+        }
+    }
 
     await logAdminAction(
         "USER_CREATE_AUTO",
@@ -139,6 +151,15 @@ export async function requestPasswordReset(email: string) {
         const resetLink = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
         await sendPasswordResetEmail(email, resetLink);
 
+        // Send WhatsApp if user has phone number
+        const profile = user.role === "TEACHER"
+            ? await prisma.teacherProfile.findUnique({ where: { userId: user.id }, select: { whatsappNumber: true, fullName: true } })
+            : await prisma.studentProfile.findUnique({ where: { userId: user.id }, select: { whatsappNumber: true, fullName: true } });
+
+        if (profile?.whatsappNumber) {
+            await sendPasswordResetWhatsApp(profile.whatsappNumber, profile.fullName, resetLink);
+        }
+
         return { success: true, message: "Reset link sent to your email." };
     } catch (error: any) {
         console.error("Error in requestPasswordReset:", error);
@@ -201,6 +222,15 @@ export async function resendUserCredentials(email: string, fullName: string, rol
 
     // Send Credential Email
     await sendCredentialEmail(email, fullName, password, role);
+
+    // Send WhatsApp if user has phone number
+    const profile = role === "TEACHER"
+        ? await prisma.teacherProfile.findUnique({ where: { userId: user.id }, select: { whatsappNumber: true } })
+        : await prisma.studentProfile.findUnique({ where: { userId: user.id }, select: { whatsappNumber: true } });
+
+    if (profile?.whatsappNumber) {
+        await sendCredentialWhatsApp(profile.whatsappNumber, fullName, email, password, role);
+    }
 
     await logAdminAction(
         "USER_RESEND_CREDENTIALS",

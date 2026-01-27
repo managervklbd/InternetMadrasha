@@ -1,0 +1,51 @@
+Checking for user 'admin@internetmadrasha.com'...
+User found: {
+  "id": "cmkwbxqh00000ap178ijh1ai6",
+  "email": "admin@internetmadrasha.com",
+  "password": "$2b$10$3BH9MgdA6m5UEJNnF4i3j.8iMgboden0c4dFlaU2OAlRFWxpBnPv.",
+  "role": "ADMIN",
+  "status": "ACTIVE",
+  "invitationToken": null,
+  "lastLogin": null,
+  "createdAt": "2026-01-27T08:23:44.188Z",
+  "updatedAt": "2026-01-27T08:23:44.188Z",
+  "resetToken": null,
+  "resetTokenExpiry": null,
+  "studentProfile": null,
+  "teacherProfile": null
+}
+
+Checking for user 'mlsbd173@gmail.com'...
+User found: {
+  "id": "cmkwifxpj0000s1sgcxusbw9n",
+  "email": "mlsbd173@gmail.com",
+  "password": "$2b$12$M4j6l.CRxUShA0Z.FXXQ0Og2mC4dl5mXXDj4MH9ZZipxPbYXJYvia",
+  "role": "STUDENT",
+  "status": "DISABLED",
+  "invitationToken": null,
+  "lastLogin": null,
+  "createdAt": "2026-01-27T11:25:51.054Z",
+  "updatedAt": "2026-01-27T11:25:51.054Z",
+  "resetToken": null,
+  "resetTokenExpiry": null,
+  "studentProfile": {
+    "id": "cmkwifyb40002s1sgit9xbs9t",
+    "userId": "cmkwifxpj0000s1sgcxusbw9n",
+    "studentID": "2026-হিফ-00-2140",
+    "fullName": "মোঃ তসলিম",
+    "gender": "MALE",
+    "mode": "OFFLINE",
+    "residency": "LOCAL",
+    "country": "",
+    "phoneNumber": "01843180008",
+    "whatsappNumber": "01843180008",
+    "photoUrl": null,
+    "activeStatus": false,
+    "departmentId": "cmkwdbw1q0002um7fzzhkb86j",
+    "feeTier": "GENERAL"
+  }
+}
+
+Listing last 5 created users:
+- mlsbd173@gmail.com (STUDENT) - Created: Tue Jan 27 2026 17:25:51 GMT+0600 (Bangladesh Standard Time) - StudentProfile: Yes
+- admin@internetmadrasha.com (ADMIN) - Created: Tue Jan 27 2026 14:23:44 GMT+0600 (Bangladesh Standard Time) - StudentProfile: No

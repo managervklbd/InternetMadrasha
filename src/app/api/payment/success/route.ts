@@ -44,22 +44,25 @@ export async function POST(req: Request) {
         await prisma.$transaction(async (tx) => {
             log(`Step 3: DB Transaction Started for ${invoiceIds.length} Invoices`);
 
+            const isRegistration = data.value_b === "REGISTRATION";
+            log(`Payment Type: ${isRegistration ? "REGISTRATION" : "MONTHLY"}`);
+
             for (const invId of invoiceIds) {
                 // A. Update Invoice
                 const invoice = await tx.monthlyInvoice.update({
                     where: { id: invId },
                     data: { status: "PAID" },
+                    include: { student: true } // Need student to activate
                 });
 
-                // B. Create SSL Record for each invoice (or one master record)
-                // We create one record per invoice to keep the relationship simple
+                // B. Create SSL Record
                 await tx.sSLCommerzTransaction.create({
                     data: {
                         invoiceId: invId,
                         storeId: store_id,
                         tranId: tran_id,
                         valId: val_id,
-                        amount: invoice.amount, // Record the portion for this invoice
+                        amount: invoice.amount,
                         tranDate: new Date(),
                         cardType: validData.card_type,
                         status: "VALIDATED",
@@ -70,17 +73,58 @@ export async function POST(req: Request) {
                 // C. Create Ledger Entry
                 await tx.ledgerTransaction.create({
                     data: {
-                        fundType: "MONTHLY",
+                        fundType: isRegistration ? "ADMISSION" : "MONTHLY",
                         amount: invoice.amount,
                         dr_cr: "CR",
-                        description: `Batch Payment (SSL) - Inv ${invoice.month}/${invoice.year}`,
+                        description: isRegistration
+                            ? `Admission Fee - ${invoice.student.fullName} (${invoice.student.studentID})`
+                            : `Batch Payment (SSL) - Inv ${invoice.month}/${invoice.year}`,
                         invoiceId: invId,
                         referenceId: tran_id,
                     },
                 });
+
+                // D. [NEW] Activate Student if Registration
+                if (isRegistration) {
+                    log(`Activating Student: ${invoice.studentId}`);
+
+                    // 1. Activate Profile
+                    await tx.studentProfile.update({
+                        where: { id: invoice.studentId },
+                        data: { activeStatus: true }
+                    });
+
+                    // 2. Activate User
+                    await tx.user.update({
+                        where: { id: invoice.student.userId },
+                        data: { status: "ACTIVE" }
+                    });
+
+                    // 3. Mark Enrollment as Paid
+                    // We need to find the enrollment for this admission. 
+                    // Since admission fee is batch-specific, we update the latest enrollment? 
+                    // Or all unpaid enrollments? Usually just one for registration.
+                    await tx.enrollment.updateMany({
+                        where: { studentId: invoice.studentId },
+                        data: { isAdmissionFeePaid: true }
+                    });
+                }
             }
             log(`Step 4: DB Transaction Complete`);
         });
+
+        if (data.value_b === "REGISTRATION") {
+            const loginUrl = new URL("/auth/login?success=registered", req.url).toString();
+            return new NextResponse(
+                `<html>
+                    <body>
+                        <p>Registration Successful! Redirecting to login...</p>
+                        <script>window.location.href = "${loginUrl}";</script>
+                    </body>
+                </html>`,
+                { headers: { "Content-Type": "text/html" } }
+            );
+        }
 
         log(`SUCCESS: Redirecting to success page`);
         const successUrl = new URL("/student/billing?status=success", req.url).toString();

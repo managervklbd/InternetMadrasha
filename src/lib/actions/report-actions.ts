@@ -249,7 +249,7 @@ export async function getAdminOverviewStats(mode?: "ONLINE" | "OFFLINE") {
 
     const modeFilter = mode ? (mode === "ONLINE" ? "ONLINE" : "OFFLINE") : undefined;
 
-    const [totalStudents, totalTeachers, revenue, activeBatches, recentEnrollments, recentTransactions] = await Promise.all([
+    const [totalStudents, totalTeachers, revenue, expenses, activeBatches, recentEnrollments, recentTransactions] = await Promise.all([
         prisma.studentProfile.count({
             where: modeFilter ? { mode: modeFilter } : undefined
         }),
@@ -275,6 +275,18 @@ export async function getAdminOverviewStats(mode?: "ONLINE" | "OFFLINE") {
                         mode: modeFilter
                     }
                 } : undefined
+            },
+            _sum: {
+                amount: true,
+            },
+        }),
+        prisma.ledgerTransaction.aggregate({
+            where: {
+                transactionDate: {
+                    gte: firstDayOfMonth,
+                    lte: lastDayOfMonth,
+                },
+                dr_cr: "DR",
             },
             _sum: {
                 amount: true,
@@ -366,6 +378,7 @@ export async function getAdminOverviewStats(mode?: "ONLINE" | "OFFLINE") {
         totalStudents,
         totalTeachers,
         totalRevenue: revenue._sum.amount || 0,
+        totalExpenses: expenses._sum.amount || 0,
         activeBatches,
         activities
     }
@@ -548,4 +561,46 @@ export async function getAdminHomeworkReport(limit: number = 50, page: number = 
         console.error("Error getting homework report:", error);
         return { data: [], meta: { total: 0, page: 1, limit, totalPages: 0 } };
     }
+}
+
+export async function getProfitLossStatement(startDate?: Date, endDate?: Date) {
+    const where: any = {};
+    if (startDate || endDate) {
+        where.transactionDate = {};
+        if (startDate) where.transactionDate.gte = startDate;
+        if (endDate) where.transactionDate.lte = endDate;
+    }
+
+    const transactions = await prisma.ledgerTransaction.groupBy({
+        by: ['fundType', 'dr_cr'],
+        where,
+        _sum: {
+            amount: true,
+        },
+    });
+
+    const income: any[] = [];
+    const expenses: any[] = [];
+    let totalIncome = 0;
+    let totalExpenses = 0;
+
+    transactions.forEach(t => {
+        const amount = t._sum.amount || 0;
+        const item = { fundType: t.fundType, amount };
+        if (t.dr_cr === "CR") {
+            income.push(item);
+            totalIncome += amount;
+        } else {
+            expenses.push(item);
+            totalExpenses += amount;
+        }
+    });
+
+    return {
+        income,
+        expenses,
+        totalIncome,
+        totalExpenses,
+        netProfit: totalIncome - totalExpenses,
+    };
 }

@@ -32,6 +32,7 @@ export function InviteTeacherModal({
             email: formData.get("email") as string,
             designation: formData.get("designation") as string,
             phone: formData.get("phone") as string,
+            whatsappNumber: formData.get("whatsappNumber") as string || undefined,
             gender: formData.get("gender") as "MALE" | "FEMALE",
             joiningDate: new Date(formData.get("joiningDate") as string),
             salary: parseFloat(formData.get("salary") as string) || 0,
@@ -87,6 +88,10 @@ export function InviteTeacherModal({
                         <div className="space-y-2">
                             <Label className="font-bengali">মোবাইল নম্বর</Label>
                             <Input name="phone" placeholder="017..." required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="font-bengali">হোয়াটসঅ্যাপ নম্বর (ঐচ্ছিক)</Label>
+                            <Input name="whatsappNumber" placeholder="+8801..." />
                         </div>
                         <div className="space-y-2">
                             <Label className="font-bengali">লিঙ্গ (Gender)</Label>

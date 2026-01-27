@@ -16,7 +16,10 @@ import {
     Settings,
     Calendar,
     Video,
-    HeartHandshake
+    HeartHandshake,
+    UserCheck,
+    TrendingDown,
+    Wallet
 } from "lucide-react";
 
 // Map of icon names to components
@@ -32,7 +35,10 @@ const IconMap: Record<string, any> = {
     Settings,
     Calendar,
     Video,
-    HeartHandshake
+    HeartHandshake,
+    UserCheck,
+    TrendingDown,
+    Wallet
 };
 
 export function SidebarContent({ role, links, signOutAction, brandName, brandLogo, viewMode }: {
