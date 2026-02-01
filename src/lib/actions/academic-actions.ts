@@ -82,6 +82,7 @@ export async function createCourse(data: {
         }
 
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true, data: course };
     } catch (error: any) {
         console.error("Error creating course:", error);
@@ -119,6 +120,7 @@ export async function createDepartment(name: string, courseId: string, code?: st
             }
         });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true, data: department };
     } catch (error: any) {
         return { success: false, error: "বিভাগ তৈরি করতে ব্যর্থ হয়েছে।" };
@@ -131,35 +133,7 @@ export const getAcademicStructure = cache(async function (mode?: StudentMode) {
     try {
         console.log("Fetching Academic Structure with mode:", mode);
         return await prisma.course.findMany({
-            where: mode ? {
-                OR: [
-                    {
-                        departments: {
-                            some: {
-                                batches: {
-                                    some: {
-                                        allowedMode: mode
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    {
-                        departments: {
-                            none: {}
-                        }
-                    },
-                    {
-                        departments: {
-                            some: {
-                                batches: {
-                                    none: {}
-                                }
-                            }
-                        }
-                    }
-                ]
-            } : undefined,
+            where: {}, // Show all courses in management UI regardless of mode
             include: {
                 departments: {
                     include: {
@@ -257,6 +231,7 @@ export async function createBatch(data: {
             },
         });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true, data: batch };
     } catch (error: any) {
         console.error("Error creating batch:", error);
@@ -269,6 +244,7 @@ export async function deleteBatch(id: string) {
     try {
         await prisma.batch.delete({ where: { id } });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true };
     } catch (error) {
         console.error("Error deleting batch:", error);
@@ -308,6 +284,7 @@ export async function updateCourse(id: string, data: {
             }
         });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true };
     } catch (error) {
         console.error("Error updating course:", error);
@@ -320,6 +297,7 @@ export async function deleteCourse(id: string) {
     try {
         await prisma.course.delete({ where: { id } });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true };
     } catch (error) {
         console.error("Error deleting course:", error);
@@ -355,6 +333,7 @@ export async function updateDepartment(id: string, data: {
             }
         });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true };
     } catch (error) {
         console.error("Error updating department:", error);
@@ -367,6 +346,7 @@ export async function deleteDepartment(id: string) {
     try {
         await prisma.department.delete({ where: { id } });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true };
     } catch (error) {
         console.error("Error deleting department:", error);
@@ -408,6 +388,7 @@ export async function updateBatch(id: string, data: {
             }
         });
         revalidatePath("/admin/billing");
+        revalidatePath("/admin/academics");
         return { success: true };
     } catch (error) {
         console.error("Error updating batch:", error);

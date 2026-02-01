@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { MessageSquare, Send, X, Bot, User, Minus, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,8 @@ interface Message {
 }
 
 export default function FloatingChatbot() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const pathname = usePathname();
     const { theme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
@@ -46,8 +48,12 @@ export default function FloatingChatbot() {
         }
     }, [messages, isOpen]);
 
-    // Hide if not logged in
-    if (!session) return null;
+    // Hide if not logged in or on auth/login pages
+    if (status !== 'authenticated' ||
+        pathname?.includes('/auth/') ||
+        pathname?.includes('/login') ||
+        pathname?.includes('/register')
+    ) return null;
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
@@ -65,7 +71,7 @@ export default function FloatingChatbot() {
         try {
             const result = await chatAssistant({ question: userMessage.content });
 
-            if (result.success && result.data) {
+            if (result.success) {
                 const aiMessage: Message = {
                     role: "assistant",
                     content: result.data.answer,
