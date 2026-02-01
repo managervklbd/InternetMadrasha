@@ -20,6 +20,7 @@ model User {
   resetToken       String?          @unique
   resetTokenExpiry DateTime?
   auditLogs        AdminActionLog[]
+  aiLogs           AiLog[]
   studentProfile   StudentProfile?
   teacherProfile   TeacherProfile?
 }
@@ -529,6 +530,22 @@ model LessonResource {
   lessonId  String
   createdAt DateTime     @default(now())
   lesson    Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model AiLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userName     String
+  userRole     Role
+  question     String
+  answer       String
+  model        String   @default("gpt-4o-mini")
+  source       String   // CMS, GPT, RESTRICTED
+  tokensUsed   Int      @default(0)
+  isRestricted Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id])
 }
 
 enum PaymentMethod {

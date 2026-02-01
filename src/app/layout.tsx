@@ -70,6 +70,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 import { Toaster } from "@/components/ui/sonner";
+import FloatingChatbot from "@/components/common/FloatingChatbot";
 
 export default function RootLayout({
   children,
@@ -84,6 +85,7 @@ export default function RootLayout({
       >
         <Providers>
           {children}
+          <FloatingChatbot />
           <Toaster />
         </Providers>
       </body>
