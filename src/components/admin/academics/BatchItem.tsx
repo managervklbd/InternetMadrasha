@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Check, X, BookOpen, UserPlus, Users as UsersIcon } from "lucide-react";
+import { Edit, Trash2, Check, X, BookOpen, UserPlus, Users as UsersIcon, FileText, LayoutList } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -175,6 +175,18 @@ export function BatchItem({ batch, onEdit, onDelete, onRefresh }: BatchItemProps
                                 {batch.endDate && formatDate(batch.endDate)}
                             </span>
                         )}
+                        <div className="flex items-center gap-2 mt-2">
+                            <a href={`/admin/homework?batchId=${batch.id}`}>
+                                <Button variant="outline" size="sm" className="h-6 text-[10px] font-bengali gap-1 text-orange-600 border-orange-200 hover:bg-orange-50">
+                                    <FileText className="w-3 h-3" /> হোমওয়ার্ক
+                                </Button>
+                            </a>
+                            <a href={`/teacher/lessons/${batch.id}`}>
+                                <Button variant="outline" size="sm" className="h-6 text-[10px] font-bengali gap-1 text-purple-600 border-purple-200 hover:bg-purple-50">
+                                    <LayoutList className="w-3 h-3" /> লেসন ও রিসোর্স
+                                </Button>
+                            </a>
+                        </div>
                     </div>
                 )}
             </div>

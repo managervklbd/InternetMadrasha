@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Video, FileText, Image as ImageIcon, File, Link as LinkIcon, ExternalLink } from "lucide-react";
@@ -12,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { createLesson, addResourceToLesson, deleteLesson, deleteResource } from "@/lib/actions/lesson-actions";
 import { ResourceType } from "@prisma/client";
+import { CldUploadWidget } from "next-cloudinary";
+import { Upload } from "lucide-react";
 
 // Define strict types for props
 type LessonResource = {
@@ -28,7 +32,9 @@ type Lesson = {
     resources: LessonResource[];
 };
 
+
 export default function LessonManager({ batchId, lessons }: { batchId: string, lessons: Lesson[] }) {
+    const router = useRouter(); // Add router
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isResourceOpen, setIsResourceOpen] = useState(false);
     const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
@@ -46,11 +52,16 @@ export default function LessonManager({ batchId, lessons }: { batchId: string, l
         if (!lessonTitle) return;
         setLoading(true);
         try {
-            await createLesson({ title: lessonTitle, description: lessonDesc, batchId });
-            toast.success("লেসন তৈরি করা হয়েছে");
-            setIsCreateOpen(false);
-            setLessonTitle("");
-            setLessonDesc("");
+            const result = await createLesson({ title: lessonTitle, description: lessonDesc, batchId });
+            if (result.success || (result.data && (result.data as any).success)) {
+                toast.success("লেসন তৈরি করা হয়েছে");
+                setIsCreateOpen(false);
+                setLessonTitle("");
+                setLessonDesc("");
+                router.refresh(); // Refresh
+            } else {
+                toast.error(result.error || "লেসন তৈরি করতে সমস্যা হয়েছে");
+            }
         } catch (error) {
             toast.error("লেসন তৈরি করতে সমস্যা হয়েছে");
         } finally {
@@ -72,7 +83,7 @@ export default function LessonManager({ batchId, lessons }: { batchId: string, l
             setIsResourceOpen(false);
             setResourceTitle("");
             setResourceUrl("");
-            // keep type
+            router.refresh(); // Refresh
         } catch (error) {
             toast.error("রিসোর্স যুক্ত করতে সমস্যা হয়েছে");
         } finally {
@@ -83,8 +94,9 @@ export default function LessonManager({ batchId, lessons }: { batchId: string, l
     const handleDeleteLesson = async (id: string) => {
         if (!confirm("আপনি কি নিশ্চিত এই লেসনটি মুছে ফেলতে চান?")) return;
         try {
-            await deleteLesson(id);
+            await deleteLesson({ lessonId: id });
             toast.success("লেসন মুছে ফেলা হয়েছে");
+            router.refresh();
         } catch (error) {
             toast.error("মুছে ফেলতে সমস্যা হয়েছে");
         }
@@ -181,7 +193,7 @@ export default function LessonManager({ batchId, lessons }: { batchId: string, l
                                                         size="icon"
                                                         className="h-8 w-8 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                                                         onClick={() => {
-                                                            if (confirm("মুছে ফেলতে চান?")) deleteResource(res.id);
+                                                            if (confirm("মুছে ফেলতে চান?")) deleteResource({ resourceId: res.id });
                                                         }}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -253,12 +265,45 @@ export default function LessonManager({ batchId, lessons }: { batchId: string, l
                         </div>
                         <div className="space-y-2">
                             <Label>URL / Link</Label>
-                            <Input
-                                placeholder="https://..."
-                                value={resourceUrl}
-                                onChange={(e) => setResourceUrl(e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">সরাসরি লিংক বা গুগল ড্রাইভ লিংক দিন।</p>
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="https://..."
+                                    value={resourceUrl}
+                                    onChange={(e) => setResourceUrl(e.target.value)}
+                                    className="flex-1"
+                                />
+                                {(resourceType === "PDF" || resourceType === "IMAGE" || resourceType === "FILE") && (
+                                    <CldUploadWidget
+                                        signatureEndpoint="/api/sign-cloudinary-params"
+                                        onSuccess={(result: any) => {
+                                            if (result?.info?.secure_url) {
+                                                setResourceUrl(result.info.secure_url);
+                                                if (!resourceTitle) {
+                                                    setResourceTitle(result.info.original_filename || "Uploaded File");
+                                                }
+                                                toast.success("ফাইল আপলোড সফল হয়েছে");
+                                            }
+                                        }}
+                                        options={{
+                                            multiple: false,
+                                            resourceType: resourceType === "IMAGE" ? "image" : "auto",
+                                            clientAllowedFormats: resourceType === "PDF" ? ["pdf"] : (resourceType === "IMAGE" ? ["jpg", "jpeg", "png", "webp"] : undefined)
+                                        }}
+                                    >
+                                        {({ open }) => (
+                                            <Button type="button" variant="outline" onClick={() => open()} className="gap-2 shrink-0">
+                                                <Upload className="h-4 w-4" />
+                                                আপলোড
+                                            </Button>
+                                        )}
+                                    </CldUploadWidget>
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {resourceType === "VIDEO"
+                                    ? "সরাসরি ইউটিউব বা ভিমিও লিংক দিন।"
+                                    : "সরাসরি লিংক দিন অথবা ফাইল আপলোড করুন।"}
+                            </p>
                         </div>
                     </div>
                     <DialogFooter>

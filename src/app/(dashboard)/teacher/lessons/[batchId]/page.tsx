@@ -12,11 +12,13 @@ type Props = {
     params: Promise<{ batchId: string }>;
 };
 
+export const dynamic = "force-dynamic"; // Ensure fresh data on every request
+
 export default async function BatchLessonsPage({ params }: Props) {
     const { batchId } = await params; // Await params in Next.js 15
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "TEACHER") {
+    if (!session?.user || (session.user.role !== "TEACHER" && session.user.role !== "ADMIN")) {
         return redirect("/");
     }
 
@@ -32,7 +34,7 @@ export default async function BatchLessonsPage({ params }: Props) {
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
-                <Link href="/teacher/lessons">
+                <Link href={session.user.role === "ADMIN" ? "/admin/academics" : "/teacher/lessons"}>
                     <Button variant="outline" size="icon">
                         <ArrowLeft className="h-4 w-4" />
                     </Button>

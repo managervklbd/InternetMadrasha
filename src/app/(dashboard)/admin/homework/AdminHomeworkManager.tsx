@@ -1,0 +1,268 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
+import {
+    Plus,
+    FileText,
+    Users,
+    CheckCircle2,
+    Calendar,
+    MessageSquare,
+    Search,
+    Upload,
+    X,
+} from "lucide-react";
+import { CldUploadWidget } from "next-cloudinary";
+import {
+    createHomework,
+    getHomeworkWithSubmissions
+} from "@/lib/actions/teacher-academic-actions";
+import { getBatches } from "@/lib/actions/academic-actions";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import Link from "next/link";
+
+export default function AdminHomeworkManager({ initialBatchId }: { initialBatchId?: string }) {
+    const [batches, setBatches] = useState<any[]>([]);
+    const [homeworks, setHomeworks] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedBatchId, setSelectedBatchId] = useState<string | undefined>(initialBatchId);
+    const [attachments, setAttachments] = useState<string[]>([]);
+
+    const fetchStructure = async () => {
+        try {
+            const allBatchesData = await getBatches();
+            const flattened = allBatchesData.map((b: any) => ({
+                ...b,
+                courseName: b.department.course.name,
+                deptName: b.department.name
+            }));
+            setBatches(flattened);
+        } catch (err) {
+            console.error("Structure Error:", err);
+            toast.error("ব্যাচ লোড করতে সমস্যা হয়েছে।");
+        }
+    };
+
+    const fetchHomeworks = async () => {
+        setLoading(true);
+        try {
+            const h = await getHomeworkWithSubmissions(selectedBatchId);
+            setHomeworks(h);
+        } catch (err) {
+            console.error("Homework Error:", err);
+            toast.error("হোমওয়ার্ক লোড করতে সমস্যা হয়েছে।");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStructure();
+    }, []);
+
+    useEffect(() => {
+        fetchHomeworks();
+    }, [selectedBatchId]);
+
+    const handleCreateHomework = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const batchId = formData.get("batchId") as string;
+        const data = {
+            title: formData.get("title") as string,
+            description: formData.get("description") as string,
+            batchId: batchId,
+            deadline: new Date(formData.get("deadline") as string),
+            attachments: attachments
+        };
+
+        try {
+            await createHomework(data);
+            toast.success("নতুন হোমওয়ার্ক তৈরি হয়েছে!");
+            fetchHomeworks();
+            (e.target as HTMLFormElement).reset();
+            setAttachments([]);
+        } catch (err) {
+            toast.error("হোমওয়ার্ক তৈরি করতে ব্যর্থ হয়েছে।");
+        }
+    };
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Homework Form */}
+            <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 h-fit lg:col-span-1">
+                <CardHeader>
+                    <CardTitle className="font-bengali">নতুন হোমওয়ার্ক দিন</CardTitle>
+                    <CardDescription className="font-bengali">ব্যাচের জন্য নতুন অ্যাসাইনমেন্ট প্রকাশ করতে তথ্য দিন।</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleCreateHomework} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="batchId" className="font-bengali">ব্যাচ নির্বাচন করুন</Label>
+                            <Select name="batchId" defaultValue={selectedBatchId} required onValueChange={setSelectedBatchId}>
+                                <SelectTrigger className="h-11 font-bengali">
+                                    <SelectValue placeholder="ব্যাচ পছন্দ করুন" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {batches.map(b => (
+                                        <SelectItem key={b.id} value={b.id} className="font-bengali">
+                                            {b.courseName} → {b.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="title" className="font-bengali">হেডলাইন / শিরোনাম</Label>
+                            <Input id="title" name="title" placeholder="উদা: আরবি গ্রামার বেসিকস" required className="font-bengali" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description" className="font-bengali">নির্দেশনা</Label>
+                            <textarea
+                                id="description"
+                                name="description"
+                                className="w-full min-h-[100px] p-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-sm focus:ring-2 focus:ring-teal-500 outline-none font-bengali"
+                                placeholder="শিক্ষার্থীদের কী করতে হবে তা বিস্তারিত লিখুন..."
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="font-bengali">ফাইল সংযুক্ত করুন (ঐচ্ছিক)</Label>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                {attachments.map((url, i) => (
+                                    <div key={i} className="relative group w-16 h-16 border rounded bg-zinc-50 flex items-center justify-center overflow-hidden">
+                                        {url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                            <img src={url} alt="Attachment" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <FileText className="w-6 h-6 text-zinc-400" />
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                                            className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={10} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <CldUploadWidget
+                                    signatureEndpoint="/api/sign-cloudinary-params"
+                                    onSuccess={(result: any) => {
+                                        if (result?.info?.secure_url) {
+                                            setAttachments(prev => [...prev, result.info.secure_url]);
+                                        }
+                                    }}
+                                    options={{ multiple: true, maxFiles: 3 }}
+                                >
+                                    {({ open }) => (
+                                        <div
+                                            onClick={() => open()}
+                                            className="w-16 h-16 border-2 border-dashed rounded flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-50 hover:border-teal-500 transition-colors"
+                                        >
+                                            <Upload className="w-4 h-4 text-zinc-400" />
+                                            <span className="text-[10px] text-zinc-500">Add</span>
+                                        </div>
+                                    )}
+                                </CldUploadWidget>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="deadline" className="font-bengali">জমাদানের শেষ সময়</Label>
+                            <Input id="deadline" name="deadline" type="datetime-local" required />
+                        </div>
+                        <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 h-11 font-bengali">
+                            <Plus className="w-4 h-4 mr-2" />
+                            হোমওয়ার্ক পাবলিশ করুন
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+
+            {/* Homework List */}
+            <div className="lg:col-span-2 space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold flex items-center gap-2 font-bengali">
+                        <FileText className="w-5 h-5 text-teal-600" />
+                        সাম্প্রতিক অ্যাসাইনমেন্টসমূহ
+                    </h3>
+                    <div className="flex items-center gap-2">
+                        <Select value={selectedBatchId || "all"} onValueChange={(v) => setSelectedBatchId(v === "all" ? undefined : v)}>
+                            <SelectTrigger className="h-9 w-[200px] font-bengali">
+                                <SelectValue placeholder="সব ব্যাচ" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">সব ব্যাচ</SelectItem>
+                                {batches.map(b => (
+                                    <SelectItem key={b.id} value={b.id} className="font-bengali">
+                                        {b.courseName} → {b.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="text-center py-20 text-zinc-500 italic font-bengali">ক্লাসরুম ডেটা সিঙ্ক হচ্ছে...</div>
+                ) : homeworks.length === 0 ? (
+                    <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 bg-zinc-50/50">
+                        <CardContent className="py-20 text-center text-zinc-500 italic font-bengali">
+                            এখনো কোনো হোমওয়ার্ক দেওয়া হয়নি।
+                        </CardContent>
+                    </Card>
+                ) : (
+                    homeworks.map((hw) => (
+                        <Card key={hw.id} className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800 hover:ring-teal-500/20 transition-all cursor-pointer group">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs uppercase tracking-wider font-bengali">{hw.batch.name}</Badge>
+                                        {!hw.teacherId && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200 font-bengali">অ্যাডমিন</Badge>}
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs text-zinc-400 font-bengali">
+                                        <Calendar className="w-3 h-3" />
+                                        শেষ সময়: {new Date(hw.deadline).toLocaleDateString("bn-BD")}
+                                    </div>
+                                </div>
+                                <CardTitle className="mt-2 text-xl group-hover:text-teal-600 transition-colors font-bengali">{hw.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-6">
+                                    <div className="flex items-center gap-2">
+                                        <Users className="w-4 h-4 text-zinc-400" />
+                                        <span className="text-sm font-medium font-bengali">{hw.submissions.length} টি জমা পড়েছে</span>
+                                    </div>
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-3">
+                                    <Link href={`/admin/reports/homework?homeworkId=${hw.id}`}>
+                                        <Button variant="secondary" size="sm" className="bg-teal-50 text-teal-700 hover:bg-teal-100 border-teal-200 font-bengali">
+                                            জমা হওয়া ফাইলসমূহ
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+}

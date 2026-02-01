@@ -1,0 +1,9 @@
+Checking records for mlsbd173@gmail.com...
+User Status: ACTIVE
+Student ID: 2026-αª╣αª┐αª½-00-2140
+Active Status: true
+
+Invoices found: 1
+- Month 0/2026: Amount 720, Status UNPAID, ID cmkwifz9c0006s1sgguiov3ne
+
+SSL Transactions found: 0

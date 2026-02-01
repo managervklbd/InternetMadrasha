@@ -51,7 +51,7 @@ export default function StudentLessonList({ lessons }: { lessons: Lesson[] }) {
                                     </span>
                                 </div>
                                 <div className="flex gap-2 text-xs text-muted-foreground">
-                                    {lesson.teacher && <span>শিক্ষক: {lesson.teacher.fullName}</span>}
+                                    <span>শিক্ষক: {lesson.teacher?.fullName || "অ্যাডমিন"}</span>
                                     <span>•</span>
                                     <span>{lesson.resources.length} টি রিসোর্স</span>
                                 </div>

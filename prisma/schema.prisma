@@ -330,13 +330,13 @@ model Homework {
   title       String
   description String
   batchId     String
-  teacherId   String
+  teacherId   String?
   deadline    DateTime
   attachments String[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
   batch       Batch                @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  teacher     TeacherProfile       @relation(fields: [teacherId], references: [id])
+  teacher     TeacherProfile?      @relation(fields: [teacherId], references: [id])
   submissions HomeworkSubmission[]
 }
 

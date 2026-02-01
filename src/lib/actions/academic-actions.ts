@@ -125,7 +125,9 @@ export async function createDepartment(name: string, courseId: string, code?: st
     }
 }
 
-export async function getAcademicStructure(mode?: StudentMode) {
+import { cache } from "react";
+
+export const getAcademicStructure = cache(async function (mode?: StudentMode) {
     try {
         console.log("Fetching Academic Structure with mode:", mode);
         return await prisma.course.findMany({
@@ -177,9 +179,42 @@ export async function getAcademicStructure(mode?: StudentMode) {
         });
     } catch (error) {
         console.error("Critical Error in getAcademicStructure:", error);
-        throw error; // Re-throw to be handled by caller or Next.js
+        throw error;
     }
-}
+});
+
+export const getBatches = cache(async function () {
+    try {
+        return await prisma.batch.findMany({
+            where: { active: true },
+            select: {
+                id: true,
+                name: true,
+                allowedMode: true,
+                department: {
+                    select: {
+                        name: true,
+                        course: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                department: {
+                    course: {
+                        name: 'asc'
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error in getBatches:", error);
+        throw error;
+    }
+});
 
 // --- Batch (Semester) Actions ---
 

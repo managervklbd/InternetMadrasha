@@ -1,23 +1,27 @@
-import { getStudentDashboardData, getStudentInvoices } from "@/lib/actions/student-portal-actions";
+import { getStudentDashboardData, getStudentInvoices, getStudentRecentPayments } from "@/lib/actions/student-portal-actions";
 import {
     Card,
     CardContent,
     CardHeader,
     CardTitle,
-    CardDescription
+    CardDescription,
 } from "@/components/ui/card";
-import { ShieldCheck } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ShieldCheck, History, Receipt } from "lucide-react";
 import { Suspense } from "react";
 import { PaymentStatusHandler } from "./PaymentComponents";
 import { InvoiceTable } from "./InvoiceTable";
+import { PaymentHistoryTable } from "./PaymentHistoryTable";
 
 export default async function StudentBillingPage() {
     const { profile } = await getStudentDashboardData();
     const { issued, upcoming } = await getStudentInvoices();
+    const recentPayments = await getStudentRecentPayments();
 
     // Serialize to plain objects to avoid "moduleId is not a function" or serializability issues
     const invoices = JSON.parse(JSON.stringify(issued));
     const advanceMonths = JSON.parse(JSON.stringify(upcoming));
+    const payments = JSON.parse(JSON.stringify(recentPayments));
 
     return (
         <div className="space-y-8">
@@ -37,14 +41,29 @@ export default async function StudentBillingPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-3 space-y-6">
+                <div className="lg:col-span-3 space-y-8">
                     <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
                         <CardHeader>
-                            <CardTitle className="font-bengali">পেমেন্ট ড্যাশবোর্ড</CardTitle>
+                            <CardTitle className="font-bengali">বকেয়া এবং বর্তমান ইনভয়েস</CardTitle>
                             <CardDescription className="font-bengali">পরিশোধ করার জন্য ইনভয়েস অথবা অগ্রিম মাস নির্বাচন করুন।</CardDescription>
                         </CardHeader>
                         <CardContent className="p-0">
                             <InvoiceTable invoices={invoices} upcoming={advanceMonths} />
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div>
+                                <CardTitle className="font-bengali flex items-center gap-2">
+                                    <History className="w-5 h-5 text-teal-600" />
+                                    পেমেন্ট ইতিহাস (Payment History)
+                                </CardTitle>
+                                <CardDescription className="font-bengali">আপনার সফলভাবে পরিশোধিত সকল ট্রানজেকশনের তালিকা।</CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <PaymentHistoryTable payments={payments} />
                         </CardContent>
                     </Card>
                 </div>

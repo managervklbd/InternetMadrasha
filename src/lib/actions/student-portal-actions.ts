@@ -280,6 +280,9 @@ export async function getStudentInvoices() {
     // Self-healing: Update existing UNPAID invoices if they don't match the current calculation
     // This ensures that if feeTier/plan changed, the student sees the updated amount immediately.
     for (const inv of issued) {
+        // Skip self-healing for Admission Fee (month 0)
+        if (inv.month === 0) continue;
+
         if (inv.status === InvoiceStatus.UNPAID && inv.amount !== monthlyFee) {
             await prisma.monthlyInvoice.update({
                 where: { id: inv.id },
@@ -326,6 +329,30 @@ export async function getStudentInvoices() {
     }
 
     return { issued, upcoming };
+}
+
+export async function getStudentRecentPayments() {
+    const session = await auth();
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const profile = await prisma.studentProfile.findUnique({
+        where: { userId: session.user.id },
+        select: { id: true }
+    });
+
+    if (!profile) throw new Error("Student profile not found");
+
+    return prisma.sSLCommerzTransaction.findMany({
+        where: {
+            invoice: {
+                studentId: profile.id
+            }
+        },
+        orderBy: {
+            tranDate: 'desc'
+        },
+        take: 10
+    });
 }
 
 export async function calculateStudentMonthlyFee(studentId: string): Promise<{ amount: number, planId: string | null }> {

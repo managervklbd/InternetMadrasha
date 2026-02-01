@@ -212,6 +212,10 @@ export function ManualPaymentManager() {
         const startYear = now.getFullYear();
         const years = [startYear, startYear + 1];
 
+        // Check if admission fee is paid
+        const isAdmissionPaid = paidMonths.some(pm => pm.month === 0);
+        const isAdmissionSelected = selectedMonths.some(sm => sm.month === 0);
+
         return (
             <div className="space-y-4 max-h-48 overflow-y-auto border p-2 rounded">
                 {years.map(year => {

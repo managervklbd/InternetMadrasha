@@ -47,7 +47,9 @@ export async function POST(req: Request) {
             const isRegistration = data.value_b === "REGISTRATION";
             log(`Payment Type: ${isRegistration ? "REGISTRATION" : "MONTHLY"}`);
 
-            for (const invId of invoiceIds) {
+            for (let i = 0; i < invoiceIds.length; i++) {
+                const invId = invoiceIds[i];
+
                 // A. Update Invoice
                 const invoice = await tx.monthlyInvoice.update({
                     where: { id: invId },
@@ -55,20 +57,22 @@ export async function POST(req: Request) {
                     include: { student: true } // Need student to activate
                 });
 
-                // B. Create SSL Record
-                await tx.sSLCommerzTransaction.create({
-                    data: {
-                        invoiceId: invId,
-                        storeId: store_id,
-                        tranId: tran_id,
-                        valId: val_id,
-                        amount: invoice.amount,
-                        tranDate: new Date(),
-                        cardType: validData.card_type,
-                        status: "VALIDATED",
-                        rawResponse: validData as any,
-                    },
-                });
+                // B. Create SSL Record (ONLY FOR THE FIRST INVOICE to avoid unique constraint)
+                if (i === 0) {
+                    await tx.sSLCommerzTransaction.create({
+                        data: {
+                            invoiceId: invId,
+                            storeId: store_id,
+                            tranId: tran_id,
+                            valId: val_id,
+                            amount: parseFloat(amount), // TOTAL amount of payment session
+                            tranDate: new Date(),
+                            cardType: validData.card_type,
+                            status: "VALIDATED",
+                            rawResponse: validData as any,
+                        },
+                    });
+                }
 
                 // C. Create Ledger Entry
                 await tx.ledgerTransaction.create({

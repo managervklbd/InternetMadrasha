@@ -1,8 +1,0 @@
-Found 1 courses.
-Course: হিফজ কোর্স, AdmFee: 1500
-  Dept: হিফজ কোর্স বিভাগ, AdmFee: null
-    Batch: ১ম ব্যাচ (অনলাইন)
-      ID: cmkwdbwin0004um7fzcyi8dyv
-      AdmFee: null
-      AdmFeeOffline: null
-      AllowedMode: ONLINE

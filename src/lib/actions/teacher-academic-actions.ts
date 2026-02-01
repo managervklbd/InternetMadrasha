@@ -16,23 +16,46 @@ export async function createHomework(data: {
     description: string;
     batchId: string;
     deadline: Date;
+    attachments?: string[];
 }) {
-    const profile = await getTeacherProfile();
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+
+    let teacherId: string | undefined = undefined;
+
+    if (session.user.role !== "ADMIN") {
+        const profile = await getTeacherProfile();
+        teacherId = profile.id;
+    }
+
     return prisma.homework.create({
         data: {
-            ...data,
-            teacherId: profile.id,
-        },
+            title: data.title,
+            description: data.description,
+            deadline: data.deadline,
+            batchId: data.batchId,
+            teacherId: teacherId,
+            attachments: data.attachments || [],
+        } as any,
     });
 }
 
 export async function getHomeworkWithSubmissions(batchId?: string) {
-    const profile = await getTeacherProfile();
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+
+    let where: any = {
+        ...(batchId ? { batchId } : {}),
+    };
+
+    if (session.user.role !== "ADMIN") {
+        const profile = await getTeacherProfile();
+        where.teacherId = profile.id;
+    }
+
     return prisma.homework.findMany({
-        where: {
-            teacherId: profile.id,
-            ...(batchId ? { batchId } : {}),
-        },
+        where,
+        take: 50, // Limit for performance, especially in global admin view
         include: {
             batch: true,
             submissions: {
@@ -46,7 +69,9 @@ export async function getHomeworkWithSubmissions(batchId?: string) {
 }
 
 export async function getHomeworkById(homeworkId: string) {
-    const profile = await getTeacherProfile();
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+
     const homework = await prisma.homework.findUnique({
         where: { id: homeworkId },
         include: {
@@ -61,7 +86,11 @@ export async function getHomeworkById(homeworkId: string) {
     });
 
     if (!homework) return null;
-    if (homework.teacherId !== profile.id) throw new Error("Unauthorized");
+
+    if (session.user.role !== "ADMIN") {
+        const profile = await getTeacherProfile();
+        if (homework.teacherId !== profile.id) throw new Error("Unauthorized");
+    }
 
     return homework;
 }

@@ -1,0 +1,7 @@
+--- ALL SSL TRANSACTIONS ---
+Total SSL Transactions: 0
+
+--- ALL PAID INVOICES ---
+Total Paid Invoices: 0
+
+--- ALL LEDGER ENTRIES ---

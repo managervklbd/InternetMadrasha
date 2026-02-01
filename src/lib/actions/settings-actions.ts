@@ -3,11 +3,13 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-export async function getSiteSettings() {
+import { cache } from "react";
+
+export const getSiteSettings = cache(async function () {
     return prisma.siteSettings.findFirst({
         where: { id: 1 },
     });
-}
+});
 
 export async function updateSiteSettings(data: {
     madrasaName: string;

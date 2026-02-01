@@ -11,7 +11,7 @@ import { logAdminAction } from "@/lib/audit";
 const CreateLessonSchema = z.object({
     title: z.string().min(3, "Title must be at least 3 characters"),
     description: z.string().optional(),
-    batchId: z.string().uuid("Invalid Batch ID"),
+    batchId: z.string().min(1, "Batch ID is required"),
 });
 
 export const createLesson = createSafeAction(CreateLessonSchema, async (data) => {
@@ -62,7 +62,7 @@ export const createLesson = createSafeAction(CreateLessonSchema, async (data) =>
 });
 
 const AddResourceSchema = z.object({
-    lessonId: z.string().uuid(),
+    lessonId: z.string().min(1, "Lesson ID is required"),
     title: z.string().min(1, "Title is required"),
     type: z.nativeEnum(ResourceType),
     url: z.string().url("Invalid URL"),
@@ -101,7 +101,7 @@ export const addResourceToLesson = createSafeAction(AddResourceSchema, async (da
 });
 
 const DeleteLessonSchema = z.object({
-    lessonId: z.string().uuid(),
+    lessonId: z.string().min(1),
 });
 
 export const deleteLesson = createSafeAction(DeleteLessonSchema, async (data) => {
@@ -137,7 +137,7 @@ export const deleteLesson = createSafeAction(DeleteLessonSchema, async (data) =>
 });
 
 const DeleteResourceSchema = z.object({
-    resourceId: z.string().uuid(),
+    resourceId: z.string().min(1),
 });
 
 export const deleteResource = createSafeAction(DeleteResourceSchema, async (data) => {
@@ -163,7 +163,10 @@ export const deleteResource = createSafeAction(DeleteResourceSchema, async (data
     return { success: true };
 });
 
+import { unstable_noStore } from "next/cache";
+
 export async function getLessonsByBatch(batchId: string) {
+    unstable_noStore();
     const session = await auth();
     if (!session?.user?.id) throw new Error("Unauthorized");
 

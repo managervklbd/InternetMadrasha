@@ -47,8 +47,9 @@ export default async function DashboardLayout({
             items: [
                 { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
                 { href: "/admin/attendance", label: "হাজিরা ইনপুট", iconName: "Calendar" },
-                { href: "/admin/homework", label: "হোমওয়ার্ক রিপোর্ট", iconName: "BookOpen" },
-                { href: "/admin/academics", label: "একাডেমিক সেটআপ", iconName: "BookOpen" },
+                { href: "/admin/homework", label: "হোমওয়ার্ক ম্যানেজমেন্ট", iconName: "BookOpen" },
+                { href: "/admin/lessons", label: "লেসন ও রিসোর্স", iconName: "BookOpen" },
+                { href: "/admin/academics", label: "একাডেমিক সেটআপ", iconName: "Settings" },
             ]
         },
         {
