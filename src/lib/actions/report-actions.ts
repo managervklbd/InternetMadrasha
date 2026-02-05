@@ -544,7 +544,7 @@ export async function getAdminHomeworkReport(limit: number = 50, page: number = 
                 studentPhoto: sub.student.photoUrl,
                 homeworkTitle: sub.homework.title,
                 batchName: sub.homework.batch.name,
-                teacherName: sub.homework.teacher.fullName,
+                teacherName: sub.homework.teacher?.fullName || "Unknown",
                 submittedAt: sub.submittedAt,
                 status: sub.grade ? 'GRADED' : 'SUBMITTED',
                 grade: sub.grade,
