@@ -36,14 +36,8 @@ export function ManualPaymentManager() {
     const [method, setMethod] = useState("CASH");
 
     useEffect(() => {
-        // Fetch offline students by default or all students - user requested dynamic so maybe all is safer if they want to pay for online too manually?
-        // But the tab said "Manual Payment" inside Offline view... 
-        // Let's keep fetching OFFLINE for now as per previous logic, but since user requirement is broad, maybe fetch all?
-        // The previous code fetched OFFLINE. Let's stick to context unless user complains. 
-        // The user said "everything should be dynamic to offline and online", so we should probably fetch based on the CURRENT VIEW MODE if passing it, but here we don't have viewMode prop in ManualPaymentManager.
-        // I'll check if I should pass viewMode prop to ManualPaymentManager too.
-        // For now, let's just make the payment amount dynamic.
-        getStudents({ mode: "OFFLINE" }).then(res => {
+        // Fetch all students (Online & Offline)
+        getStudents({}).then(res => {
             setStudents(res);
             setLoadingStudents(false);
         });
@@ -311,9 +305,9 @@ export function ManualPaymentManager() {
     return (
         <Card className="border-none shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800">
             <CardHeader>
-                <CardTitle className="font-bengali text-teal-700">অফলাইন ম্যানুয়াল পেমেন্ট</CardTitle>
+                <CardTitle className="font-bengali text-teal-700">ম্যানুয়াল পেমেন্ট</CardTitle>
                 <CardDescription className="font-bengali">
-                    অফলাইন শিক্ষার্থীদের জন্য সরাসরি পেমেন্ট এন্ট্রি করুন (মাল্টি-মান্থ সাপোর্ট)।
+                    শিক্ষার্থীদের জন্য সরাসরি পেমেন্ট এন্ট্রি করুন (মাল্টি-মান্থ সাপোর্ট)।
                 </CardDescription>
             </CardHeader>
             <CardContent>

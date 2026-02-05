@@ -56,22 +56,18 @@ export default async function BillingPage() {
             <div className="space-y-8">
                 <Tabs defaultValue={viewMode === "OFFLINE" ? "manual-payment" : "structure"} className="space-y-6">
                     <TabsList className="bg-zinc-100 dark:bg-zinc-800 p-1">
-                        {viewMode === "OFFLINE" && (
-                            <TabsTrigger value="manual-payment" className="font-bengali text-teal-700 bg-teal-50 data-[state=active]:bg-teal-600 data-[state=active]:text-white">
-                                ম্যানুয়াল পেমেন্ট
-                            </TabsTrigger>
-                        )}
+                        <TabsTrigger value="manual-payment" className="font-bengali text-teal-700 bg-teal-50 data-[state=active]:bg-teal-600 data-[state=active]:text-white">
+                            ম্যানুয়াল পেমেন্ট
+                        </TabsTrigger>
                         <TabsTrigger value="overview" className="font-bengali">ওভারভিউ</TabsTrigger>
                         <TabsTrigger value="history" className="font-bengali">পেমেন্ট ইতিহাস</TabsTrigger>
                         <TabsTrigger value="structure" className="font-bengali">ফি স্ট্রাকচার</TabsTrigger>
                         <TabsTrigger value="plans" className="font-bengali">কাস্টম প্ল্যান</TabsTrigger>
                     </TabsList>
 
-                    {viewMode === "OFFLINE" && (
-                        <TabsContent value="manual-payment">
-                            <ManualPaymentManager />
-                        </TabsContent>
-                    )}
+                    <TabsContent value="manual-payment">
+                        <ManualPaymentManager />
+                    </TabsContent>
 
                     <TabsContent value="overview" className="space-y-6">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

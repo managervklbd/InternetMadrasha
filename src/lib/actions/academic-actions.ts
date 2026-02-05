@@ -131,7 +131,6 @@ import { cache } from "react";
 
 export const getAcademicStructure = cache(async function (mode?: StudentMode) {
     try {
-        console.log("Fetching Academic Structure with mode:", mode);
         return await prisma.course.findMany({
             where: {}, // Show all courses in management UI regardless of mode
             include: {

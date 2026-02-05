@@ -337,22 +337,59 @@ export async function getStudentRecentPayments() {
 
     const profile = await prisma.studentProfile.findUnique({
         where: { userId: session.user.id },
-        select: { id: true }
+        select: { id: true, studentID: true }
     });
 
     if (!profile) throw new Error("Student profile not found");
 
-    return prisma.sSLCommerzTransaction.findMany({
+    // 1. Fetch SSL Payments
+    const sslPayments = await prisma.sSLCommerzTransaction.findMany({
         where: {
+            invoice: {
+                studentId: profile.id
+            },
+            status: "VALID" // Only valid payments? Or all? Let's take all or VALID/PAID
+        },
+        orderBy: { tranDate: 'desc' },
+        take: 10
+    });
+
+    // 2. Fetch Manual/Ledger Payments by linking invoice->student
+    const ledgerPayments = await prisma.ledgerTransaction.findMany({
+        where: {
+            fundType: "MONTHLY",
             invoice: {
                 studentId: profile.id
             }
         },
-        orderBy: {
-            tranDate: 'desc'
-        },
+        orderBy: { transactionDate: 'desc' },
         take: 10
     });
+
+    // 3. Normalize and Combine
+    const normalizedSSL = sslPayments.map(p => ({
+        id: p.id,
+        tranId: p.tranId,
+        tranDate: p.tranDate,
+        amount: p.amount,
+        cardType: p.cardType || "Online",
+        status: p.status
+    }));
+
+    const normalizedLedger = ledgerPayments.map(p => ({
+        id: p.id,
+        tranId: p.referenceId || "MANUAL",
+        tranDate: p.transactionDate,
+        amount: p.amount,
+        cardType: "Manual", // Or parse from description?
+        status: "VALID" // Manual payments recorded in ledger are considered valid/paid
+    }));
+
+    const combined = [...normalizedSSL, ...normalizedLedger]
+        .sort((a, b) => new Date(b.tranDate).getTime() - new Date(a.tranDate).getTime())
+        .slice(0, 10);
+
+    return combined;
 }
 
 export async function calculateStudentMonthlyFee(studentId: string): Promise<{ amount: number, planId: string | null }> {
