@@ -40,7 +40,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { getTeachers, deleteTeacher } from "@/lib/actions/teacher-actions";
+import { getTeachers, deleteTeacher, getTeacherDependencies } from "@/lib/actions/teacher-actions";
 import { InviteTeacherModal } from "@/components/admin/teachers/InviteTeacherModal";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +54,13 @@ export default function TeachersPage() {
     // Delete state
     const [teacherToDelete, setTeacherToDelete] = useState<string | null>(null);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [dependencies, setDependencies] = useState<{
+        batches: number;
+        liveClasses: number;
+        homeworks: number;
+        lessons: number;
+    } | null>(null);
+    const [loadingDependencies, setLoadingDependencies] = useState(false);
 
     const { toast } = useToast();
 
@@ -69,9 +76,20 @@ export default function TeachersPage() {
         }
     };
 
-    const confirmDelete = (id: string) => {
+    const confirmDelete = async (id: string) => {
         setTeacherToDelete(id);
         setIsDeleteOpen(true);
+        setDependencies(null);
+        setLoadingDependencies(true);
+
+        try {
+            const deps = await getTeacherDependencies(id);
+            setDependencies(deps);
+        } catch (error) {
+            console.error("Failed to fetch dependencies", error);
+        } finally {
+            setLoadingDependencies(false);
+        }
     };
 
     const handleDelete = async () => {
@@ -95,6 +113,7 @@ export default function TeachersPage() {
         } finally {
             setIsDeleteOpen(false);
             setTeacherToDelete(null);
+            setDependencies(null);
         }
     };
 
@@ -251,6 +270,19 @@ export default function TeachersPage() {
                         <AlertDialogDescription>
                             আপনি এই শিক্ষককে মুছে ফেলতে চাচ্ছেন। এই কাজটি আর ফিরিয়ে আনা যাবে না।
                         </AlertDialogDescription>
+                        {loadingDependencies ? (
+                            <div className="py-4 text-sm text-zinc-500">তথ্য যাচাই করা হচ্ছে...</div>
+                        ) : dependencies ? (
+                            <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-md space-y-2 border border-amber-200 dark:border-amber-800">
+                                <p className="font-medium text-amber-800 dark:text-amber-200 font-bengali">সতর্কতা: এই শিক্ষকের সাথে যুক্ত তথ্য:</p>
+                                <ul className="list-disc list-inside text-sm text-amber-700 dark:text-amber-300 font-bengali space-y-1">
+                                    <li>এসাইনড ব্যাচ: {dependencies.batches} টি</li>
+                                    <li>লাইভ ক্লাস: {dependencies.liveClasses} টি (মুছে ফেলা হবে)</li>
+                                    <li>হোমওয়ার্ক: {dependencies.homeworks} টি (শিক্ষক রিমুভ হবে)</li>
+                                    <li>লেসন/রিসোর্স: {dependencies.lessons} টি (শিক্ষক রিমুভ হবে)</li>
+                                </ul>
+                            </div>
+                        ) : null}
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>বাতিল</AlertDialogCancel>
