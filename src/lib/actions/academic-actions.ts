@@ -131,8 +131,8 @@ import { cache } from "react";
 
 export const getAcademicStructure = cache(async function (mode?: StudentMode) {
     try {
-        return await prisma.course.findMany({
-            where: {}, // Show all courses in management UI regardless of mode
+        const courses = await prisma.course.findMany({
+            where: {}, // Fetch all courses first
             include: {
                 departments: {
                     include: {
@@ -150,6 +150,15 @@ export const getAcademicStructure = cache(async function (mode?: StudentMode) {
                 },
             },
         });
+
+        // Filter out courses that have no batches matching the mode
+        if (mode) {
+            return courses.filter(course =>
+                course.departments.some(dept => dept.batches.length > 0)
+            );
+        }
+
+        return courses;
     } catch (error) {
         console.error("Critical Error in getAcademicStructure:", error);
         throw error;
