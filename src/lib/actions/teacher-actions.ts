@@ -92,57 +92,45 @@ export async function deleteTeacher(id: string) {
     }
 
     // Use a transaction to ensure all or nothing
-    await prisma.$transaction(async (tx) => {
-        // 1. Handle MonthlyLiveClass dependencies (Cascade manually)
-        // Find all live classes by this teacher
-        const liveClasses = await tx.monthlyLiveClass.findMany({
-            where: { teacherId: id },
-            select: { id: true }
-        });
-
-        const liveClassIds = liveClasses.map(lc => lc.id);
-
-        if (liveClassIds.length > 0) {
-            // Delete attendances for these classes first
-            await tx.liveClassAttendance.deleteMany({
-                where: { liveClassId: { in: liveClassIds } }
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Handle Homework (Set teacher to null to preserve student submissions)
+            await tx.homework.updateMany({
+                where: { teacherId: id },
+                data: { teacherId: null }
             });
 
-            // Delete the live classes
-            await tx.monthlyLiveClass.deleteMany({
-                where: { id: { in: liveClassIds } }
+            // 2. Handle Lessons (Set teacher to null)
+            await tx.lesson.updateMany({
+                where: { teacherId: id },
+                data: { teacherId: null }
             });
-        }
 
-        // 2. Handle Homework (Set teacher to null to preserve student submissions)
-        await tx.homework.updateMany({
-            where: { teacherId: id },
-            data: { teacherId: null }
+            // 3. Handle User dependencies (Logs which don't have cascade delete)
+            await tx.aiLog.deleteMany({
+                where: { userId: teacher.userId }
+            });
+
+            await tx.adminActionLog.deleteMany({
+                where: { adminId: teacher.userId }
+            });
+
+            // 4. Delete the user (Finally)
+            // This will Cascade Delete the TeacherProfile
+            // And trigger SetNull on TeacherPayment, TeacherAttendance, and MonthlyLiveClass
+            await tx.user.delete({
+                where: { id: teacher.userId }
+            });
+        }, {
+            timeout: 20000 // Increase timeout to 20 seconds
         });
 
-        // 3. Handle Lessons (Set teacher to null)
-        await tx.lesson.updateMany({
-            where: { teacherId: id },
-            data: { teacherId: null }
-        });
-
-        // 4. Handle User dependencies (Logs which don't have cascade delete)
-        await tx.aiLog.deleteMany({
-            where: { userId: teacher.userId }
-        });
-
-        await tx.adminActionLog.deleteMany({
-            where: { adminId: teacher.userId }
-        });
-
-        // 5. Delete the user (This cascades to TeacherProfile, Payments, Attendance)
-        await tx.user.delete({
-            where: { id: teacher.userId }
-        });
-    });
-
-    revalidatePath("/admin/teachers");
-    return { success: true };
+        revalidatePath("/admin/teachers");
+        return { success: true };
+    } catch (error) {
+        console.error("Delete teacher error:", error);
+        throw error; // Re-throw to be handled by the client or shown as 500
+    }
 }
 
 export async function updateTeacher(id: string, data: {
@@ -209,26 +197,4 @@ export async function resendInvitation(teacherId: string) {
     return { success: true };
 }
 
-export async function getTeacherDependencies(id: string) {
-    const [batches, liveClasses, homeworks, lessons] = await Promise.all([
-        prisma.batch.count({
-            where: { teachers: { some: { id } } }
-        }),
-        prisma.monthlyLiveClass.count({
-            where: { teacherId: id }
-        }),
-        prisma.homework.count({
-            where: { teacherId: id }
-        }),
-        prisma.lesson.count({
-            where: { teacherId: id }
-        })
-    ]);
 
-    return {
-        batches,
-        liveClasses,
-        homeworks,
-        lessons
-    };
-}

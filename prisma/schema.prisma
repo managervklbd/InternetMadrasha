@@ -82,7 +82,7 @@ model TeacherProfile {
 
 model TeacherPayment {
   id            String         @id @default(cuid())
-  teacherId     String
+  teacherId     String?
   month         Int
   year          Int
   amount        Float
@@ -94,12 +94,12 @@ model TeacherPayment {
   basicSalary   Float          @default(0)
   bonus         Float?         @default(0)
   deduction     Float?         @default(0)
-  teacher       TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher       TeacherProfile? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 }
 
 model TeacherAttendance {
   id           String                  @id @default(cuid())
-  teacherId    String
+  teacherId    String?
   date         DateTime                @db.Date
   checkIn      DateTime
   checkOut     DateTime?
@@ -109,12 +109,14 @@ model TeacherAttendance {
   markedBy     String?                 // Admin ID if marked by admin
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
-  teacher      TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher      TeacherProfile? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 
   @@unique([teacherId, date])
   @@index([date])
   @@index([teacherId, date])
 }
+
+
 
 model Course {
   id                  String       @id @default(cuid())
@@ -424,7 +426,7 @@ model MonthlyLiveClass {
   year        Int
   gender      Gender
   studentMode StudentMode           @default(ONLINE)
-  teacherId   String
+  teacherId   String?
   batchId     String
   sessions    LiveClassSession[]
   liveLink    String
@@ -434,7 +436,7 @@ model MonthlyLiveClass {
   sessionKeys String[]              @default([])
   attendance  LiveClassAttendance[]
   batch       Batch                 @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  teacher     TeacherProfile        @relation(fields: [teacherId], references: [id])
+  teacher     TeacherProfile?        @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 
   @@index([month, year, gender, active])
 }
