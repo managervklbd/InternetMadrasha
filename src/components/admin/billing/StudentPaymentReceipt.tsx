@@ -5,15 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { useReactToPrint } from "react-to-print";
 
-export function StudentPaymentReceipt({ transaction, settings }: { transaction: any, settings: any }) {
+export function StudentPaymentReceipt({ transactions, settings }: { transactions: any[], settings: any }) {
     const componentRef = useRef<HTMLDivElement>(null);
+    if (!transactions || transactions.length === 0) return null;
+    const mainTx = transactions[0];
 
     const handlePrint = useReactToPrint({
         contentRef: componentRef,
-        documentTitle: `Receipt-${transaction.invoice?.invoiceNo || transaction.id}`,
+        documentTitle: `Receipt-${mainTx.invoice?.invoiceNo || mainTx.referenceId || mainTx.id}`,
     });
 
-    const student = transaction.invoice?.student;
+    const student = mainTx.invoice?.student;
+    const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
 
     return (
         <div>
@@ -36,11 +39,11 @@ export function StudentPaymentReceipt({ transaction, settings }: { transaction: 
                     {/* Receipt Details */}
                     <div className="flex justify-between mb-6 text-sm">
                         <div>
-                            <p><strong>রশিদ নং:</strong> {transaction.invoice?.invoiceNo || transaction.referenceId || "N/A"}</p>
-                            <p><strong>তারিখ:</strong> {new Date(transaction.transactionDate).toLocaleDateString("bn-BD")}</p>
+                            <p><strong>রশিদ নং:</strong> {mainTx.invoice?.invoiceNo || mainTx.referenceId || "N/A"}</p>
+                            <p><strong>তারিখ:</strong> {new Date(mainTx.transactionDate).toLocaleDateString("bn-BD")}</p>
                         </div>
                         <div className="text-right">
-                            <p><strong>সময়:</strong> {new Date(transaction.transactionDate).toLocaleTimeString("bn-BD")}</p>
+                            <p><strong>সময়:</strong> {new Date(mainTx.transactionDate).toLocaleTimeString("bn-BD")}</p>
                         </div>
                     </div>
 
@@ -81,19 +84,21 @@ export function StudentPaymentReceipt({ transaction, settings }: { transaction: 
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td className="border border-gray-300 p-2">
-                                    <p className="font-semibold">
-                                        {transaction.fundType === "MONTHLY" ? "মাসিক ফি" : transaction.fundType === "ADMISSION" ? "ভর্তি ফি" : transaction.fundType}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {transaction.description || transaction.invoice?.plan?.name || "Payment for academic services"}
-                                    </p>
-                                </td>
-                                <td className="border border-gray-300 p-2 text-right font-bold text-lg">
-                                    ৳{transaction.amount}
-                                </td>
-                            </tr>
+                            {transactions.map((tx, idx) => (
+                                <tr key={tx.id || idx}>
+                                    <td className="border border-gray-300 p-2">
+                                        <p className="font-semibold">
+                                            {tx.fundType === "MONTHLY" ? "মাসিক ফি" : tx.fundType === "ADMISSION" ? "ভর্তি ফি" : tx.fundType}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {tx.description || tx.invoice?.plan?.name || "Payment for academic services"}
+                                        </p>
+                                    </td>
+                                    <td className="border border-gray-300 p-2 text-right font-bold text-lg">
+                                        ৳{tx.amount}
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
 
@@ -102,7 +107,7 @@ export function StudentPaymentReceipt({ transaction, settings }: { transaction: 
                         <div className="w-64 border rounded p-4">
                             <div className="flex justify-between font-bold text-lg text-teal-700">
                                 <span>সর্বমোট:</span>
-                                <span>৳{transaction.amount}</span>
+                                <span>৳{totalAmount}</span>
                             </div>
                         </div>
                     </div>

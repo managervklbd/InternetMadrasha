@@ -27,38 +27,50 @@ export function StudentPaymentHistory({ history, settings }: { history: any[]; s
                             </TableCell>
                         </TableRow>
                     ) : (
-                        history.map((tx) => (
-                            <TableRow key={tx.id} className="hover:bg-zinc-50 transition-colors">
-                                <TableCell className="font-mono text-[10px] text-zinc-500">
-                                    {tx.invoice?.invoiceNo || tx.referenceId || tx.id.slice(-8).toUpperCase()}
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex flex-col">
-                                        <span className="font-bengali text-sm font-medium">
-                                            {tx.invoice?.student?.fullName || "Unknown"}
-                                        </span>
-                                        <span className="text-[10px] text-zinc-400 font-mono">
-                                            {tx.invoice?.student?.studentID}
-                                        </span>
-                                    </div>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className="text-[10px] font-bengali">
-                                        {tx.fundType === "MONTHLY" ? "মাসিক ফি" : tx.fundType === "ADMISSION" ? "ভর্তি ফান্ড" : tx.fundType}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="font-bold font-mono text-teal-600">৳{tx.amount}</TableCell>
-                                <TableCell className="text-zinc-600 text-xs font-bengali">
-                                    {tx.description || tx.invoice?.plan?.name || "-"}
-                                </TableCell>
-                                <TableCell className="text-[10px] text-zinc-500 font-mono">
-                                    {new Date(tx.transactionDate).toLocaleDateString("bn-BD")}
-                                </TableCell>
-                                <TableCell className="text-right px-4">
-                                    <StudentPaymentReceipt transaction={tx} settings={settings} />
-                                </TableCell>
-                            </TableRow>
-                        ))
+                        Object.values(history.reduce((acc: any, tx) => {
+                            const key = tx.referenceId || tx.invoice?.invoiceNo || tx.id;
+                            if (!acc[key]) acc[key] = [];
+                            acc[key].push(tx);
+                            return acc;
+                        }, {})).map((group: any) => {
+                            const tx = group[0];
+                            const totalAmount = group.reduce((sum: number, t: any) => sum + t.amount, 0);
+                            const fundTypes = Array.from(new Set(group.map((t: any) => t.fundType)));
+                            const fundTypeLabel = fundTypes.map((f: any) => f === "MONTHLY" ? "মাসিক ফি" : f === "ADMISSION" ? "ভর্তি ফি" : f).join(" + ");
+
+                            return (
+                                <TableRow key={tx.id} className="hover:bg-zinc-50 transition-colors">
+                                    <TableCell className="font-mono text-[10px] text-zinc-500">
+                                        {tx.referenceId || tx.invoice?.invoiceNo || tx.id.slice(-8).toUpperCase()}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="font-bengali text-sm font-medium">
+                                                {tx.invoice?.student?.fullName || "Unknown"}
+                                            </span>
+                                            <span className="text-[10px] text-zinc-400 font-mono">
+                                                {tx.invoice?.student?.studentID}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="text-[10px] font-bengali">
+                                            {fundTypeLabel}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="font-bold font-mono text-teal-600">৳{totalAmount}</TableCell>
+                                    <TableCell className="text-zinc-600 text-xs font-bengali">
+                                        {group.length > 1 ? `${group.length} fund items` : (tx.description || tx.invoice?.plan?.name || "-")}
+                                    </TableCell>
+                                    <TableCell className="text-[10px] text-zinc-500 font-mono">
+                                        {new Date(tx.transactionDate).toLocaleDateString("bn-BD")}
+                                    </TableCell>
+                                    <TableCell className="text-right px-4">
+                                        <StudentPaymentReceipt transactions={group} settings={settings} />
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })
                     )}
                 </TableBody>
             </Table>

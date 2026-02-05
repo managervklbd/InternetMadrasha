@@ -197,10 +197,10 @@ export async function recordManualPayment(data: {
             await prisma.ledgerTransaction.create({
                 data: {
                     amount: invoice.amount,
-                    fundType: "MONTHLY",
+                    fundType: invoice.month === 0 ? "ADMISSION" : "MONTHLY",
                     transactionDate: new Date(),
                     referenceId: data.reference || tran_id, // Same ref links them
-                    description: `Manual Payment (${data.paymentMethod || "CASH"}): ${invoice.month}/${invoice.year}. ${data.description || ""}`,
+                    description: `Manual Payment (${data.paymentMethod || "CASH"}): ${invoice.month === 0 ? "Admission Fee" : `${invoice.month}/${invoice.year}`}. ${data.description || ""}`,
                     dr_cr: "CR",
                     invoiceId: invoice.id
                 }

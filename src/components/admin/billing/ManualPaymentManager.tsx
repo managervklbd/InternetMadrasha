@@ -21,9 +21,13 @@ export function ManualPaymentManager() {
     // Form State
     const [selectedStudentId, setSelectedStudentId] = useState("");
     const [monthlyFee, setMonthlyFee] = useState<number>(0);
+    const [admissionFee, setAdmissionFee] = useState<number>(0);
+    const [isAdmissionPaid, setIsAdmissionPaid] = useState(false);
+    const [payAdmission, setPayAdmission] = useState(false);
     const [paidMonths, setPaidMonths] = useState<{ month: number, year: number }[]>([]);
     const [loadingFee, setLoadingFee] = useState(false);
     const [enrollmentPeriod, setEnrollmentPeriod] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
+    const [courseDuration, setCourseDuration] = useState<number | null>(null);
 
     // Manual search state
     const [searchTerm, setSearchTerm] = useState("");
@@ -54,22 +58,35 @@ export function ManualPaymentManager() {
             getStudentMonthlyFee(selectedStudentId).then(res => {
                 if (res.success && res.amount !== undefined) {
                     setMonthlyFee(res.amount);
-                    if (res.paidMonths) {
-                        setPaidMonths(res.paidMonths);
-                    } else {
-                        setPaidMonths([]);
-                    }
+                    if (res.admissionAmount) setAdmissionFee(res.admissionAmount);
+                    if (res.isAdmissionFeePaid !== undefined) setIsAdmissionPaid(res.isAdmissionFeePaid);
 
+                    // Auto-select admission fee if not paid
+                    if ((res.admissionAmount || 0) > 0 && !res.isAdmissionFeePaid) {
+                        setPayAdmission(true);
+                        setAmount(((res.admissionAmount || 0) + (res.amount * selectedMonths.length)).toString());
+                    } else {
+                        setPayAdmission(false);
+                        if (selectedMonths.length > 0) {
+                            setAmount((res.amount * selectedMonths.length).toString());
+                        }
+                    }
                     if (res.enrollmentStart) {
                         setEnrollmentPeriod({
                             start: new Date(res.enrollmentStart),
                             end: res.enrollmentEnd ? new Date(res.enrollmentEnd) : null
                         });
                     }
+                    if (res.courseDuration) {
+                        setCourseDuration(res.courseDuration);
+                    } else {
+                        setCourseDuration(null);
+                    }
 
-                    // If months are already selected, update amount
-                    if (selectedMonths.length > 0) {
-                        setAmount((res.amount * selectedMonths.length).toString());
+                    if (res.paidMonths) {
+                        setPaidMonths(res.paidMonths);
+                    } else {
+                        setPaidMonths([]);
                     }
                 }
                 setLoadingFee(false);
@@ -79,10 +96,14 @@ export function ManualPaymentManager() {
 
     // Effect to update total amount when selected months change
     useEffect(() => {
-        if (monthlyFee > 0) {
-            setAmount((monthlyFee * selectedMonths.length).toString());
-        }
-    }, [selectedMonths.length, monthlyFee]);
+        let total = 0;
+        if (payAdmission) total += admissionFee;
+        if (monthlyFee > 0) total += (monthlyFee * selectedMonths.length);
+
+        if (total > 0) setAmount(total.toString());
+        else if (!payAdmission && selectedMonths.length === 0) setAmount("");
+
+    }, [selectedMonths.length, monthlyFee, payAdmission, admissionFee]);
 
     const filteredStudents = students.filter(s =>
         (s.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -154,16 +175,23 @@ export function ManualPaymentManager() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedStudentId || selectedMonths.length === 0 || !amount) {
+        if (!selectedStudentId || (selectedMonths.length === 0 && !payAdmission) || !amount) {
             toast.error("অনুগ্রহ করে সকল তথ্য পূরণ করুন");
             return;
         }
 
         setSubmitting(true);
+        const payloadMonths = [...selectedMonths];
+        if (payAdmission) {
+            const now = new Date();
+            // Admission fee is typically month 0
+            payloadMonths.push({ month: 0, year: now.getFullYear() });
+        }
+
         try {
             const res = await recordManualPayment({
                 studentId: selectedStudentId,
-                months: selectedMonths,
+                months: payloadMonths,
                 amount: parseFloat(amount),
                 reference,
                 description,
@@ -181,6 +209,9 @@ export function ManualPaymentManager() {
                 setDescription("");
                 setSearchTerm("");
                 setMonthlyFee(0);
+                setAdmissionFee(0);
+                setPayAdmission(false);
+                setIsAdmissionPaid(false);
             } else {
                 toast.error(res.error || "পেমেন্ট ব্যর্থ হয়েছে");
             }
@@ -190,6 +221,7 @@ export function ManualPaymentManager() {
             setSubmitting(false);
         }
     };
+
 
     // Month picker generator
     const renderMonthPicker = () => {
@@ -210,8 +242,25 @@ export function ManualPaymentManager() {
         const isAdmissionPaid = paidMonths.some(pm => pm.month === 0);
         const isAdmissionSelected = selectedMonths.some(sm => sm.month === 0);
 
+        // Generate valid months based on course duration and enrollment
+        // If courseDuration is present, we should only show that many months from start
+        // If no start date, we assume standard academic year (Jan to Dec)? Or fallback to 12?
+
+        let validMonths: { month: number, year: number }[] = [];
+
+        if (enrollmentPeriod.start && courseDuration) {
+            // Calculate exactly which months are valid
+            const startM = enrollmentPeriod.start.getMonth(); // 0-indexed
+            const startY = enrollmentPeriod.start.getFullYear();
+
+            for (let i = 0; i < courseDuration; i++) {
+                const d = new Date(startY, startM + i, 1);
+                validMonths.push({ month: d.getMonth() + 1, year: d.getFullYear() });
+            }
+        }
+
         return (
-            <div className="space-y-4 max-h-48 overflow-y-auto border p-2 rounded">
+            <div className="space-y-4 max-h-56 overflow-y-auto border p-2 rounded custom-scrollbar">
                 {years.map(year => {
                     // Check if year is within enrollment period broad range
                     if (enrollmentPeriod.start && year < enrollmentPeriod.start.getFullYear()) return null;
@@ -221,6 +270,7 @@ export function ManualPaymentManager() {
                     const validMonthsInYear = Array.from({ length: 12 }, (_, i) => i + 1).filter(month => {
                         const date = new Date(year, month - 1, 1);
 
+                        // 1. Strict Date Range Check
                         if (enrollmentPeriod.start) {
                             const startMonthDate = new Date(enrollmentPeriod.start.getFullYear(), enrollmentPeriod.start.getMonth(), 1);
                             if (date < startMonthDate) return false;
@@ -229,6 +279,13 @@ export function ManualPaymentManager() {
                             const endMonthDate = new Date(enrollmentPeriod.end.getFullYear(), enrollmentPeriod.end.getMonth(), 1);
                             if (date > endMonthDate) return false;
                         }
+
+                        // 2. Course Duration Specific Check (if validMonths generated)
+                        if (validMonths.length > 0) {
+                            const isValid = validMonths.some(vm => vm.month === month && vm.year === year);
+                            if (!isValid) return false;
+                        }
+
                         return true;
                     });
 
@@ -385,6 +442,37 @@ export function ManualPaymentManager() {
                                                 <Button type="button" variant="outline" className="h-6 text-[10px] px-2" onClick={() => handleQuickMonthSelect(3)}>৩ মাস</Button>
                                             </div>
                                         </div>
+
+                                        {/* Admission Fee Section */}
+                                        {(admissionFee > 0 || !isAdmissionPaid) && (
+                                            <div className={cn(
+                                                "p-3 rounded-md border text-sm flex items-center justify-between transition-colors",
+                                                isAdmissionPaid
+                                                    ? "bg-zinc-50 border-zinc-200 text-zinc-500"
+                                                    : payAdmission ? "bg-teal-50 border-teal-200" : "bg-white border-zinc-200"
+                                            )}>
+                                                <div className="flex items-center gap-2">
+                                                    <div className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[10px]", isAdmissionPaid ? "bg-green-100 text-green-700" : "bg-zinc-100")}>
+                                                        {isAdmissionPaid && "✓"}
+                                                    </div>
+                                                    <span className="font-bengali font-medium">ভর্তি ফি (Admission Fee)</span>
+                                                </div>
+
+                                                {isAdmissionPaid ? (
+                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bengali">পরিশোধিত</span>
+                                                ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold">৳{admissionFee}</span>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={payAdmission}
+                                                            onChange={(e) => setPayAdmission(e.target.checked)}
+                                                            className="h-4 w-4 accent-teal-600 cursor-pointer"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                         {renderMonthPicker()}
                                         {selectedMonths.length > 0 && (
                                             <p className="text-xs text-zinc-500 font-bengali">
@@ -405,6 +493,29 @@ export function ManualPaymentManager() {
                                                 required
                                             />
                                         </div>
+
+                                        {/* Payment Breakdown */}
+                                        {(payAdmission || selectedMonths.length > 0) && (
+                                            <div className="col-span-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-3 text-sm space-y-2 mt-2">
+                                                <p className="font-bengali font-semibold text-xs text-zinc-500 uppercase tracking-wider mb-2">Payment Breakdown</p>
+                                                {payAdmission && (
+                                                    <div className="flex justify-between">
+                                                        <span>Admission Fee</span>
+                                                        <span className="font-mono">৳{admissionFee}</span>
+                                                    </div>
+                                                )}
+                                                {selectedMonths.length > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Monthly Fee ({selectedMonths.length} months)</span>
+                                                        <span className="font-mono">৳{monthlyFee * selectedMonths.length}</span>
+                                                    </div>
+                                                )}
+                                                <div className="border-t border-zinc-200 dark:border-zinc-700 pt-2 flex justify-between font-bold text-teal-700 dark:text-teal-400">
+                                                    <span>Total</span>
+                                                    <span className="font-mono">৳{amount}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="space-y-2">
                                             <Label className="font-bengali">পেমেন্ট মেথড</Label>
                                             <Select value={method} onValueChange={setMethod}>

@@ -150,17 +150,21 @@ export async function getStudentMonthlyFee(studentId: string) {
         const dept = batch.department;
         const course = batch.department.course;
 
-        const { monthlyAmount } = calculateApplicableFees(student, batch, dept, course);
+        const { monthlyAmount, admissionAmount } = calculateApplicableFees(student, batch, dept, course);
+
         return {
             success: true,
             amount: monthlyAmount,
+            admissionAmount,
+            isAdmissionFeePaid: enrollment.isAdmissionFeePaid,
             paidMonths: paidInvoices,
             enrollmentStart: batch.startDate,
-            enrollmentEnd: batch.endDate
+            enrollmentEnd: batch.endDate,
+            courseDuration: course.durationMonths
         };
     }
 
-    return { success: true, amount: 0, paidMonths: paidInvoices };
+    return { success: true, amount: 0, admissionAmount: 0, isAdmissionFeePaid: true, paidMonths: paidInvoices };
 }
 
 /**
