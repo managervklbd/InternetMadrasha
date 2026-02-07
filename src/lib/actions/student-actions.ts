@@ -19,9 +19,18 @@ export async function provisionStudent(data: {
     whatsappNumber?: string;
     departmentId?: string;
     batchId?: string; // Semester ID
+    feeTierId?: string;
 }) {
+    // Validation
+    if (!data.whatsappNumber) {
+        throw new Error("Whatsapp number is required");
+    }
+
     // 1. Invite User
-    const { user, inviteLink } = await inviteUser(data.email, "STUDENT", data.fullName);
+    const { user, inviteLink } = await inviteUser(data.email, "STUDENT", data.fullName, data.whatsappNumber);
+
+    // Normalize feeTierId
+    const feeTierId = (data.feeTierId === "GENERAL" || !data.feeTierId) ? null : data.feeTierId;
 
     // 2. Create Student Profile with Department
     const student = await prisma.studentProfile.create({
@@ -37,7 +46,7 @@ export async function provisionStudent(data: {
             whatsappNumber: data.whatsappNumber,
             activeStatus: true,
             departmentId: data.departmentId,
-            feeTier: "GENERAL" as any, // Default to General
+            feeTierId: feeTierId,
         },
     });
 
@@ -81,6 +90,7 @@ export async function getStudents(filter?: { mode?: StudentMode }) {
                 },
                 take: 1
             },
+            feeTier: true,
         },
         orderBy: {
             fullName: "asc",
@@ -106,6 +116,7 @@ export async function getStudentById(id: string) {
                 take: 1
             },
             planHistory: { include: { plan: true }, orderBy: { startDate: 'desc' }, take: 1 },
+            feeTier: true,
         },
     });
 }
@@ -148,6 +159,7 @@ export async function updateStudentProfile(studentId: string, data: {
     activeStatus: boolean;
     departmentId?: string;
     batchId?: string;
+    feeTierId?: string;
 }) {
     // 1. Get existing student
     const existingStudent = await prisma.studentProfile.findUnique({
@@ -169,6 +181,9 @@ export async function updateStudentProfile(studentId: string, data: {
         });
     }
 
+    // Normalize feeTierId
+    const feeTierId = (data.feeTierId === "GENERAL" || !data.feeTierId) ? null : data.feeTierId;
+
     // 3. Update Profile
     const updatedStudent = await prisma.studentProfile.update({
         where: { id: studentId },
@@ -182,21 +197,24 @@ export async function updateStudentProfile(studentId: string, data: {
             country: data.country,
             activeStatus: data.activeStatus,
             departmentId: data.departmentId || undefined,
+            feeTierId: feeTierId,
         }
     });
 
     // 4. Update Enrollment (last one) or Create if changed
+    let enrollmentChanged = false;
     if (data.batchId) {
         const exists = existingStudent.enrollments.some(e => e.batchId === data.batchId);
         if (!exists) {
             await prisma.enrollment.create({
                 data: { studentId, batchId: data.batchId }
             });
+            enrollmentChanged = true;
         }
-
-        // Sync invoice in case it wasn't generated or details changed
-        await syncStudentMonthlyInvoice(studentId);
     }
+
+    // Sync invoice if important fields changed
+    await syncStudentMonthlyInvoice(studentId);
 
     const { revalidatePath } = await import("next/cache");
     revalidatePath("/admin/students");
@@ -253,11 +271,11 @@ export async function toggleStudentStatus(studentId: string, currentStatus: bool
     }
 }
 
-export async function migrateStudentFeeTier(studentId: string, tier: any) {
+export async function migrateStudentFeeTier(studentId: string, tier: string | null) {
     try {
         await prisma.studentProfile.update({
             where: { id: studentId },
-            data: { feeTier: tier }
+            data: { feeTierId: tier }
         });
 
         // Sync invoice so it updates immediately
@@ -272,11 +290,11 @@ export async function migrateStudentFeeTier(studentId: string, tier: any) {
     }
 }
 
-export async function bulkMigrateFeeTier(studentIds: string[], tier: any) {
+export async function bulkMigrateFeeTier(studentIds: string[], tier: string | null) {
     try {
         await prisma.studentProfile.updateMany({
             where: { id: { in: studentIds } },
-            data: { feeTier: tier }
+            data: { feeTierId: tier }
         });
 
         for (const id of studentIds) {

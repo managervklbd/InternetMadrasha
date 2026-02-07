@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { updateStudentProfile } from "@/lib/actions/student-actions";
 import { getAcademicStructure } from "@/lib/actions/academic-actions";
+import { getPlans } from "@/lib/actions/billing-actions"; // Added import
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -51,11 +52,17 @@ export function EditStudentModal({
         }
     }, [open, student]);
 
+    const [plans, setPlans] = useState<any[]>([]); // Added plans state
+
     const loadAcademicData = async () => {
         setFetchingAcademic(true);
         try {
-            const data = await getAcademicStructure();
+            const [data, plansData] = await Promise.all([
+                getAcademicStructure(),
+                getPlans() // Fetch plans
+            ]);
             setAcademicData(data);
+            setPlans(plansData);
         } catch (error) {
             console.error("Failed to load academic data:", error);
             toast.error("একাডেমিক তথ্য লোড করা সম্ভব হয়নি");
@@ -81,6 +88,7 @@ export function EditStudentModal({
             activeStatus: student.activeStatus,
             departmentId: selectedDepartment || student.departmentId,
             batchId: selectedBatch || student.enrollments?.[0]?.batchId,
+            planId: formData.get("planId") as string,
         };
 
         try {
@@ -126,12 +134,13 @@ export function EditStudentModal({
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="whatsappNumber">হোয়াটসঅ্যাপ নম্বর</Label>
+                            <Label htmlFor="whatsappNumber">হোয়াটসঅ্যাপ নম্বর <span className="text-red-500">*</span></Label>
                             <Input
                                 id="whatsappNumber"
                                 name="whatsappNumber"
                                 defaultValue={student.whatsappNumber || ""}
                                 placeholder="+880..."
+                                required
                             />
                         </div>
                     </div>
@@ -249,6 +258,24 @@ export function EditStudentModal({
                                         </SelectContent>
                                     </Select>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>ফী প্ল্যান (অপশনাল)</Label>
+                                <Select
+                                    name="planId"
+                                    defaultValue={student.planHistory?.[0]?.planId || "GENERAL"}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="প্ল্যান নির্বাচন করুন" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="GENERAL">জেনারেল (একাডেমিক স্ট্রাকচার)</SelectItem>
+                                        {plans.map((p: any) => (
+                                            <SelectItem key={p.id} value={p.id}>{p.name} ({p.monthlyFee}৳)</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             {fetchingAcademic && (

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { BatchType, Gender, StudentMode } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 
 export async function createCourse(data: {
     name: string;
@@ -17,6 +18,12 @@ export async function createCourse(data: {
     admissionFeeOffline?: number;
     admissionFeeProbashi?: number;
     monthlyFeeProbashi?: number;
+    examFee?: number;
+    registrationFee?: number;
+    otherFee?: number;
+    examFeeOffline?: number;
+    registrationFeeOffline?: number;
+    otherFeeOffline?: number;
 }) {
     if (!data.name || data.name.trim() === "") {
         return { success: false, error: "কোর্সের নাম আবশ্যক।" };
@@ -31,7 +38,14 @@ export async function createCourse(data: {
                 monthlyFeeOffline: data.monthlyFeeOffline,
                 admissionFeeOffline: data.admissionFeeOffline,
                 admissionFeeProbashi: data.admissionFeeProbashi,
-                monthlyFeeProbashi: data.monthlyFeeProbashi
+                monthlyFeeProbashi: data.monthlyFeeProbashi,
+                sadkaFee: 0, // Default
+                examFee: data.examFee,
+                registrationFee: data.registrationFee,
+                otherFee: data.otherFee,
+                examFeeOffline: data.examFeeOffline,
+                registrationFeeOffline: data.registrationFeeOffline,
+                otherFeeOffline: data.otherFeeOffline
             }
         });
 
@@ -100,6 +114,12 @@ export async function createDepartment(name: string, courseId: string, code?: st
     admissionFeeOffline?: number;
     admissionFeeProbashi?: number;
     monthlyFeeProbashi?: number;
+    examFee?: number;
+    registrationFee?: number;
+    otherFee?: number;
+    examFeeOffline?: number;
+    registrationFeeOffline?: number;
+    otherFeeOffline?: number;
 }) {
     if (!name || !courseId) {
         return { success: false, error: "বিভাগের নাম এবং কোর্স আবশ্যক।" };
@@ -198,6 +218,37 @@ export const getBatches = cache(async function () {
     }
 });
 
+export async function getAllBatches() {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+    return prisma.batch.findMany({
+        where: { active: true },
+        select: {
+            id: true,
+            name: true,
+            allowedMode: true,
+            department: {
+                select: {
+                    name: true,
+                    course: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: {
+            department: {
+                course: {
+                    name: 'asc'
+                }
+            }
+        }
+    });
+}
+
 // --- Batch (Semester) Actions ---
 
 export async function createBatch(data: {
@@ -214,6 +265,12 @@ export async function createBatch(data: {
     admissionFeeOffline?: number;
     admissionFeeProbashi?: number;
     monthlyFeeProbashi?: number;
+    examFee?: number;
+    registrationFee?: number;
+    otherFee?: number;
+    examFeeOffline?: number;
+    registrationFeeOffline?: number;
+    otherFeeOffline?: number;
 }) {
     if (!data.name || !data.departmentId) {
         return { success: false, error: "Name and Department ID are required" };
@@ -235,7 +292,13 @@ export async function createBatch(data: {
                 monthlyFeeOffline: data.monthlyFeeOffline,
                 admissionFeeOffline: data.admissionFeeOffline,
                 admissionFeeProbashi: data.admissionFeeProbashi,
-                monthlyFeeProbashi: data.monthlyFeeProbashi
+                monthlyFeeProbashi: data.monthlyFeeProbashi,
+                examFee: data.examFee,
+                registrationFee: data.registrationFee,
+                otherFee: data.otherFee,
+                examFeeOffline: data.examFeeOffline,
+                registrationFeeOffline: data.registrationFeeOffline,
+                otherFeeOffline: data.otherFeeOffline
             },
         });
         revalidatePath("/admin/billing");
@@ -273,6 +336,12 @@ export async function updateCourse(id: string, data: {
     durationMonths?: number;
     admissionFeeProbashi?: number;
     monthlyFeeProbashi?: number;
+    examFee?: number;
+    registrationFee?: number;
+    otherFee?: number;
+    examFeeOffline?: number;
+    registrationFeeOffline?: number;
+    otherFeeOffline?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
@@ -288,7 +357,13 @@ export async function updateCourse(id: string, data: {
                 admissionFeeOffline: data.admissionFeeOffline,
                 durationMonths: data.durationMonths,
                 admissionFeeProbashi: data.admissionFeeProbashi,
-                monthlyFeeProbashi: data.monthlyFeeProbashi
+                monthlyFeeProbashi: data.monthlyFeeProbashi,
+                examFee: data.examFee,
+                registrationFee: data.registrationFee,
+                otherFee: data.otherFee,
+                examFeeOffline: data.examFeeOffline,
+                registrationFeeOffline: data.registrationFeeOffline,
+                otherFeeOffline: data.otherFeeOffline
             }
         });
         revalidatePath("/admin/billing");
@@ -323,6 +398,12 @@ export async function updateDepartment(id: string, data: {
     admissionFeeOffline?: number;
     admissionFeeProbashi?: number;
     monthlyFeeProbashi?: number;
+    examFee?: number;
+    registrationFee?: number;
+    otherFee?: number;
+    examFeeOffline?: number;
+    registrationFeeOffline?: number;
+    otherFeeOffline?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
@@ -337,7 +418,13 @@ export async function updateDepartment(id: string, data: {
                 sadkaFeeOffline: data.sadkaFeeOffline,
                 admissionFeeOffline: data.admissionFeeOffline,
                 admissionFeeProbashi: data.admissionFeeProbashi,
-                monthlyFeeProbashi: data.monthlyFeeProbashi
+                monthlyFeeProbashi: data.monthlyFeeProbashi,
+                examFee: data.examFee,
+                registrationFee: data.registrationFee,
+                otherFee: data.otherFee,
+                examFeeOffline: data.examFeeOffline,
+                registrationFeeOffline: data.registrationFeeOffline,
+                otherFeeOffline: data.otherFeeOffline
             }
         });
         revalidatePath("/admin/billing");
@@ -375,6 +462,12 @@ export async function updateBatch(id: string, data: {
     endDate?: Date;
     admissionFeeProbashi?: number;
     monthlyFeeProbashi?: number;
+    examFee?: number;
+    registrationFee?: number;
+    otherFee?: number;
+    examFeeOffline?: number;
+    registrationFeeOffline?: number;
+    otherFeeOffline?: number;
 }) {
     if (!id || !data.name) return { success: false, error: "ID and Name required" };
     try {
@@ -392,7 +485,13 @@ export async function updateBatch(id: string, data: {
                 startDate: data.startDate,
                 endDate: data.endDate,
                 admissionFeeProbashi: data.admissionFeeProbashi,
-                monthlyFeeProbashi: data.monthlyFeeProbashi
+                monthlyFeeProbashi: data.monthlyFeeProbashi,
+                examFee: data.examFee,
+                registrationFee: data.registrationFee,
+                otherFee: data.otherFee,
+                examFeeOffline: data.examFeeOffline,
+                registrationFeeOffline: data.registrationFeeOffline,
+                otherFeeOffline: data.otherFeeOffline
             }
         });
         revalidatePath("/admin/billing");

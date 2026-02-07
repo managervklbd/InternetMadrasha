@@ -25,8 +25,11 @@ import {
     Clock,
     CheckCircle2,
     Calendar,
-    MessageSquare
+    MessageSquare,
+    Upload,
+    X,
 } from "lucide-react";
+import { CldUploadWidget } from "next-cloudinary";
 import { getAssignedBatches } from "@/lib/actions/teacher-portal-actions";
 import {
     createHomework,
@@ -40,6 +43,7 @@ export default function HomeworkPage() {
     const [batches, setBatches] = useState<any[]>([]);
     const [homeworks, setHomeworks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [attachments, setAttachments] = useState<string[]>([]);
 
     const refreshData = async () => {
         setLoading(true);
@@ -70,6 +74,8 @@ export default function HomeworkPage() {
             description: formData.get("description") as string,
             batchId: formData.get("batchId") as string,
             deadline: new Date(formData.get("deadline") as string),
+            type: formData.get("type") as "HOMEWORK" | "EXAM",
+            attachments: attachments
         };
 
         try {
@@ -77,6 +83,7 @@ export default function HomeworkPage() {
             toast.success("নতুন হোমওয়ার্ক তৈরি হয়েছে!");
             refreshData();
             (e.target as HTMLFormElement).reset();
+            setAttachments([]); // Reset attachments
         } catch (err) {
             toast.error("হোমওয়ার্ক তৈরি করতে ব্যর্থ হয়েছে।");
         }
@@ -114,6 +121,18 @@ export default function HomeworkPage() {
                                 </Select>
                             </div>
                             <div className="space-y-2">
+                                <Label htmlFor="type" className="font-bengali">অ্যাসাইনমেন্টের ধরণ</Label>
+                                <Select name="type" defaultValue="HOMEWORK">
+                                    <SelectTrigger className="h-11 font-bengali">
+                                        <SelectValue placeholder="ধরণ নির্বাচন করুন" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="HOMEWORK" className="font-bengali">সাধারণ হোমওয়ার্ক</SelectItem>
+                                        <SelectItem value="EXAM" className="font-bengali">পরিক্ষা (Exam)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="title" className="font-bengali">হেডলাইন / শিরোনাম</Label>
                                 <Input id="title" name="title" placeholder="উদা: আরবি গ্রামার বেসিকস" required className="font-bengali" />
                             </div>
@@ -126,6 +145,46 @@ export default function HomeworkPage() {
                                     placeholder="শিক্ষার্থীদের কী করতে হবে তা বিস্তারিত লিখুন..."
                                     required
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="font-bengali">ফাইল সংযুক্ত করুন (ঐচ্ছিক)</Label>
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    {attachments.map((url, i) => (
+                                        <div key={i} className="relative group w-16 h-16 border rounded bg-zinc-50 flex items-center justify-center overflow-hidden">
+                                            {url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                                <img src={url} alt="Attachment" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <FileText className="w-6 h-6 text-zinc-400" />
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
+                                                className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X size={10} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <CldUploadWidget
+                                        signatureEndpoint="/api/sign-cloudinary-params"
+                                        onSuccess={(result: any) => {
+                                            if (result?.info?.secure_url) {
+                                                setAttachments(prev => [...prev, result.info.secure_url]);
+                                            }
+                                        }}
+                                        options={{ multiple: true, maxFiles: 3 }}
+                                    >
+                                        {({ open }) => (
+                                            <div
+                                                onClick={() => open()}
+                                                className="w-16 h-16 border-2 border-dashed rounded flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-50 hover:border-teal-500 transition-colors"
+                                            >
+                                                <Upload className="w-4 h-4 text-zinc-400" />
+                                                <span className="text-[10px] text-zinc-500">Add</span>
+                                            </div>
+                                        )}
+                                    </CldUploadWidget>
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="deadline" className="font-bengali">জমাদানের শেষ সময়</Label>

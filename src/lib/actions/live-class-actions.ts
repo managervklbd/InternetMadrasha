@@ -408,10 +408,84 @@ export async function getLiveClassAttendance(classId: string) {
     }
 
     return prisma.liveClassAttendance.findMany({
-        where: { liveClassId: classId },
+        where: {
+            liveClassId: classId,
+            studentId: { not: null } as any // Only show student attendance
+        },
         include: {
             student: true
         },
         orderBy: { joinTime: "desc" }
     });
+}
+
+export async function joinLiveClassAsTeacher(classId: string, sessionKey?: string) {
+    const session = await auth();
+    if (!session || (session.user.role !== "TEACHER" && session.user.role !== "ADMIN")) {
+        throw new Error("Unauthorized");
+    }
+
+    const teacher = await prisma.teacherProfile.findUnique({
+        where: { userId: session.user.id }
+    });
+
+    if (!teacher) throw new Error("Teacher profile not found");
+
+    const liveClass = await prisma.monthlyLiveClass.findUnique({
+        where: { id: classId }
+    });
+
+    if (!liveClass || !liveClass.active) throw new Error("Class not found or inactive");
+
+    // 1. Log Live Class Attendance (for history)
+    // Find session name if key provided
+    let sessionName = sessionKey;
+    if (sessionKey) {
+        const config = await prisma.liveClassSessionConfig.findUnique({
+            where: { key: sessionKey }
+        });
+        if (config) sessionName = config.label;
+    }
+
+    await prisma.liveClassAttendance.create({
+        data: {
+            teacherId: teacher.id,
+            liveClassId: classId,
+            sessionKey: sessionKey,
+            sessionName: sessionName || "TEACHER_JOIN",
+            date: new Date(),
+            joinTime: new Date()
+        } as any
+    });
+
+    // 2. Auto-mark Daily Teacher Attendance
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        await prisma.teacherAttendance.upsert({
+            where: {
+                teacherId_date: {
+                    teacherId: teacher.id,
+                    date: today
+                }
+            },
+            update: {
+                status: "PRESENT",
+                checkIn: new Date(), // Update check-in time? Or leave first check-in? 
+                // Usually we keep first check-in. But if they join, they are present.
+                // Let's just update status to ensure it's present.
+            },
+            create: {
+                teacherId: teacher.id,
+                date: today,
+                checkIn: new Date(),
+                status: "PRESENT"
+            }
+        });
+    } catch (error) {
+        console.error("Failed to mark teacher daily attendance:", error);
+    }
+
+    return liveClass.liveLink;
 }

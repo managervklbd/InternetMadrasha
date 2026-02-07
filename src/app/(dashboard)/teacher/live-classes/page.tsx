@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Video, Calendar, Clock, ExternalLink, Users } from "lucide-react";
-import { getTeacherLiveClasses } from "@/lib/actions/live-class-actions";
+import { getTeacherLiveClasses, joinLiveClassAsTeacher } from "@/lib/actions/live-class-actions";
 import { AttendanceListModal } from "@/components/teacher/live-classes/AttendanceListModal";
 
 export default function TeacherLiveClassesPage() {
@@ -104,13 +104,32 @@ export default function TeacherLiveClassesPage() {
 
                                 <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
                                     <Button
-                                        asChild
+                                        onClick={async () => {
+                                            try {
+                                                // Identify current session? 
+                                                // For teachers, maybe we just pass the first active session key or none?
+                                                // The action handles optional sessionKey.
+                                                // Let's try to find if there's an active session now
+                                                const now = new Date();
+                                                const currentTime = now.getHours() * 60 + now.getMinutes();
+                                                const activeSession = item.sessionDetails?.find((s: any) => {
+                                                    const [startH, startM] = s.startTime.split(':').map(Number);
+                                                    const [endH, endM] = s.endTime.split(':').map(Number);
+                                                    const start = startH * 60 + startM;
+                                                    const end = endH * 60 + endM;
+                                                    return currentTime >= start && currentTime <= end;
+                                                });
+
+                                                const link = await joinLiveClassAsTeacher(item.id, activeSession?.key);
+                                                window.open(link, "_blank");
+                                            } catch (err: any) {
+                                                alert(err.message || "Error joining class");
+                                            }
+                                        }}
                                         className="w-full bg-teal-600 hover:bg-teal-700 font-bengali gap-2 shadow-lg hover:shadow-teal-600/20"
                                     >
-                                        <a href={item.liveLink} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="w-4 h-4" />
-                                            ক্লাসে যোগ দিন (Host)
-                                        </a>
+                                        <ExternalLink className="w-4 h-4" />
+                                        ক্লাসে যোগ দিন (Host)
                                     </Button>
 
                                     <Button

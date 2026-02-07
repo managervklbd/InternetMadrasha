@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { DashboardLiveClassCard } from "@/components/student/DashboardLiveClassCard";
 
 export default async function StudentDashboard() {
     const data = await getStudentDashboardData();
@@ -178,45 +179,11 @@ export default async function StudentDashboard() {
                                     /* ================= ONLINE STUDENT VIEW ================= */
                                     (data as any).onlineLiveClasses?.length > 0 ? (
                                         (data as any).onlineLiveClasses.map((liveClass: any) => (
-                                            <div key={liveClass.id} className="flex flex-col gap-4 p-5 rounded-2xl bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-800">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900 flex items-center justify-center">
-                                                            <Video className="w-6 h-6 text-teal-600" />
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-teal-900 dark:text-teal-100">{liveClass.title}</h4>
-                                                            <p className="text-xs text-teal-700 dark:text-teal-400 font-bengali">
-                                                                ওস্তাদ: {liveClass.teacher?.fullName || "নির্ধারিত নেই"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    {isUnpaid ? (
-                                                        <Button disabled className="gap-2 bg-zinc-200 text-zinc-500 font-bengali">
-                                                            <Lock className="w-4 h-4" />
-                                                            লক করা
-                                                        </Button>
-                                                    ) : (
-                                                        <a href={liveClass.liveLink} target="_blank" rel="noopener noreferrer">
-                                                            <Button className="bg-teal-600 hover:bg-teal-700 gap-2 font-bengali">
-                                                                ক্লাসে যোগ দিন
-                                                            </Button>
-                                                        </a>
-                                                    )}
-                                                </div>
-
-                                                {/* Show Session Times */}
-                                                {liveClass.sessionDetails && liveClass.sessionDetails.length > 0 && (
-                                                    <div className="flex gap-2 flex-wrap">
-                                                        {liveClass.sessionDetails.map((session: any) => (
-                                                            <Badge key={session.key} variant="secondary" className="bg-white dark:bg-zinc-900 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800">
-                                                                {session.label}: {formatTime(session.startTime)} - {formatTime(session.endTime)}
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <DashboardLiveClassCard
+                                                key={liveClass.id}
+                                                liveClass={liveClass}
+                                                isUnpaid={isUnpaid}
+                                            />
                                         ))
                                     ) : (
                                         <div className="text-center py-12 text-zinc-500 italic font-bengali">আজকের জন্য কোনো লাইভ ক্লাস নির্ধারিত নেই।</div>

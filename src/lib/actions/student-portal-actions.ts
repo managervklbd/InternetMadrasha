@@ -537,6 +537,24 @@ export async function submitHomework(data: { homeworkId: string, content?: strin
 export async function getStudentHomeworks() {
     const profile = await getStudentProfile();
 
+    // Check for Exam Fee Payment
+    // We look for any invoice that is PAID and associated with a Plan that has "Exam" or "পরিক্ষা" in its name.
+    // We also check "Exam Fee" specifically.
+    const examFeePayment = await prisma.monthlyInvoice.findFirst({
+        where: {
+            studentId: profile.id,
+            status: "PAID",
+            plan: {
+                OR: [
+                    { name: { contains: "Exam", mode: "insensitive" } },
+                    { name: { contains: "পরিক্ষা", mode: "insensitive" } }
+                ]
+            }
+        }
+    });
+
+    const isExamFeePaid = !!examFeePayment;
+
     const homeworks = await prisma.homework.findMany({
         where: {
             batch: {
@@ -561,5 +579,5 @@ export async function getStudentHomeworks() {
         }
     });
 
-    return homeworks;
+    return { homeworks, isExamFeePaid };
 }

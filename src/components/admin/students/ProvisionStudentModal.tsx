@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { Loader2, Check, ChevronRight } from "lucide-react";
 import { provisionStudent } from "@/lib/actions/student-actions";
 import { getAcademicStructure } from "@/lib/actions/academic-actions";
-import { getPlans } from "@/lib/actions/billing-actions";
+import { getFeeTiers } from "@/lib/actions/tier-actions";
 import { countries } from "@/lib/constants/countries";
 
 interface ProvisionStudentModalProps {
@@ -38,7 +38,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
 
     // Data States
     const [courses, setCourses] = useState<any[]>([]);
-    const [plans, setPlans] = useState<any[]>([]);
+    const [tiers, setTiers] = useState<any[]>([]);
 
     // Hierarchy Selection State
     const [selectedCourse, setSelectedCourse] = useState("");
@@ -57,7 +57,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
         whatsappNumber: "",
         departmentId: "",
         batchId: "", // Added
-        planId: "",
+        feeTierId: "",
         admissionDate: new Date(),
     });
 
@@ -74,15 +74,23 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
     }, [open]);
 
     const loadData = async () => {
-        const [coursesData, plansData] = await Promise.all([
+        const [coursesData, tiersData] = await Promise.all([
             getAcademicStructure(),
-            getPlans()
+            getFeeTiers()
         ]);
         setCourses(coursesData);
-        setPlans(plansData);
+        setTiers(tiersData);
     };
 
-    const handleNext = () => setStep(s => s + 1);
+    const handleNext = () => {
+        if (step === 1) {
+            if (!formData.fullName || !formData.whatsappNumber) {
+                toast.error("অনুগ্রহ করে নাম এবং হোয়াটসঅ্যাপ নম্বর পূরণ করুন");
+                return;
+            }
+        }
+        setStep(s => s + 1);
+    };
     const handleBack = () => setStep(s => s - 1);
 
     const handleSubmit = async () => {
@@ -108,7 +116,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden">
+            <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col">
                 <div className="p-6 pb-2">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bengali">নতুন ছাত্র যোগ করুন</DialogTitle>
@@ -124,7 +132,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                     ))}
                 </div>
 
-                <div className="px-6 pb-6 min-h-[300px]">
+                <div className="px-6 pb-6 min-h-[300px] flex-1 overflow-y-auto">
                     {step === 1 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                             <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider font-bengali">ধাপ ১: প্রাথমিক পরিচয়</h3>
@@ -161,7 +169,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                                         />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="whatsapp" className="font-bengali">হোয়াটসঅ্যাপ নম্বর</Label>
+                                        <Label htmlFor="whatsapp" className="font-bengali">হোয়াটসঅ্যাপ নম্বর <span className="text-red-500">*</span></Label>
                                         <Input
                                             id="whatsapp"
                                             value={formData.whatsappNumber}
@@ -329,14 +337,41 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                                     >
                                         <SelectTrigger className="font-bengali"><SelectValue placeholder="সেমিস্টার নির্বাচন করুন" /></SelectTrigger>
                                         <SelectContent className="font-bengali">
-                                            {availableBatches.map((batch: any) => (
-                                                <SelectItem key={batch.id} value={batch.id}>
-                                                    {batch.name}
+                                            {availableBatches
+                                                .filter((batch: any) => batch.allowedMode === formData.mode)
+                                                .map((batch: any) => (
+                                                    <SelectItem key={batch.id} value={batch.id}>
+                                                        {batch.name}
+                                                    </SelectItem>
+                                                ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {availableBatches.filter((batch: any) => batch.allowedMode === formData.mode).length === 0 && selectedDepartment && (
+                                        <p className="text-xs text-amber-600 font-bengali">
+                                            এই বিভাগে নির্বাচিত মোড ({formData.mode === 'ONLINE' ? 'অনলাইন' : 'অফলাইন'}) এর জন্য কোনো ব্যাচ নেই।
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Fee Tier Selection */}
+                                <div className="grid gap-2">
+                                    <Label className="font-bengali">ফি টিয়ার</Label>
+                                    <Select
+                                        value={formData.feeTierId}
+                                        onValueChange={(val) => setFormData({ ...formData, feeTierId: val })}
+                                    >
+                                        <SelectTrigger className="font-bengali"><SelectValue placeholder="জেনারেল" /></SelectTrigger>
+                                        <SelectContent className="font-bengali">
+                                            <SelectItem value="GENERAL">জেনারেল</SelectItem>
+                                            {tiers.map((t: any) => (
+                                                <SelectItem key={t.id} value={t.id}>
+                                                    {t.name}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                <p className="text-xs text-zinc-500 font-bengali">টিয়ার পরিবর্তন করলে ভর্তি, মাসিক ও পরীক্ষা ফী আপডেট হবে।</p>
 
                                 {/* 4. Student ID (Auto-generated) */}
                                 <div className="grid gap-2">
@@ -372,7 +407,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                                 <div className="flex justify-between">
                                     <span className="text-zinc-500 font-bengali">ফি টিয়ার</span>
                                     <span className="font-medium text-teal-600 font-bengali">
-                                        জেনারেল (ডিফল্ট)
+                                        {tiers.find(t => t.id === formData.feeTierId)?.name || "জেনারেল"}
                                     </span>
                                 </div>
                             </div>

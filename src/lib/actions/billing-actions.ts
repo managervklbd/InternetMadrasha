@@ -50,47 +50,62 @@ export async function deletePlan(id: string) {
 }
 
 /**
- * Logic to ensure a student has an invoice for the current month.
- * Can be called during student creation or bulk generation.
- */
-/**
  * Helper to calculate applicable monthly and admission fees based on student mode and tier.
  */
-/**
- * Helper to calculate applicable monthly and admission fees based on student mode and tier.
- */
-function calculateApplicableFees(student: any, batch: any, department: any, course: any) {
+async function calculateApplicableFees(student: any, batch: any, department: any, course: any) {
     let monthlyAmount = 0;
     let admissionAmount = 0;
 
     const isOffline = student.mode === "OFFLINE";
-    const isSadka = student.feeTier === "SADKA";
     const isProbashi = student.residency === "PROBASHI";
 
     if (isProbashi) {
-        // Probashi (Foreign) Logic
+        // Probashi (Foreign) Logic - No Tier Overrides implemented for Probashi yet (per requirement)
         monthlyAmount = batch.monthlyFeeProbashi ?? department.monthlyFeeProbashi ?? course.monthlyFeeProbashi ?? 0;
         admissionAmount = batch.admissionFeeProbashi ?? department.admissionFeeProbashi ?? course.admissionFeeProbashi ?? 0;
     } else {
-        // Local Logic
+        // Local Logic (Online/Offline) with Fee Tier Overrides check
+        let tierOverride: any = null;
+
+        if (student.feeTierId) { // If student has a specific tier assigned
+            // findMostSpecificOverride
+            const overrides = await prisma.academicTierFee.findMany({
+                where: {
+                    tierId: student.feeTierId,
+                    OR: [
+                        { batchId: batch.id },
+                        { departmentId: department.id },
+                        { courseId: course.id }
+                    ]
+                }
+            });
+
+            // Specificity: Batch > Dept > Course
+            tierOverride = overrides.find(o => o.batchId === batch.id)
+                || overrides.find(o => o.departmentId === department.id)
+                || overrides.find(o => o.courseId === course.id);
+        }
+
         if (isOffline) {
             // Offline
-            if (isSadka) {
-                monthlyAmount = batch.sadkaFeeOffline ?? department.sadkaFeeOffline ?? course.sadkaFeeOffline ?? 0;
+            if (tierOverride) {
+                // Use override if exists.
+                monthlyAmount = tierOverride.monthlyFeeOffline ?? 0;
+                admissionAmount = tierOverride.admissionFeeOffline ?? 0;
             } else {
+                // Fallback to General
                 monthlyAmount = batch.monthlyFeeOffline ?? department.monthlyFeeOffline ?? course.monthlyFeeOffline ?? 0;
+                admissionAmount = batch.admissionFeeOffline ?? department.admissionFeeOffline ?? course.admissionFeeOffline ?? 0;
             }
-
-            admissionAmount = batch.admissionFeeOffline ?? department.admissionFeeOffline ?? course.admissionFeeOffline ?? 0;
         } else {
             // Online
-            if (isSadka) {
-                monthlyAmount = batch.sadkaFee ?? department.sadkaFee ?? course.sadkaFee ?? 0;
+            if (tierOverride) {
+                monthlyAmount = tierOverride.monthlyFee ?? 0;
+                admissionAmount = tierOverride.admissionFee ?? 0;
             } else {
                 monthlyAmount = batch.monthlyFee ?? department.monthlyFee ?? course.monthlyFee ?? 0;
+                admissionAmount = batch.admissionFee ?? department.admissionFee ?? course.admissionFee ?? 0;
             }
-
-            admissionAmount = batch.admissionFee ?? department.admissionFee ?? course.admissionFee ?? 0;
         }
     }
 
@@ -138,7 +153,9 @@ export async function getStudentMonthlyFee(studentId: string) {
     });
 
     // Check for Active Custom Plan
-    const activePlan = student.planHistory[0]?.plan;
+    const latestHistory = student.planHistory[0];
+    const activePlan = (latestHistory && !latestHistory.endDate) ? latestHistory.plan : null;
+
     if (activePlan) {
         return { success: true, amount: activePlan.monthlyFee, paidMonths: paidInvoices };
     }
@@ -150,7 +167,7 @@ export async function getStudentMonthlyFee(studentId: string) {
         const dept = batch.department;
         const course = batch.department.course;
 
-        const { monthlyAmount, admissionAmount } = calculateApplicableFees(student, batch, dept, course);
+        const { monthlyAmount, admissionAmount } = await calculateApplicableFees(student, batch, dept, course);
 
         return {
             success: true,
@@ -211,7 +228,9 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
     let isAdmissionInvoice = false;
 
     // A. Check for Active Custom Plan
-    const activePlan = student.planHistory[0]?.plan;
+    const latestHistory = student.planHistory[0];
+    const activePlan = (latestHistory && !latestHistory.endDate) ? latestHistory.plan : null;
+
     if (activePlan) {
         targetAmount = activePlan.monthlyFee;
         planId = activePlan.id;
@@ -223,7 +242,7 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
             const dept = batch.department;
             const course = batch.department.course;
 
-            const fees = calculateApplicableFees(student, batch, dept, course);
+            const fees = await calculateApplicableFees(student, batch, dept, course);
 
             // Gatekeeping Logic: Check if Admission Fee is Paid
             if (!enrollment.isAdmissionFeePaid && fees.admissionAmount > 0) {

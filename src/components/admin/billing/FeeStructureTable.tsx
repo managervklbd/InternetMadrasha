@@ -31,7 +31,13 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
         admissionFee?: string,
         monthlyFeeOffline?: string,
         sadkaFeeOffline?: string,
-        admissionFeeOffline?: string
+        admissionFeeOffline?: string,
+        examFee?: string,
+        registrationFee?: string,
+        otherFee?: string,
+        examFeeOffline?: string,
+        registrationFeeOffline?: string,
+        otherFeeOffline?: string
     }>>({});
 
     const refreshStructure = async (silent = false) => {
@@ -66,7 +72,7 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
         setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
     };
 
-    const handleFieldChange = (id: string, field: 'monthlyFee' | 'sadkaFee' | 'admissionFee' | 'monthlyFeeOffline' | 'sadkaFeeOffline' | 'admissionFeeOffline', value: string) => {
+    const handleFieldChange = (id: string, field: string, value: string) => {
         setChanges(prev => ({
             ...prev,
             [id]: {
@@ -94,6 +100,13 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
         const sadkaFeeOffline = getVal('sadkaFeeOffline', originalData.sadkaFeeOffline);
         const admissionFeeOffline = getVal('admissionFeeOffline', originalData.admissionFeeOffline);
 
+        const examFee = getVal('examFee', originalData.examFee);
+        const registrationFee = getVal('registrationFee', originalData.registrationFee);
+        const otherFee = getVal('otherFee', originalData.otherFee);
+        const examFeeOffline = getVal('examFeeOffline', originalData.examFeeOffline);
+        const registrationFeeOffline = getVal('registrationFeeOffline', originalData.registrationFeeOffline);
+        const otherFeeOffline = getVal('otherFeeOffline', originalData.otherFeeOffline);
+
         try {
             let res;
             const payload = {
@@ -103,7 +116,13 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                 admissionFee,
                 monthlyFeeOffline,
                 sadkaFeeOffline,
-                admissionFeeOffline
+                admissionFeeOffline,
+                examFee,
+                registrationFee,
+                otherFee,
+                examFeeOffline,
+                registrationFeeOffline,
+                otherFeeOffline
             };
 
             if (type === 'COURSE') {
@@ -146,12 +165,19 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                 <TableHeader>
                     <TableRow className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-100">
                         <TableHead className="w-[30%] font-bengali">একাডেমিক নাম</TableHead>
-                        {isOnline && <TableHead className="w-[12%] font-bengali text-center border-r">মাসিক (Online)</TableHead>}
-                        {isOnline && <TableHead className="w-[12%] font-bengali text-center border-r">ভর্তি (Online)</TableHead>}
-                        {isOnline && <TableHead className="w-[12%] font-bengali text-center border-r">সদকা (Online)</TableHead>}
-                        {isOffline && <TableHead className="w-[12%] font-bengali text-center border-l bg-orange-50/50">মাসিক (Offline)</TableHead>}
-                        {isOffline && <TableHead className="w-[12%] font-bengali text-center bg-orange-50/50">ভর্তি (Offline)</TableHead>}
-                        {isOffline && <TableHead className="w-[12%] font-bengali text-center bg-orange-50/50">সদকা (Offline)</TableHead>}
+                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">মাসিক</TableHead>}
+                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">ভর্তি</TableHead>}
+                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">সদকা</TableHead>}
+                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">পরিক্ষা</TableHead>}
+                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">রেজিঃ</TableHead>}
+                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">অন্যান্য</TableHead>}
+
+                        {isOffline && <TableHead className="w-[8%] font-bengali text-center border-l bg-orange-50/50">মাসিক</TableHead>}
+                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">ভর্তি</TableHead>}
+                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">সদকা</TableHead>}
+                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">পরিক্ষা</TableHead>}
+                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">রেজিঃ</TableHead>}
+                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">অন্যান্য</TableHead>}
                         <TableHead className="w-[10%]"></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -175,72 +201,24 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
                                     {/* ONLINE Columns */}
                                     {isOnline && (
                                         <>
-                                            <TableCell className="border-r">
-                                                <FeeInput
-                                                    id={course.id}
-                                                    field="monthlyFee"
-                                                    value={course.monthlyFee}
-                                                    changedValue={changes[course.id]?.monthlyFee}
-                                                    placeholder="Mon"
-                                                    onChange={handleFieldChange}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="border-r">
-                                                <FeeInput
-                                                    id={course.id}
-                                                    field="admissionFee"
-                                                    value={course.admissionFee}
-                                                    changedValue={changes[course.id]?.admissionFee}
-                                                    placeholder="Adm"
-                                                    onChange={handleFieldChange}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="border-r">
-                                                <FeeInput
-                                                    id={course.id}
-                                                    field="sadkaFee"
-                                                    value={course.sadkaFee}
-                                                    changedValue={changes[course.id]?.sadkaFee}
-                                                    placeholder="Sadka"
-                                                    onChange={handleFieldChange}
-                                                />
-                                            </TableCell>
+                                            <TableCell className="border-r"><FeeInput id={course.id} field="monthlyFee" value={course.monthlyFee} changedValue={changes[course.id]?.monthlyFee} placeholder="Mon" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="border-r"><FeeInput id={course.id} field="admissionFee" value={course.admissionFee} changedValue={changes[course.id]?.admissionFee} placeholder="Adm" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="border-r"><FeeInput id={course.id} field="sadkaFee" value={course.sadkaFee} changedValue={changes[course.id]?.sadkaFee} placeholder="Sad" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="border-r"><FeeInput id={course.id} field="examFee" value={course.examFee} changedValue={changes[course.id]?.examFee} placeholder="Exm" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="border-r"><FeeInput id={course.id} field="registrationFee" value={course.registrationFee} changedValue={changes[course.id]?.registrationFee} placeholder="Reg" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="border-r"><FeeInput id={course.id} field="otherFee" value={course.otherFee} changedValue={changes[course.id]?.otherFee} placeholder="Oth" onChange={handleFieldChange} /></TableCell>
                                         </>
                                     )}
 
                                     {/* OFFLINE Columns */}
                                     {isOffline && (
                                         <>
-                                            <TableCell className="bg-orange-50/30">
-                                                <FeeInput
-                                                    id={course.id}
-                                                    field="monthlyFeeOffline"
-                                                    value={course.monthlyFeeOffline}
-                                                    changedValue={changes[course.id]?.monthlyFeeOffline}
-                                                    placeholder="Mon"
-                                                    onChange={handleFieldChange}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="bg-orange-50/30">
-                                                <FeeInput
-                                                    id={course.id}
-                                                    field="admissionFeeOffline"
-                                                    value={course.admissionFeeOffline}
-                                                    changedValue={changes[course.id]?.admissionFeeOffline}
-                                                    placeholder="Adm"
-                                                    onChange={handleFieldChange}
-                                                />
-                                            </TableCell>
-                                            <TableCell className="bg-orange-50/30">
-                                                <FeeInput
-                                                    id={course.id}
-                                                    field="sadkaFeeOffline"
-                                                    value={course.sadkaFeeOffline}
-                                                    changedValue={changes[course.id]?.sadkaFeeOffline}
-                                                    placeholder="Sadka"
-                                                    onChange={handleFieldChange}
-                                                />
-                                            </TableCell>
+                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="monthlyFeeOffline" value={course.monthlyFeeOffline} changedValue={changes[course.id]?.monthlyFeeOffline} placeholder="Mon" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="admissionFeeOffline" value={course.admissionFeeOffline} changedValue={changes[course.id]?.admissionFeeOffline} placeholder="Adm" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="sadkaFeeOffline" value={course.sadkaFeeOffline} changedValue={changes[course.id]?.sadkaFeeOffline} placeholder="Sad" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="examFeeOffline" value={course.examFeeOffline} changedValue={changes[course.id]?.examFeeOffline} placeholder="Exm" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="registrationFeeOffline" value={course.registrationFeeOffline} changedValue={changes[course.id]?.registrationFeeOffline} placeholder="Reg" onChange={handleFieldChange} /></TableCell>
+                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="otherFeeOffline" value={course.otherFeeOffline} changedValue={changes[course.id]?.otherFeeOffline} placeholder="Oth" onChange={handleFieldChange} /></TableCell>
                                         </>
                                     )}
 
@@ -272,71 +250,23 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
 
                                                 {isOnline && (
                                                     <>
-                                                        <TableCell className="border-r">
-                                                            <FeeInput
-                                                                id={dept.id}
-                                                                field="monthlyFee"
-                                                                value={dept.monthlyFee}
-                                                                changedValue={changes[dept.id]?.monthlyFee}
-                                                                placeholder={course.monthlyFee || "0"}
-                                                                onChange={handleFieldChange}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell className="border-r">
-                                                            <FeeInput
-                                                                id={dept.id}
-                                                                field="admissionFee"
-                                                                value={dept.admissionFee}
-                                                                changedValue={changes[dept.id]?.admissionFee}
-                                                                placeholder={course.admissionFee || "0"}
-                                                                onChange={handleFieldChange}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell className="border-r">
-                                                            <FeeInput
-                                                                id={dept.id}
-                                                                field="sadkaFee"
-                                                                value={dept.sadkaFee}
-                                                                changedValue={changes[dept.id]?.sadkaFee}
-                                                                placeholder={course.sadkaFee || "0"}
-                                                                onChange={handleFieldChange}
-                                                            />
-                                                        </TableCell>
+                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="monthlyFee" value={dept.monthlyFee} changedValue={changes[dept.id]?.monthlyFee} placeholder={course.monthlyFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="admissionFee" value={dept.admissionFee} changedValue={changes[dept.id]?.admissionFee} placeholder={course.admissionFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="sadkaFee" value={dept.sadkaFee} changedValue={changes[dept.id]?.sadkaFee} placeholder={course.sadkaFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="examFee" value={dept.examFee} changedValue={changes[dept.id]?.examFee} placeholder={course.examFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="registrationFee" value={dept.registrationFee} changedValue={changes[dept.id]?.registrationFee} placeholder={course.registrationFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="otherFee" value={dept.otherFee} changedValue={changes[dept.id]?.otherFee} placeholder={course.otherFee || "0"} onChange={handleFieldChange} /></TableCell>
                                                     </>
                                                 )}
 
                                                 {isOffline && (
                                                     <>
-                                                        <TableCell className="bg-orange-50/30">
-                                                            <FeeInput
-                                                                id={dept.id}
-                                                                field="monthlyFeeOffline"
-                                                                value={dept.monthlyFeeOffline}
-                                                                changedValue={changes[dept.id]?.monthlyFeeOffline}
-                                                                placeholder={course.monthlyFeeOffline || "0"}
-                                                                onChange={handleFieldChange}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell className="bg-orange-50/30">
-                                                            <FeeInput
-                                                                id={dept.id}
-                                                                field="admissionFeeOffline"
-                                                                value={dept.admissionFeeOffline}
-                                                                changedValue={changes[dept.id]?.admissionFeeOffline}
-                                                                placeholder={course.admissionFeeOffline || "0"}
-                                                                onChange={handleFieldChange}
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell className="bg-orange-50/30">
-                                                            <FeeInput
-                                                                id={dept.id}
-                                                                field="sadkaFeeOffline"
-                                                                value={dept.sadkaFeeOffline}
-                                                                changedValue={changes[dept.id]?.sadkaFeeOffline}
-                                                                placeholder={course.sadkaFeeOffline || "0"}
-                                                                onChange={handleFieldChange}
-                                                            />
-                                                        </TableCell>
+                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="monthlyFeeOffline" value={dept.monthlyFeeOffline} changedValue={changes[dept.id]?.monthlyFeeOffline} placeholder={course.monthlyFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="admissionFeeOffline" value={dept.admissionFeeOffline} changedValue={changes[dept.id]?.admissionFeeOffline} placeholder={course.admissionFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="sadkaFeeOffline" value={dept.sadkaFeeOffline} changedValue={changes[dept.id]?.sadkaFeeOffline} placeholder={course.sadkaFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="examFeeOffline" value={dept.examFeeOffline} changedValue={changes[dept.id]?.examFeeOffline} placeholder={course.examFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="registrationFeeOffline" value={dept.registrationFeeOffline} changedValue={changes[dept.id]?.registrationFeeOffline} placeholder={course.registrationFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="otherFeeOffline" value={dept.otherFeeOffline} changedValue={changes[dept.id]?.otherFeeOffline} placeholder={course.otherFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
                                                     </>
                                                 )}
 
@@ -362,71 +292,23 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
 
                                                         {isOnline && (
                                                             <>
-                                                                <TableCell className="border-r">
-                                                                    <FeeInput
-                                                                        id={batch.id}
-                                                                        field="monthlyFee"
-                                                                        value={batch.monthlyFee}
-                                                                        changedValue={changes[batch.id]?.monthlyFee}
-                                                                        placeholder={dept.monthlyFee || course.monthlyFee || "0"}
-                                                                        onChange={handleFieldChange}
-                                                                    />
-                                                                </TableCell>
-                                                                <TableCell className="border-r">
-                                                                    <FeeInput
-                                                                        id={batch.id}
-                                                                        field="admissionFee"
-                                                                        value={batch.admissionFee}
-                                                                        changedValue={changes[batch.id]?.admissionFee}
-                                                                        placeholder={dept.admissionFee || course.admissionFee || "0"}
-                                                                        onChange={handleFieldChange}
-                                                                    />
-                                                                </TableCell>
-                                                                <TableCell className="border-r">
-                                                                    <FeeInput
-                                                                        id={batch.id}
-                                                                        field="sadkaFee"
-                                                                        value={batch.sadkaFee}
-                                                                        changedValue={changes[batch.id]?.sadkaFee}
-                                                                        placeholder={dept.sadkaFee || course.sadkaFee || "0"}
-                                                                        onChange={handleFieldChange}
-                                                                    />
-                                                                </TableCell>
+                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="monthlyFee" value={batch.monthlyFee} changedValue={changes[batch.id]?.monthlyFee} placeholder={dept.monthlyFee || course.monthlyFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="admissionFee" value={batch.admissionFee} changedValue={changes[batch.id]?.admissionFee} placeholder={dept.admissionFee || course.admissionFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="sadkaFee" value={batch.sadkaFee} changedValue={changes[batch.id]?.sadkaFee} placeholder={dept.sadkaFee || course.sadkaFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="examFee" value={batch.examFee} changedValue={changes[batch.id]?.examFee} placeholder={dept.examFee || course.examFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="registrationFee" value={batch.registrationFee} changedValue={changes[batch.id]?.registrationFee} placeholder={dept.registrationFee || course.registrationFee || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="otherFee" value={batch.otherFee} changedValue={changes[batch.id]?.otherFee} placeholder={dept.otherFee || course.otherFee || "0"} onChange={handleFieldChange} /></TableCell>
                                                             </>
                                                         )}
 
                                                         {isOffline && (
                                                             <>
-                                                                <TableCell className="bg-orange-50/30">
-                                                                    <FeeInput
-                                                                        id={batch.id}
-                                                                        field="monthlyFeeOffline"
-                                                                        value={batch.monthlyFeeOffline}
-                                                                        changedValue={changes[batch.id]?.monthlyFeeOffline}
-                                                                        placeholder={dept.monthlyFeeOffline || course.monthlyFeeOffline || "0"}
-                                                                        onChange={handleFieldChange}
-                                                                    />
-                                                                </TableCell>
-                                                                <TableCell className="bg-orange-50/30">
-                                                                    <FeeInput
-                                                                        id={batch.id}
-                                                                        field="admissionFeeOffline"
-                                                                        value={batch.admissionFeeOffline}
-                                                                        changedValue={changes[batch.id]?.admissionFeeOffline}
-                                                                        placeholder={dept.admissionFeeOffline || course.admissionFeeOffline || "0"}
-                                                                        onChange={handleFieldChange}
-                                                                    />
-                                                                </TableCell>
-                                                                <TableCell className="bg-orange-50/30">
-                                                                    <FeeInput
-                                                                        id={batch.id}
-                                                                        field="sadkaFeeOffline"
-                                                                        value={batch.sadkaFeeOffline}
-                                                                        changedValue={changes[batch.id]?.sadkaFeeOffline}
-                                                                        placeholder={dept.sadkaFeeOffline || course.sadkaFeeOffline || "0"}
-                                                                        onChange={handleFieldChange}
-                                                                    />
-                                                                </TableCell>
+                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="monthlyFeeOffline" value={batch.monthlyFeeOffline} changedValue={changes[batch.id]?.monthlyFeeOffline} placeholder={dept.monthlyFeeOffline || course.monthlyFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="admissionFeeOffline" value={batch.admissionFeeOffline} changedValue={changes[batch.id]?.admissionFeeOffline} placeholder={dept.admissionFeeOffline || course.admissionFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="sadkaFeeOffline" value={batch.sadkaFeeOffline} changedValue={changes[batch.id]?.sadkaFeeOffline} placeholder={dept.sadkaFeeOffline || course.sadkaFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="examFeeOffline" value={batch.examFeeOffline} changedValue={changes[batch.id]?.examFeeOffline} placeholder={dept.examFeeOffline || course.examFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="registrationFeeOffline" value={batch.registrationFeeOffline} changedValue={changes[batch.id]?.registrationFeeOffline} placeholder={dept.registrationFeeOffline || course.registrationFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
+                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="otherFeeOffline" value={batch.otherFeeOffline} changedValue={changes[batch.id]?.otherFeeOffline} placeholder={dept.otherFeeOffline || course.otherFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
                                                             </>
                                                         )}
 

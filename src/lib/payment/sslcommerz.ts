@@ -38,7 +38,7 @@ export async function initiateSSLPayment(data: SSLPaymentData) {
         throw new Error("SSLCommerz credentials not configured");
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
     const config: SSLPaymentConfig = {
         store_id: settings.sslStoreId,
         store_passwd: settings.sslStorePass,
