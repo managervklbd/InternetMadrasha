@@ -288,7 +288,7 @@ export async function getStudentLiveClasses() {
     }));
 }
 
-export async function joinLiveClass(classId: string, sessionKey: string) {
+export async function joinLiveClass(classId: string, sessionKey?: string) {
     const sessionUser = await auth();
     if (!sessionUser?.user) throw new Error("Unauthorized");
 
@@ -322,18 +322,20 @@ export async function joinLiveClass(classId: string, sessionKey: string) {
     if (!liveClass || !liveClass.active) throw new Error("Class not found or inactive");
 
     // Log attendance
-    // Fetch session config to get the label name if needed, or just store the key
-    // Ideally we should also store the session label for historical accuracy if config changes
-    const sessionConfig = await prisma.liveClassSessionConfig.findUnique({
-        where: { key: sessionKey }
-    });
+    let sessionName = "সরাসরি জয়েন";
+    if (sessionKey) {
+        const sessionConfig = await prisma.liveClassSessionConfig.findUnique({
+            where: { key: sessionKey }
+        });
+        sessionName = sessionConfig?.label || sessionKey;
+    }
 
     await prisma.liveClassAttendance.create({
         data: {
             studentId: student.id,
             liveClassId: classId,
-            sessionKey: sessionKey,
-            sessionName: sessionConfig?.label || sessionKey,
+            sessionKey: sessionKey || "DIRECT",
+            sessionName: sessionName,
             date: new Date(),
             joinTime: new Date()
         }

@@ -65,19 +65,8 @@ export function DashboardLiveClassCard({ liveClass, isUnpaid }: DashboardLiveCla
     }, [liveClass.sessionDetails]);
 
     const handleJoin = async () => {
-        if (!activeSession) {
-            // Fallback: If no session is strictly "active" but user wants to join (e.g. 5 mins early)
-            // We could redirect to the generic live link, BUT we won't get attendance.
-            // OR we could find the *closest* session?
-            // For now, let's allow joining via direct link if no session active, 
-            // OR prompts user "No active session".
-            // Implementation: Open direct Link.
-            window.open(liveClass.liveLink, "_blank");
-            return;
-        }
-
         try {
-            const link = await joinLiveClass(liveClass.id, activeSession.key);
+            const link = await joinLiveClass(liveClass.id, activeSession?.key);
             window.open(link, "_blank");
         } catch (err: any) {
             toast.error(err.message || "ক্লাসে যোগ দিতে সমস্যা হয়েছে");

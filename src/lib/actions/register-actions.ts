@@ -16,7 +16,7 @@ export async function registerStudentAndPay(data: {
     email: string;
     password?: string; // User sets password
     phoneNumber?: string;
-    whatsappNumber?: string;
+    whatsappNumber: string;
     gender: Gender;
     mode: StudentMode;
     residency: Residency;

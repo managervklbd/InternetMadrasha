@@ -91,8 +91,8 @@ export default function RegisterPage() {
         loadData();
     }, []);
 
-    const loadData = async () => {
-        const coursesData = await getAcademicStructure();
+    const loadData = async (mode?: string) => {
+        const coursesData = await getAcademicStructure(mode as any);
         setCourses(coursesData);
     };
 
@@ -102,6 +102,14 @@ export default function RegisterPage() {
                 toast.error("অনুগ্রহ করে সকল তথ্য পূরণ করুন");
                 return;
             }
+        }
+        if (step === 2) {
+            if (!formData.whatsappNumber) {
+                toast.error("হোয়াটসঅ্যাপ নম্বর আবশ্যিক");
+                return;
+            }
+            // Load data for the selected mode
+            loadData(formData.mode);
         }
         if (step === 3) {
             if (!formData.batchId) {

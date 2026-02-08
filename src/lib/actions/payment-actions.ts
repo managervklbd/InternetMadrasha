@@ -139,7 +139,7 @@ export async function recordManualPayment(data: {
     try {
         const student = await prisma.studentProfile.findUnique({
             where: { id: data.studentId },
-            include: { user: true }
+            include: { user: true, enrollments: true }
         });
 
         if (!student) throw new Error("Student not found");
@@ -149,27 +149,42 @@ export async function recordManualPayment(data: {
 
         for (const m of data.months) {
             // Find or Create Invoice
-            let invoice = await prisma.monthlyInvoice.findUnique({
+            let invoice = await prisma.monthlyInvoice.findFirst({
                 where: {
-                    studentId_month_year: {
-                        studentId: data.studentId,
-                        month: m.month,
-                        year: m.year
-                    }
+                    studentId: data.studentId,
+                    month: m.month,
+                    year: m.year,
+                    feeHeadId: (m as any).feeHeadId || null
                 }
             });
 
             if (!invoice) {
                 // Create new
-                const { amount, planId } = await calculateStudentMonthlyFee(data.studentId);
+                let targetAmount = 0;
+                if ((m as any).feeHeadId) {
+                    // Fetch amount for this specific head
+                    const fee = await prisma.academicFee.findFirst({
+                        where: {
+                            feeHeadId: (m as any).feeHeadId,
+                            OR: [
+                                { batchId: student.enrollments?.[0]?.batchId },
+                                { departmentId: student.departmentId }
+                            ]
+                        }
+                    });
+                    targetAmount = fee?.amount || 0;
+                } else {
+                    const { amount } = await calculateStudentMonthlyFee(data.studentId);
+                    targetAmount = amount;
+                }
 
                 invoice = await prisma.monthlyInvoice.create({
                     data: {
                         studentId: data.studentId,
-                        planId: planId,
                         month: m.month,
                         year: m.year,
-                        amount: amount,
+                        feeHeadId: (m as any).feeHeadId || null,
+                        amount: targetAmount,
                         status: "UNPAID",
                         dueDate: new Date(m.year, m.month - 1, 10),
                         issuedAt: new Date()
@@ -190,17 +205,25 @@ export async function recordManualPayment(data: {
         const tran_id = `MANUAL_${uuidv4().substring(0, 8)}`;
 
         const invoices = await prisma.monthlyInvoice.findMany({
-            where: { id: { in: paidInvoiceIds } }
+            where: { id: { in: paidInvoiceIds } },
+            include: { feeHead: true }
         });
 
         for (const invoice of invoices) {
+            let fundType: "ADMISSION" | "MONTHLY" | "TUITION_FEE" | "DONATION" | "SADAQAH" | "ZAKAT" = "MONTHLY";
+
+            if (invoice.month === 0) fundType = "ADMISSION";
+            else if (invoice.feeHead?.name.includes("সদকা") || invoice.feeHead?.name.includes("Sadka")) fundType = "SADAQAH";
+            else if (invoice.feeHead?.name.includes("যাকাত") || invoice.feeHead?.name.includes("Zakat")) fundType = "ZAKAT";
+            else if (invoice.feeHead?.name.includes("দান") || invoice.feeHead?.name.includes("Donation")) fundType = "DONATION";
+
             await prisma.ledgerTransaction.create({
                 data: {
                     amount: invoice.amount,
-                    fundType: invoice.month === 0 ? "ADMISSION" : "MONTHLY",
+                    fundType: fundType as any,
                     transactionDate: new Date(),
-                    referenceId: data.reference || tran_id, // Same ref links them
-                    description: `Manual Payment (${data.paymentMethod || "CASH"}): ${invoice.month === 0 ? "Admission Fee" : `${invoice.month}/${invoice.year}`}. ${data.description || ""}`,
+                    referenceId: data.reference || tran_id,
+                    description: `Manual Payment (${data.paymentMethod || "CASH"}): ${invoice.feeHead?.name || (invoice.month === 0 ? "Admission Fee" : `${invoice.month}/${invoice.year}`)}. ${data.description || ""}`,
                     dr_cr: "CR",
                     invoiceId: invoice.id
                 }

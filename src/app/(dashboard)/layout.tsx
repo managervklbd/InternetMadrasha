@@ -16,7 +16,9 @@ import {
     Video,
     UserCheck,
     TrendingDown,
-    Wallet
+    Wallet,
+    Heart,
+    GraduationCap
 } from "lucide-react";
 
 import { MobileSidebar } from "@/components/layout/MobileSidebar";
@@ -48,6 +50,7 @@ export default async function DashboardLayout({
                 { href: "/admin/live-classes", label: "লাইভ ক্লাস ব্যবস্থাপনা", iconName: "Video" },
                 { href: "/admin/attendance", label: "হাজিরা ইনপুট", iconName: "Calendar" },
                 { href: "/admin/homework", label: "হোমওয়ার্ক ম্যানেজমেন্ট", iconName: "BookOpen" },
+                { href: "/admin/gradebook", label: "গ্রেড বুক (ফলাফল)", iconName: "GraduationCap" },
                 { href: "/admin/lessons", label: "লেসন ও রিসোর্স", iconName: "BookOpen" },
                 { href: "/admin/academics", label: "একাডেমিক সেটআপ", iconName: "Settings" },
             ]
@@ -144,6 +147,7 @@ export default async function DashboardLayout({
             title: "Finance",
             items: [
                 { href: "/student/billing", label: "পেমেন্ট হিস্ট্রি", iconName: "CreditCard" },
+                { href: "/student/donate", label: "দান করুন", iconName: "Heart" },
             ]
         }
     ];

@@ -1,4 +1,5 @@
 import { getSiteSettings } from "@/lib/actions/settings-actions";
+import { headers } from "next/headers";
 
 const SANDBOX_URL = "https://sandbox.sslcommerz.com";
 const LIVE_URL = "https://gw.sslcommerz.com";
@@ -38,7 +39,12 @@ export async function initiateSSLPayment(data: SSLPaymentData) {
         throw new Error("SSLCommerz credentials not configured");
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const headersList = await headers();
+    const origin = headersList.get('origin') || headersList.get('host');
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const dynamicBaseUrl = origin ? (origin.startsWith('http') ? origin : `${protocol}://${origin}`) : null;
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || dynamicBaseUrl || "http://localhost:3000";
     const config: SSLPaymentConfig = {
         store_id: settings.sslStoreId,
         store_passwd: settings.sslStorePass,

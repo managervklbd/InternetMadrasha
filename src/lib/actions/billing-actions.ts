@@ -137,13 +137,13 @@ export async function getStudentMonthlyFee(studentId: string) {
         select: { month: true, year: true }
     });
 
-    // Check for Active Custom Plan
-    const latestHistory = student.planHistory[0];
-    const activePlan = (latestHistory && !latestHistory.endDate) ? latestHistory.plan : null;
+    // Check for Active Custom Plan (DISABLED)
+    // const latestHistory = student.planHistory[0];
+    // const activePlan = (latestHistory && !latestHistory.endDate) ? latestHistory.plan : null;
 
-    if (activePlan) {
-        return { success: true, amount: activePlan.monthlyFee, paidMonths: paidInvoices };
-    }
+    // if (activePlan) {
+    //     return { success: true, amount: activePlan.monthlyFee, paidMonths: paidInvoices };
+    // }
 
     // Check Academic Structure
     const enrollment = student.enrollments[0];
@@ -154,17 +154,54 @@ export async function getStudentMonthlyFee(studentId: string) {
 
         const { monthlyAmount, admissionAmount } = calculateApplicableFees(student, batch, dept, course);
 
+        // Fetch Dynamic Fees (AcademicFee)
+        const academicFees = await prisma.academicFee.findMany({
+            where: {
+                OR: [
+                    { batchId: batch.id },
+                    { departmentId: dept.id },
+                    { courseId: course.id }
+                ]
+            },
+            include: { feeHead: true }
+        });
+
+        // Dedup academicFees (priority: Batch > Dept > Course)
+        const dedupedFees = new Map();
+        academicFees.forEach(fee => {
+            const existing = dedupedFees.get(fee.feeHeadId);
+            if (!existing) {
+                dedupedFees.set(fee.feeHeadId, fee);
+            } else {
+                // Priority logic
+                if (fee.batchId) dedupedFees.set(fee.feeHeadId, fee);
+                else if (fee.departmentId && !existing.batchId) dedupedFees.set(fee.feeHeadId, fee);
+            }
+        });
+
+        const activeInvoices = await prisma.monthlyInvoice.findMany({
+            where: { studentId, status: 'PAID' },
+            select: { feeHeadId: true, month: true, year: true }
+        });
+
         return {
             success: true,
             amount: monthlyAmount,
             admissionAmount,
-            isAdmissionFeePaid: enrollment.isAdmissionFeePaid || paidInvoices.some(inv => inv.month === 0),
+            isAdmissionFeePaid: enrollment.isAdmissionFeePaid || activeInvoices.some(inv => inv.month === 0),
             paidMonths: paidInvoices,
             enrollmentStart: batch.startDate,
             enrollmentEnd: batch.endDate,
             courseDuration: course.durationMonths,
             examFee: batch.examFee ?? dept.examFee ?? course.examFee ?? 0,
-            isExamFeePaid: paidInvoices.some(inv => inv.month === 13)
+            isExamFeePaid: activeInvoices.some(inv => inv.month === 13),
+            dynamicFees: Array.from(dedupedFees.values()).map(f => ({
+                id: f.id,
+                headId: f.feeHeadId,
+                name: f.feeHead.name,
+                amount: f.amount,
+                isPaid: activeInvoices.some(inv => inv.feeHeadId === f.feeHeadId)
+            }))
         };
     }
 
@@ -214,71 +251,71 @@ export async function syncStudentMonthlyInvoice(studentId: string) {
     let planId: string | null = null;
     let isAdmissionInvoice = false;
 
-    // A. Check for Active Custom Plan
-    const latestHistory = student.planHistory[0];
-    const activePlan = (latestHistory && !latestHistory.endDate) ? latestHistory.plan : null;
+    // A. Check for Active Custom Plan (DISABLED)
+    // const latestHistory = student.planHistory[0];
+    // const activePlan = (latestHistory && !latestHistory.endDate) ? latestHistory.plan : null;
 
-    if (activePlan) {
-        targetAmount = activePlan.monthlyFee;
-        planId = activePlan.id;
-    } else {
-        // B. Use Academic Structure Fee
-        const enrollment = student.enrollments[0];
-        if (enrollment && enrollment.batch) {
-            const batch = enrollment.batch;
-            const dept = batch.department;
-            const course = batch.department.course;
+    // if (activePlan) {
+    //     targetAmount = activePlan.monthlyFee;
+    //     planId = activePlan.id;
+    // } else {
+    // B. Use Academic Structure Fee
+    const enrollment = student.enrollments[0];
+    if (enrollment && enrollment.batch) {
+        const batch = enrollment.batch;
+        const dept = batch.department;
+        const course = batch.department.course;
 
-            const fees = calculateApplicableFees(student, batch, dept, course);
+        const fees = calculateApplicableFees(student, batch, dept, course);
 
-            // Gatekeeping Logic: Check if Admission Fee is Paid
-            if (!enrollment.isAdmissionFeePaid && fees.admissionAmount > 0) {
-                // Determine if they have an active Admission Invoice
-                const admissionInvoice = await prisma.monthlyInvoice.findFirst({
-                    where: {
-                        studentId,
-                        month: 0, // Special Month for Admission Fee
-                        // year: currentYear - we might reuse year, or just care about month 0
-                    }
-                });
-
-                if (admissionInvoice) {
-                    if (admissionInvoice.status === 'PAID') {
-                        // It's paid! Update enrollment flag and proceed to monthly fee
-                        await prisma.enrollment.update({
-                            where: { id: enrollment.id },
-                            data: { isAdmissionFeePaid: true }
-                        });
-                        // Recurse or fall through to monthly fee logic?
-                        // For simplicity, fall through to Monthly Fee Calculation in this same execution? 
-                        // No, let's process Monthly Fee below naturally after flag update.
-                        targetAmount = fees.monthlyAmount;
-                    } else {
-                        // Not paid yet. This is the target.
-                        // Ensure amount is correct (in case structure changed)
-                        if (admissionInvoice.amount !== fees.admissionAmount) {
-                            await prisma.monthlyInvoice.update({
-                                where: { id: admissionInvoice.id },
-                                data: { amount: fees.admissionAmount }
-                            });
-                        }
-                        return { success: true, alreadyExisted: true, reason: "Pending Admission Fee" };
-                    }
-                } else {
-                    // Create Admission Invoice
-                    targetAmount = fees.admissionAmount;
-                    targetMonth = 0; // 0 indicates Admission Fee
-                    isAdmissionInvoice = true;
+        // Gatekeeping Logic: Check if Admission Fee is Paid
+        if (!enrollment.isAdmissionFeePaid && fees.admissionAmount > 0) {
+            // Determine if they have an active Admission Invoice
+            const admissionInvoice = await prisma.monthlyInvoice.findFirst({
+                where: {
+                    studentId,
+                    month: 0, // Special Month for Admission Fee
+                    // year: currentYear - we might reuse year, or just care about month 0
                 }
+            });
 
+            if (admissionInvoice) {
+                if (admissionInvoice.status === 'PAID') {
+                    // It's paid! Update enrollment flag and proceed to monthly fee
+                    await prisma.enrollment.update({
+                        where: { id: enrollment.id },
+                        data: { isAdmissionFeePaid: true }
+                    });
+                    // Recurse or fall through to monthly fee logic?
+                    // For simplicity, fall through to Monthly Fee Calculation in this same execution? 
+                    // No, let's process Monthly Fee below naturally after flag update.
+                    targetAmount = fees.monthlyAmount;
+                } else {
+                    // Not paid yet. This is the target.
+                    // Ensure amount is correct (in case structure changed)
+                    if (admissionInvoice.amount !== fees.admissionAmount) {
+                        await prisma.monthlyInvoice.update({
+                            where: { id: admissionInvoice.id },
+                            data: { amount: fees.admissionAmount }
+                        });
+                    }
+                    return { success: true, alreadyExisted: true, reason: "Pending Admission Fee" };
+                }
+            } else {
+                // Create Admission Invoice
+                targetAmount = fees.admissionAmount;
+                targetMonth = 0; // 0 indicates Admission Fee
+                isAdmissionInvoice = true;
             }
 
-            // If Admission Fee is Paid (or just marked paid above), calculate Monthly Fee
-            if (enrollment.isAdmissionFeePaid || fees.admissionAmount === 0 || (isAdmissionInvoice === false && targetMonth !== 0)) {
-                targetAmount = fees.monthlyAmount;
-                targetMonth = currentMonth;
-            }
         }
+
+        // If Admission Fee is Paid (or just marked paid above), calculate Monthly Fee
+        if (enrollment.isAdmissionFeePaid || fees.admissionAmount === 0 || (isAdmissionInvoice === false && targetMonth !== 0)) {
+            targetAmount = fees.monthlyAmount;
+            targetMonth = currentMonth;
+        }
+        // }
     }
 
     if (targetAmount <= 0) {

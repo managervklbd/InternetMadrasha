@@ -16,18 +16,18 @@ import { cn } from "@/lib/utils";
 export function ManualPaymentManager() {
     const [students, setStudents] = useState<any[]>([]);
     const [_loadingStudents, setLoadingStudents] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-
-    // Form State
+    const [dynamicFees, setDynamicFees] = useState<any[]>([]);
+    const [selectedDynamicFees, setSelectedDynamicFees] = useState<string[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState("");
     const [monthlyFee, setMonthlyFee] = useState<number>(0);
     const [admissionFee, setAdmissionFee] = useState<number>(0);
     const [isAdmissionPaid, setIsAdmissionPaid] = useState(false);
     const [payAdmission, setPayAdmission] = useState(false);
-    const [paidMonths, setPaidMonths] = useState<{ month: number, year: number }[]>([]);
+    const [paidMonths, setPaidMonths] = useState<{ month: number, year: number, feeHeadId?: string | null }[]>([]);
     const [loadingFee, setLoadingFee] = useState(false);
     const [enrollmentPeriod, setEnrollmentPeriod] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
     const [courseDuration, setCourseDuration] = useState<number | null>(null);
+    const [submitting, setSubmitting] = useState(false);
 
     // Manual search state
     const [searchTerm, setSearchTerm] = useState("");
@@ -54,22 +54,20 @@ export function ManualPaymentManager() {
             setMonthlyFee(0);
             setPaidMonths([]);
             setEnrollmentPeriod({ start: null, end: null });
+            setSelectedDynamicFees([]);
 
-            getStudentMonthlyFee(selectedStudentId).then(res => {
+            getStudentMonthlyFee(selectedStudentId).then((res: any) => {
                 if (res.success && res.amount !== undefined) {
                     setMonthlyFee(res.amount);
                     if (res.admissionAmount) setAdmissionFee(res.admissionAmount);
                     if (res.isAdmissionFeePaid !== undefined) setIsAdmissionPaid(res.isAdmissionFeePaid);
+                    if (res.dynamicFees) setDynamicFees(res.dynamicFees);
 
                     // Auto-select admission fee if not paid
                     if ((res.admissionAmount || 0) > 0 && !res.isAdmissionFeePaid) {
                         setPayAdmission(true);
-                        setAmount(((res.admissionAmount || 0) + (res.amount * selectedMonths.length)).toString());
                     } else {
                         setPayAdmission(false);
-                        if (selectedMonths.length > 0) {
-                            setAmount((res.amount * selectedMonths.length).toString());
-                        }
                     }
                     if (res.enrollmentStart) {
                         setEnrollmentPeriod({
@@ -94,16 +92,22 @@ export function ManualPaymentManager() {
         }
     }, [selectedStudentId]);
 
-    // Effect to update total amount when selected months change
+    // Effect to update total amount when selected months change or dynamic fees change
     useEffect(() => {
         let total = 0;
         if (payAdmission) total += admissionFee;
         if (monthlyFee > 0) total += (monthlyFee * selectedMonths.length);
 
-        if (total > 0) setAmount(total.toString());
-        else if (!payAdmission && selectedMonths.length === 0) setAmount("");
+        // Add dynamic fees
+        selectedDynamicFees.forEach(id => {
+            const fee = dynamicFees.find(f => f.headId === id);
+            if (fee) total += fee.amount;
+        });
 
-    }, [selectedMonths.length, monthlyFee, payAdmission, admissionFee]);
+        if (total > 0) setAmount(total.toString());
+        else if (!payAdmission && selectedMonths.length === 0 && selectedDynamicFees.length === 0) setAmount("");
+
+    }, [selectedMonths.length, monthlyFee, payAdmission, admissionFee, selectedDynamicFees, dynamicFees]);
 
     const filteredStudents = students.filter(s =>
         (s.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -112,7 +116,7 @@ export function ManualPaymentManager() {
 
     const toggleMonth = (month: number, year: number) => {
         // Check if already paid
-        if (paidMonths.some(pm => pm.month === month && pm.year === year)) {
+        if (paidMonths.some(pm => pm.month === month && pm.year === year && !pm.feeHeadId)) {
             return;
         }
 
@@ -123,59 +127,15 @@ export function ManualPaymentManager() {
         });
     };
 
-    const handleQuickMonthSelect = (monthsCount: number) => {
-        const now = new Date();
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
-        const newSelection: { month: number, year: number }[] = [];
-
-        let count = 0;
-        let iterMonth = currentMonth;
-        let iterYear = currentYear;
-
-        // Try to find next N unpaid months
-        // Logic: look ahead up to 24 months to find unpaid ones
-        while (count < monthsCount && count < 24) { // safety break
-            const isPaid = paidMonths.some(pm => pm.month === iterMonth && pm.year === iterYear);
-            if (!isPaid) {
-                newSelection.push({ month: iterMonth, year: iterYear });
-                count++; // only increment if we found an unpaid month? Or user just wants "next 3 months" regardless?
-                // Usually user wants to pay for next due months.
-            } else {
-                // skip paid month?
-                // If I just select paid months, they will be ignored by backend probably, but better to skip here.
-            }
-
-            // If user wants "Next 3 months", and current is paid, next is paid, next is UNPAID.
-            // Should we select the unpaid one? Yes.
-
-            iterMonth++;
-            if (iterMonth > 12) {
-                iterMonth = 1;
-                iterYear++;
-            }
-
-            // Loop safety for infinite while if everything is paid
-            // using manual iterator
-            // Let's just use simple loop for now
-        }
-
-        // Simpler logic: just add if not paid
-        // But the previous quick select logic was dumb: currentMonth + i.
-        // Let's stick to toggling manually for safety unless requested, but I can't break existing invalid.
-        // I will just use the simple loop but filter out paid ones.
-
-        // Actually the `handleQuickMonthSelect` isn't used in the visible code snippet in this turn, but it was in the full file view.
-        // Ref: previous view. I'll just leave `handleQuickMonthSelect` alone or update it if it's simpler. 
-        // The user didn't explicitly ask for quick select update, but "check the student has for any month if any month paid disable that month" implies selection.
-
-        // Let's just stick to `toggleMonth` and rendering updates for now.
-        setSelectedMonths(newSelection);
+    const toggleDynamicFee = (headId: string) => {
+        setSelectedDynamicFees(prev =>
+            prev.includes(headId) ? prev.filter(id => id !== headId) : [...prev, headId]
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedStudentId || (selectedMonths.length === 0 && !payAdmission) || !amount) {
+        if (!selectedStudentId || (selectedMonths.length === 0 && !payAdmission && selectedDynamicFees.length === 0) || !amount) {
             toast.error("অনুগ্রহ করে সকল তথ্য পূরণ করুন");
             return;
         }
@@ -184,9 +144,20 @@ export function ManualPaymentManager() {
         const payloadMonths = [...selectedMonths];
         if (payAdmission) {
             const now = new Date();
-            // Admission fee is typically month 0
             payloadMonths.push({ month: 0, year: now.getFullYear() });
         }
+
+        // Add dynamic fees as special entries
+        selectedDynamicFees.forEach(headId => {
+            const fee = dynamicFees.find(f => f.headId === headId);
+            const now = new Date();
+            (payloadMonths as any).push({
+                month: 99, // Special code for dynamic fee
+                year: now.getFullYear(),
+                feeHeadId: headId,
+                headName: fee?.name
+            });
+        });
 
         try {
             const res = await recordManualPayment({
@@ -212,6 +183,8 @@ export function ManualPaymentManager() {
                 setAdmissionFee(0);
                 setPayAdmission(false);
                 setIsAdmissionPaid(false);
+                setSelectedDynamicFees([]);
+                setDynamicFees([]);
             } else {
                 toast.error(res.error || "পেমেন্ট ব্যর্থ হয়েছে");
             }
@@ -474,6 +447,45 @@ export function ManualPaymentManager() {
                                             </div>
                                         )}
                                         {renderMonthPicker()}
+
+                                        {/* Dynamic Fees Section */}
+                                        {dynamicFees.length > 0 && (
+                                            <div className="space-y-2 mt-4">
+                                                <Label className="font-bengali">অন্যান্য ফি (Other Fees)</Label>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {dynamicFees.map(fee => (
+                                                        <div key={fee.id} className={cn(
+                                                            "p-3 rounded-md border text-sm flex items-center justify-between transition-colors",
+                                                            fee.isPaid
+                                                                ? "bg-zinc-50 border-zinc-200 text-zinc-500"
+                                                                : selectedDynamicFees.includes(fee.headId) ? "bg-teal-50 border-teal-200" : "bg-white border-zinc-200"
+                                                        )}>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={cn("w-4 h-4 rounded-full flex items-center justify-center text-[10px]", fee.isPaid ? "bg-green-100 text-green-700" : "bg-zinc-100")}>
+                                                                    {fee.isPaid && "✓"}
+                                                                </div>
+                                                                <span className="font-bengali font-medium">{fee.name}</span>
+                                                            </div>
+
+                                                            {fee.isPaid ? (
+                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bengali">পরিশোধিত</span>
+                                                            ) : (
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold">৳{fee.amount}</span>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedDynamicFees.includes(fee.headId)}
+                                                                        onChange={() => toggleDynamicFee(fee.headId)}
+                                                                        className="h-4 w-4 accent-teal-600 cursor-pointer"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {selectedMonths.length > 0 && (
                                             <p className="text-xs text-zinc-500 font-bengali">
                                                 নির্বাচিত মাস: {selectedMonths.map(m => `${m.month}/${m.year}`).join(", ")}
@@ -495,7 +507,7 @@ export function ManualPaymentManager() {
                                         </div>
 
                                         {/* Payment Breakdown */}
-                                        {(payAdmission || selectedMonths.length > 0) && (
+                                        {(payAdmission || selectedMonths.length > 0 || selectedDynamicFees.length > 0) && (
                                             <div className="col-span-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md p-3 text-sm space-y-2 mt-2">
                                                 <p className="font-bengali font-semibold text-xs text-zinc-500 uppercase tracking-wider mb-2">Payment Breakdown</p>
                                                 {payAdmission && (
@@ -508,6 +520,19 @@ export function ManualPaymentManager() {
                                                     <div className="flex justify-between">
                                                         <span>Monthly Fee ({selectedMonths.length} months)</span>
                                                         <span className="font-mono">৳{monthlyFee * selectedMonths.length}</span>
+                                                    </div>
+                                                )}
+                                                {selectedDynamicFees.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        {selectedDynamicFees.map(id => {
+                                                            const fee = dynamicFees.find(f => f.headId === id);
+                                                            return (
+                                                                <div key={id} className="flex justify-between">
+                                                                    <span>{fee?.name}</span>
+                                                                    <span className="font-mono">৳{fee?.amount}</span>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 )}
                                                 <div className="border-t border-zinc-200 dark:border-zinc-700 pt-2 flex justify-between font-bold text-teal-700 dark:text-teal-400">

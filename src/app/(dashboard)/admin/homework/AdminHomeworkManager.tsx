@@ -91,6 +91,7 @@ export default function AdminHomeworkManager({ initialBatchId }: { initialBatchI
             description: formData.get("description") as string,
             batchId: batchId,
             deadline: new Date(formData.get("deadline") as string),
+            type: formData.get("type") as "HOMEWORK" | "EXAM",
             attachments: attachments
         };
 
@@ -127,6 +128,18 @@ export default function AdminHomeworkManager({ initialBatchId }: { initialBatchI
                                             {b.courseName} → {b.name}
                                         </SelectItem>
                                     ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="type" className="font-bengali">অ্যাসাইনমেন্টের ধরণ</Label>
+                            <Select name="type" defaultValue="HOMEWORK">
+                                <SelectTrigger className="h-11 font-bengali">
+                                    <SelectValue placeholder="ধরণ নির্বাচন করুন" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="HOMEWORK" className="font-bengali">সাধারণ হোমওয়ার্ক</SelectItem>
+                                    <SelectItem value="EXAM" className="font-bengali">পরিক্ষা (Exam)</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>

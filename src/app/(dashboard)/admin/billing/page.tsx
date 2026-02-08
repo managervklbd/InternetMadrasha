@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/table";
 import { Download, ArrowUpRight } from "lucide-react";
 
-import { FeePlansManager } from "@/components/admin/billing/FeePlansManager";
 import { FeeStructureTable } from "@/components/admin/billing/FeeStructureTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getFinancialSummary, getStudentPaymentHistory, getRecentTransactions } from "@/lib/actions/report-actions";
@@ -62,7 +61,6 @@ export default async function BillingPage() {
                         <TabsTrigger value="overview" className="font-bengali">ওভারভিউ</TabsTrigger>
                         <TabsTrigger value="history" className="font-bengali">পেমেন্ট ইতিহাস</TabsTrigger>
                         <TabsTrigger value="structure" className="font-bengali">ফি স্ট্রাকচার</TabsTrigger>
-                        <TabsTrigger value="plans" className="font-bengali">কাস্টম প্ল্যান</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="manual-payment">
@@ -193,10 +191,6 @@ export default async function BillingPage() {
                                 <FeeStructureTable viewMode={viewMode || "ONLINE"} />
                             </CardContent>
                         </Card>
-                    </TabsContent>
-
-                    <TabsContent value="plans">
-                        <FeePlansManager />
                     </TabsContent>
                 </Tabs>
             </div>
