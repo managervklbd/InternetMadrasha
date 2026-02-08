@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { initiateSSLPayment } from "@/lib/payment/sslcommerz";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { PaymentMethod } from "@prisma/client";
+import { PaymentMethod, DonationPurpose } from "@prisma/client";
 
 export async function initiateDonation(amount: number, purpose: string, notes?: string) {
     const session = await auth();
@@ -75,5 +75,103 @@ export async function initiateDonation(amount: number, purpose: string, notes?: 
     } catch (error) {
         console.error("Donation Error:", error);
         return { success: false, error: "Failed to process donation" };
+    }
+}
+
+export async function getDonationStats() {
+    try {
+        const totalDonation = await prisma.donation.aggregate({
+            _sum: { amount: true }
+        });
+
+        const count = await prisma.donation.count();
+
+        const thisMonth = new Date();
+        thisMonth.setDate(1);
+        thisMonth.setHours(0, 0, 0, 0);
+
+        const thisMonthDonation = await prisma.donation.aggregate({
+            where: { date: { gte: thisMonth } },
+            _sum: { amount: true }
+        });
+
+        return {
+            totalAmount: totalDonation._sum.amount || 0,
+            totalCount: count,
+            thisMonthAmount: thisMonthDonation._sum.amount || 0
+        };
+    } catch (error) {
+        console.error("Error fetching donation stats:", error);
+        return { totalAmount: 0, totalCount: 0, thisMonthAmount: 0 };
+    }
+}
+
+export async function getRecentDonations(limit = 10) {
+    try {
+        return await prisma.donation.findMany({
+            take: limit,
+            orderBy: { date: 'desc' },
+            include: {
+                donor: true,
+                collectedBy: true,
+                student: true
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching recent donations:", error);
+        return [];
+    }
+}
+
+export async function getDonors() {
+    try {
+        return await prisma.donor.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+    } catch (error) {
+        console.error("Error fetching donors:", error);
+        return [];
+    }
+}
+
+export async function getCommitteeMembers() {
+    try {
+        return await prisma.committeeMember.findMany({
+            where: { active: true },
+            orderBy: { name: 'asc' }
+        });
+    } catch (error) {
+        console.error("Error fetching committee members:", error);
+        return [];
+    }
+}
+
+export async function getDonorById(id: string) {
+    try {
+        return await prisma.donor.findUnique({
+            where: { id },
+            include: {
+                donations: {
+                    orderBy: { date: 'desc' },
+                    include: { collectedBy: true }
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching donor:", error);
+        return null;
+    }
+}
+
+export async function getDonationsByDonorId(donorId: string) {
+    try {
+        return await prisma.donation.findMany({
+            where: { donorId },
+            orderBy: { date: 'desc' },
+            include: { collectedBy: true }
+        });
+    } catch (error) {
+        console.error("Error fetching donor donations:", error);
+        return [];
     }
 }

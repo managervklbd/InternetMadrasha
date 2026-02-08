@@ -6,7 +6,8 @@ import { CommitteeList } from "@/components/admin/donations/CommitteeList";
 import { AddDonationModal } from "@/components/admin/donations/AddDonationModal";
 import { AddDonorModal } from "@/components/admin/donations/AddDonorModal";
 import { AddCommitteeMemberModal } from "@/components/admin/donations/AddCommitteeMemberModal";
-import { getDonationStats, getRecentDonations, getDonors, getCommitteeMembers, getSiteSettings } from "@/lib/actions/donation-actions";
+import { getDonationStats, getRecentDonations, getDonors, getCommitteeMembers } from "@/lib/actions/donation-actions";
+import { getSiteSettings } from "@/lib/actions/settings-actions";
 
 export default async function DonationPage() {
     const stats = await getDonationStats();

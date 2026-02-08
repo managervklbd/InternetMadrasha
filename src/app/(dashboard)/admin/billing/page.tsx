@@ -20,7 +20,7 @@ import { FeePlansManager } from "@/components/admin/billing/FeePlansManager";
 import { FeeStructureTable } from "@/components/admin/billing/FeeStructureTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getFinancialSummary, getStudentPaymentHistory, getRecentTransactions } from "@/lib/actions/report-actions";
-import { getSiteSettings } from "@/lib/actions/donation-actions";
+import { getSiteSettings } from "@/lib/actions/settings-actions";
 import { TreasuryCards } from "@/components/admin/billing/TreasuryCards";
 import { StudentPaymentHistory } from "@/components/admin/billing/StudentPaymentHistory";
 import { ExportReportButton } from "@/components/admin/billing/ExportReportButton";

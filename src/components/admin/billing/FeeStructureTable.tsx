@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
     getAcademicStructure,
@@ -18,33 +20,41 @@ import {
     updateDepartment,
     updateBatch
 } from "@/lib/actions/academic-actions";
-import { Loader2, Save, ChevronRight, ChevronDown } from "lucide-react";
+import { getFeeHeads, createFeeHead, updateAcademicFee, deleteFeeHead } from "@/lib/actions/fee-structure-actions";
+import { Loader2, Save, ChevronRight, ChevronDown, Plus, Trash2 } from "lucide-react";
+
+interface FeeHead {
+    id: string;
+    name: string;
+    active: boolean;
+}
 
 export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }) {
     const [structure, setStructure] = useState<any[]>([]);
+    const [feeHeads, setFeeHeads] = useState<FeeHead[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-    const [changes, setChanges] = useState<Record<string, {
-        monthlyFee?: string,
-        sadkaFee?: string,
-        admissionFee?: string,
-        monthlyFeeOffline?: string,
-        sadkaFeeOffline?: string,
-        admissionFeeOffline?: string,
-        examFee?: string,
-        registrationFee?: string,
-        otherFee?: string,
-        examFeeOffline?: string,
-        registrationFeeOffline?: string,
-        otherFeeOffline?: string
-    }>>({});
+
+    // Changes state: Record<EntityId, Record<FieldOrFeeHeadId, Value>>
+    const [changes, setChanges] = useState<Record<string, Record<string, string>>>({});
+
+    // New Fee Head Dialog State
+    const [isAddHeadOpen, setIsAddHeadOpen] = useState(false);
+    const [newHeadName, setNewHeadName] = useState("");
+    const [isCreatingHead, setIsCreatingHead] = useState(false);
 
     const refreshStructure = async (silent = false) => {
         if (!silent) setLoading(true);
         try {
-            const data = await getAcademicStructure();
+            const [data, heads] = await Promise.all([
+                getAcademicStructure(),
+                getFeeHeads()
+            ]);
+
             setStructure(data);
+            setFeeHeads(heads as FeeHead[]);
+
             // Don't reset expanded state on refresh
             if (Object.keys(expanded).length === 0) {
                 const initialExpanded: Record<string, boolean> = {};
@@ -82,73 +92,108 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
         }));
     };
 
-    const handleSave = async (id: string, type: 'COURSE' | 'DEPT' | 'BATCH', name: string, originalData: any) => {
-        setSaving(id);
-
-        const getVal = (field: string, original: any) => {
-            const changed = changes[id]?.[field as keyof typeof changes[string]];
-            // if changed is defined (even empty string), use it. otherwise use original.
-            const val = changed !== undefined ? changed : original;
-            // parse to float if valid string, else undefined
-            return (val !== null && val !== undefined && val !== "") ? parseFloat(val) : undefined;
-        };
-
-        const monthlyFee = getVal('monthlyFee', originalData.monthlyFee);
-        const sadkaFee = getVal('sadkaFee', originalData.sadkaFee);
-        const admissionFee = getVal('admissionFee', originalData.admissionFee);
-        const monthlyFeeOffline = getVal('monthlyFeeOffline', originalData.monthlyFeeOffline);
-        const sadkaFeeOffline = getVal('sadkaFeeOffline', originalData.sadkaFeeOffline);
-        const admissionFeeOffline = getVal('admissionFeeOffline', originalData.admissionFeeOffline);
-
-        const examFee = getVal('examFee', originalData.examFee);
-        const registrationFee = getVal('registrationFee', originalData.registrationFee);
-        const otherFee = getVal('otherFee', originalData.otherFee);
-        const examFeeOffline = getVal('examFeeOffline', originalData.examFeeOffline);
-        const registrationFeeOffline = getVal('registrationFeeOffline', originalData.registrationFeeOffline);
-        const otherFeeOffline = getVal('otherFeeOffline', originalData.otherFeeOffline);
-
+    const handleCreateFeeHead = async () => {
+        if (!newHeadName) return;
+        setIsCreatingHead(true);
         try {
-            let res;
-            const payload = {
-                name,
-                monthlyFee,
-                sadkaFee,
-                admissionFee,
-                monthlyFeeOffline,
-                sadkaFeeOffline,
-                admissionFeeOffline,
-                examFee,
-                registrationFee,
-                otherFee,
-                examFeeOffline,
-                registrationFeeOffline,
-                otherFeeOffline
-            };
-
-            if (type === 'COURSE') {
-                res = await updateCourse(id, payload);
-            } else if (type === 'DEPT') {
-                res = await updateDepartment(id, payload);
-            } else {
-                res = await updateBatch(id, payload);
-            }
-
+            const res = await createFeeHead(newHeadName);
             if (res.success) {
-                toast.success("ফি আপডেট সফল হয়েছে");
-                // Clear changes for this ID
-                setChanges(prev => {
-                    const newChanges = { ...prev };
-                    delete newChanges[id];
-                    return newChanges;
-                });
-                // Refresh data silently
-                await refreshStructure(true);
+                toast.success("নতুন ফি খাত তৈরি হয়েছে");
+                setNewHeadName("");
+                setIsAddHeadOpen(false);
+                refreshStructure(true);
             } else {
-                toast.error(res.error || "আপডেট ব্যর্থ হয়েছে");
+                toast.error(res.error || "ব্যর্থ হয়েছে");
             }
         } catch (error) {
-            console.error("Save error:", error);
             toast.error("ত্রুটি হয়েছে");
+        } finally {
+            setIsCreatingHead(false);
+        }
+    };
+
+    const handleDeleteFeeHead = async (id: string) => { // Added delete function
+        if (!confirm("আপনি কি নিশ্চিত যে আপনি এই ফি খাতটি মুছে ফেলতে চান?")) return;
+        try {
+            const res = await deleteFeeHead(id);
+            if (res.success) {
+                toast.success("ফি খাত মুছে ফেলা হয়েছে");
+                refreshStructure(true);
+            } else {
+                toast.error(res.error || "ব্যর্থ হয়েছে");
+            }
+        } catch (error) {
+            toast.error("ত্রুটি হয়েছে");
+        }
+    }
+
+
+    const handleSave = async (id: string, type: 'COURSE' | 'DEPARTMENT' | 'BATCH', name: string, originalData: any) => {
+        setSaving(id);
+        const entityChanges = changes[id] || {};
+
+        // 1. Separate fixed fields and dynamic fees
+        const fixedFields = ['monthlyFee', 'admissionFee', 'sadkaFee', 'examFee', 'registrationFee', 'otherFee',
+            'monthlyFeeOffline', 'admissionFeeOffline', 'sadkaFeeOffline', 'examFeeOffline', 'registrationFeeOffline', 'otherFeeOffline'];
+
+        const fixedPayload: any = {};
+        const dynamicUpdates: { feeHeadId: string, amount: number }[] = [];
+
+        Object.entries(entityChanges).forEach(([key, value]) => {
+            const numValue = (value !== null && value !== undefined && value !== "") ? parseFloat(value) : undefined;
+
+            if (fixedFields.includes(key)) {
+                fixedPayload[key] = numValue;
+            } else {
+                // Assume it's a feeHeadId
+                if (numValue !== undefined) {
+                    dynamicUpdates.push({ feeHeadId: key, amount: numValue });
+                }
+            }
+        });
+
+        try {
+            // Save fixed fields if any
+            if (Object.keys(fixedPayload).length > 0) {
+                // Server actions require 'name'
+                fixedPayload.name = name;
+
+                let res;
+                // Merge with original data to ensure we don't accidentally undefined stuff if the API expects full object (though update usually accepts partial)
+                // Actually my update actions accept partials, so simply passing what's in payload is fine?
+                // Wait, the update actions accept a data object with optional fields.
+                // However, I need to make sure I don't send undefined for fields that weren't changed if I'm not supposed to.
+                // My helper above `getVal` in previous code handled this by defaulting to original.
+                // In this new logic, I only add to `fixedPayload` if it represents a CHANGE.
+                // But the update actions might need me to be careful.
+                // Looking at `updateCourse`: it takes `data` object. If I pass `{ monthlyFee: undefined }`, Prisma update ignores it usually if explicitly undefined? 
+                // No, prisma update ignores undefined.
+
+                // Let's rely on the action to handle it.
+
+                if (type === 'COURSE') res = await updateCourse(id, fixedPayload);
+                else if (type === 'DEPARTMENT') res = await updateDepartment(id, fixedPayload);
+                else res = await updateBatch(id, fixedPayload as any); // Type assertion needed due to slightly diff definitions
+
+                if (!res.success) throw new Error(res.error);
+            }
+
+            // Save dynamic fees
+            for (const update of dynamicUpdates) {
+                await updateAcademicFee(id, type, update.feeHeadId, update.amount);
+            }
+
+            toast.success("আপডেট সফল হয়েছে");
+            setChanges(prev => {
+                const newChanges = { ...prev };
+                delete newChanges[id];
+                return newChanges;
+            });
+            await refreshStructure(true);
+
+        } catch (error: any) {
+            console.error("Save error:", error);
+            toast.error(error.message || "ত্রুটি হয়েছে");
         } finally {
             setSaving(null);
         }
@@ -159,191 +204,288 @@ export function FeeStructureTable({ viewMode = "ONLINE" }: { viewMode?: string }
     const isOnline = viewMode !== "OFFLINE";
     const isOffline = viewMode === "OFFLINE";
 
+    // Helper to get dynamic fee value from entity
+    const getDynamicFee = (entity: any, feeHeadId: string) => {
+        const fee = entity.academicFees?.find((f: any) => f.feeHeadId === feeHeadId);
+        return fee ? fee.amount : undefined;
+    };
+
     return (
         <div className="rounded-md border bg-zinc-50/50 dark:bg-zinc-900/50 overflow-hidden">
-            <Table>
-                <TableHeader>
-                    <TableRow className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-100">
-                        <TableHead className="w-[30%] font-bengali">একাডেমিক নাম</TableHead>
-                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">মাসিক</TableHead>}
-                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">ভর্তি</TableHead>}
-                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">সদকা</TableHead>}
-                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">পরিক্ষা</TableHead>}
-                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">রেজিঃ</TableHead>}
-                        {isOnline && <TableHead className="w-[8%] font-bengali text-center border-r">অন্যান্য</TableHead>}
+            <div className="p-2 border-b flex justify-end bg-white dark:bg-zinc-950">
+                <Dialog open={isAddHeadOpen} onOpenChange={setIsAddHeadOpen}>
+                    <DialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-8 gap-1 font-bengali">
+                            <Plus className="w-4 h-4" />
+                            ম্যানেজ ফি খাত
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>ফি খাত ম্যানেজমেন্ট</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4">
+                            <div className="space-y-2">
+                                <Label>নতুন ফি খাত যোগ করুন</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={newHeadName}
+                                        onChange={e => setNewHeadName(e.target.value)}
+                                        placeholder="ফি এর নাম (উদাহরণ: পরিবহন)"
+                                        className="font-bengali"
+                                    />
+                                    <Button onClick={handleCreateFeeHead} disabled={isCreatingHead || !newHeadName}>
+                                        {isCreatingHead ? <Loader2 className="animate-spin w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                    </Button>
+                                </div>
+                            </div>
 
-                        {isOffline && <TableHead className="w-[8%] font-bengali text-center border-l bg-orange-50/50">মাসিক</TableHead>}
-                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">ভর্তি</TableHead>}
-                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">সদকা</TableHead>}
-                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">পরিক্ষা</TableHead>}
-                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">রেজিঃ</TableHead>}
-                        {isOffline && <TableHead className="w-[8%] font-bengali text-center bg-orange-50/50">অন্যান্য</TableHead>}
-                        <TableHead className="w-[10%]"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {structure.map((course) => {
-                        const isExpanded = expanded[course.id];
-                        const hasCourseChanges = changes[course.id] !== undefined;
-
-                        return (
-                            <Fragment key={course.id}>
-                                {/* Course Row */}
-                                <TableRow key={course.id} className="bg-white dark:bg-zinc-950 hover:bg-zinc-50">
-                                    <TableCell className="font-medium font-bengali flex items-center gap-2">
-                                        <button onClick={() => toggleExpand(course.id)} className="p-1 hover:bg-zinc-100 rounded">
-                                            {isExpanded ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
-                                        </button>
-                                        <span className="text-base text-teal-700">{course.name}</span>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-500 border">কোর্স</span>
-                                    </TableCell>
-
-                                    {/* ONLINE Columns */}
-                                    {isOnline && (
-                                        <>
-                                            <TableCell className="border-r"><FeeInput id={course.id} field="monthlyFee" value={course.monthlyFee} changedValue={changes[course.id]?.monthlyFee} placeholder="Mon" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="border-r"><FeeInput id={course.id} field="admissionFee" value={course.admissionFee} changedValue={changes[course.id]?.admissionFee} placeholder="Adm" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="border-r"><FeeInput id={course.id} field="sadkaFee" value={course.sadkaFee} changedValue={changes[course.id]?.sadkaFee} placeholder="Sad" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="border-r"><FeeInput id={course.id} field="examFee" value={course.examFee} changedValue={changes[course.id]?.examFee} placeholder="Exm" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="border-r"><FeeInput id={course.id} field="registrationFee" value={course.registrationFee} changedValue={changes[course.id]?.registrationFee} placeholder="Reg" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="border-r"><FeeInput id={course.id} field="otherFee" value={course.otherFee} changedValue={changes[course.id]?.otherFee} placeholder="Oth" onChange={handleFieldChange} /></TableCell>
-                                        </>
+                            <div className="space-y-2">
+                                <Label>বর্তমান ফি খাত সমূহ</Label>
+                                <div className="border rounded-md divide-y max-h-[200px] overflow-y-auto bg-zinc-50 dark:bg-zinc-900">
+                                    {feeHeads.length === 0 ? (
+                                        <div className="p-4 text-center text-sm text-zinc-500">কোনো ফি খাত নেই</div>
+                                    ) : (
+                                        feeHeads.map(head => (
+                                            <div key={head.id} className="flex items-center justify-between p-2 px-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                                                <span className="font-bengali text-sm">{head.name}</span>
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="h-6 w-6 text-zinc-400 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDeleteFeeHead(head.id)}
+                                                    title="মুছে ফেলুন"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </Button>
+                                            </div>
+                                        ))
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            </div>
 
-                                    {/* OFFLINE Columns */}
-                                    {isOffline && (
-                                        <>
-                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="monthlyFeeOffline" value={course.monthlyFeeOffline} changedValue={changes[course.id]?.monthlyFeeOffline} placeholder="Mon" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="admissionFeeOffline" value={course.admissionFeeOffline} changedValue={changes[course.id]?.admissionFeeOffline} placeholder="Adm" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="sadkaFeeOffline" value={course.sadkaFeeOffline} changedValue={changes[course.id]?.sadkaFeeOffline} placeholder="Sad" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="examFeeOffline" value={course.examFeeOffline} changedValue={changes[course.id]?.examFeeOffline} placeholder="Exm" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="registrationFeeOffline" value={course.registrationFeeOffline} changedValue={changes[course.id]?.registrationFeeOffline} placeholder="Reg" onChange={handleFieldChange} /></TableCell>
-                                            <TableCell className="bg-orange-50/30 border-r"><FeeInput id={course.id} field="otherFeeOffline" value={course.otherFeeOffline} changedValue={changes[course.id]?.otherFeeOffline} placeholder="Oth" onChange={handleFieldChange} /></TableCell>
-                                        </>
-                                    )}
+            <div className="overflow-x-auto">
+                <Table className="w-full">
+                    <TableHeader>
+                        <TableRow className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-100">
+                            <TableHead className="w-[200px] bg-zinc-100 dark:bg-zinc-800 sticky left-0 z-10 font-bengali h-9">একাডেমিক নাম</TableHead>
 
-                                    <TableCell>
-                                        <RowAction
-                                            id={course.id}
-                                            savingId={saving}
-                                            hasChanges={hasCourseChanges}
-                                            onSave={() => handleSave(course.id, 'COURSE', course.name, course)}
-                                        />
-                                    </TableCell>
-                                </TableRow>
+                            {/* Fixed Columns */}
+                            {isOnline && <TableHead className="w-[80px] font-bengali text-center border-r h-9 px-1">মাসিক</TableHead>}
+                            {isOnline && <TableHead className="w-[80px] font-bengali text-center border-r h-9 px-1">ভর্তি</TableHead>}
+                            {isOnline && <TableHead className="w-[80px] font-bengali text-center border-r h-9 px-1">সদকা</TableHead>}
 
-                                {/* Departments */}
-                                {isExpanded && course.departments.map((dept: any) => {
-                                    const isDeptExpanded = expanded[dept.id];
-                                    const hasDeptChanges = changes[dept.id] !== undefined;
+                            {isOffline && <TableHead className="w-[80px] font-bengali text-center border-r bg-orange-50/50 h-9 px-1">মাসিক</TableHead>}
+                            {isOffline && <TableHead className="w-[80px] font-bengali text-center border-r bg-orange-50/50 h-9 px-1">ভর্তি</TableHead>}
 
-                                    return (
-                                        <Fragment key={dept.id}>
-                                            <TableRow key={dept.id} className="bg-zinc-50/50 hover:bg-zinc-100">
-                                                <TableCell className="font-bengali pl-10 flex items-center gap-2">
-                                                    <button onClick={() => toggleExpand(dept.id)} className="p-1 hover:bg-zinc-200 rounded">
-                                                        {isDeptExpanded ? <ChevronDown className="w-3 h-3 text-zinc-400" /> : <ChevronRight className="w-3 h-3 text-zinc-400" />}
-                                                    </button>
-                                                    <span>{dept.name}</span>
-                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-600">বিভাগ</span>
-                                                </TableCell>
+                            {/* Dynamic Columns */}
+                            {feeHeads.map(head => (
+                                <TableHead key={head.id} className="w-[80px] font-bengali text-center border-r relative group h-9 px-1">
+                                    {head.name}
+                                </TableHead>
+                            ))}
 
-                                                {isOnline && (
-                                                    <>
-                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="monthlyFee" value={dept.monthlyFee} changedValue={changes[dept.id]?.monthlyFee} placeholder={course.monthlyFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="admissionFee" value={dept.admissionFee} changedValue={changes[dept.id]?.admissionFee} placeholder={course.admissionFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="sadkaFee" value={dept.sadkaFee} changedValue={changes[dept.id]?.sadkaFee} placeholder={course.sadkaFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="examFee" value={dept.examFee} changedValue={changes[dept.id]?.examFee} placeholder={course.examFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="registrationFee" value={dept.registrationFee} changedValue={changes[dept.id]?.registrationFee} placeholder={course.registrationFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="border-r"><FeeInput id={dept.id} field="otherFee" value={dept.otherFee} changedValue={changes[dept.id]?.otherFee} placeholder={course.otherFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                    </>
-                                                )}
+                            {/* Other Fixed Columns */}
+                            {isOnline && <TableHead className="w-[80px] font-bengali text-center border-r h-9 px-1">পরিক্ষা</TableHead>}
+                            {/* {isOnline && <TableHead className="w-[80px] font-bengali text-center border-r">রেজিঃ</TableHead>} */}
+                            {/* {isOnline && <TableHead className="w-[80px] font-bengali text-center border-r">অন্যান্য</TableHead>} */}
 
-                                                {isOffline && (
-                                                    <>
-                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="monthlyFeeOffline" value={dept.monthlyFeeOffline} changedValue={changes[dept.id]?.monthlyFeeOffline} placeholder={course.monthlyFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="admissionFeeOffline" value={dept.admissionFeeOffline} changedValue={changes[dept.id]?.admissionFeeOffline} placeholder={course.admissionFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="sadkaFeeOffline" value={dept.sadkaFeeOffline} changedValue={changes[dept.id]?.sadkaFeeOffline} placeholder={course.sadkaFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="examFeeOffline" value={dept.examFeeOffline} changedValue={changes[dept.id]?.examFeeOffline} placeholder={course.examFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="registrationFeeOffline" value={dept.registrationFeeOffline} changedValue={changes[dept.id]?.registrationFeeOffline} placeholder={course.registrationFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                        <TableCell className="bg-orange-50/30 border-r"><FeeInput id={dept.id} field="otherFeeOffline" value={dept.otherFeeOffline} changedValue={changes[dept.id]?.otherFeeOffline} placeholder={course.otherFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                    </>
-                                                )}
+                            <TableHead className="w-[50px] bg-zinc-100 dark:bg-zinc-800 sticky right-0 z-10 h-9"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {structure.map((course) => {
+                            const isExpanded = expanded[course.id];
+                            const hasChanges = changes[course.id] !== undefined;
 
-                                                <TableCell>
-                                                    <RowAction
-                                                        id={dept.id}
-                                                        savingId={saving}
-                                                        hasChanges={hasDeptChanges}
-                                                        onSave={() => handleSave(dept.id, 'DEPT', dept.name, dept)}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
+                            return (
+                                <Fragment key={course.id}>
+                                    {/* Course Row */}
+                                    <TableRow className="bg-white dark:bg-zinc-950 hover:bg-zinc-50 border-b-0">
+                                        <TableCell className="font-medium font-bengali flex items-center gap-2 sticky left-0 bg-white dark:bg-zinc-950 z-10 py-1">
+                                            <button onClick={() => toggleExpand(course.id)} className="p-0.5 hover:bg-zinc-100 rounded">
+                                                {isExpanded ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
+                                            </button>
+                                            <span className="text-sm text-teal-700 whitespace-nowrap">{course.name}</span>
+                                        </TableCell>
 
-                                            {/* Batches */}
-                                            {isDeptExpanded && dept.batches.map((batch: any) => {
-                                                const hasBatchChanges = changes[batch.id] !== undefined;
-                                                return (
-                                                    <TableRow key={batch.id} className="hover:bg-zinc-50">
-                                                        <TableCell className="font-bengali pl-20 flex items-center gap-2">
-                                                            <div className="w-3 h-3 border-l border-b border-zinc-300 -mt-2 mr-1"></div>
-                                                            <span>{batch.name}</span>
-                                                        </TableCell>
+                                        {renderFeeCells({
+                                            id: course.id,
+                                            data: course,
+                                            feeHeads,
+                                            isOnline,
+                                            isOffline,
+                                            changes: changes[course.id],
+                                            onChange: handleFieldChange
+                                        })}
 
-                                                        {isOnline && (
-                                                            <>
-                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="monthlyFee" value={batch.monthlyFee} changedValue={changes[batch.id]?.monthlyFee} placeholder={dept.monthlyFee || course.monthlyFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="admissionFee" value={batch.admissionFee} changedValue={changes[batch.id]?.admissionFee} placeholder={dept.admissionFee || course.admissionFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="sadkaFee" value={batch.sadkaFee} changedValue={changes[batch.id]?.sadkaFee} placeholder={dept.sadkaFee || course.sadkaFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="examFee" value={batch.examFee} changedValue={changes[batch.id]?.examFee} placeholder={dept.examFee || course.examFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="registrationFee" value={batch.registrationFee} changedValue={changes[batch.id]?.registrationFee} placeholder={dept.registrationFee || course.registrationFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="border-r"><FeeInput id={batch.id} field="otherFee" value={batch.otherFee} changedValue={changes[batch.id]?.otherFee} placeholder={dept.otherFee || course.otherFee || "0"} onChange={handleFieldChange} /></TableCell>
-                                                            </>
-                                                        )}
+                                        <TableCell className="sticky right-0 bg-white dark:bg-zinc-950 z-10 shadow-[-10px_0_10px_-5px_rgba(0,0,0,0.05)] py-1">
+                                            <RowAction
+                                                id={course.id}
+                                                savingId={saving}
+                                                hasChanges={hasChanges}
+                                                onSave={() => handleSave(course.id, 'COURSE', course.name, course)}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
 
-                                                        {isOffline && (
-                                                            <>
-                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="monthlyFeeOffline" value={batch.monthlyFeeOffline} changedValue={changes[batch.id]?.monthlyFeeOffline} placeholder={dept.monthlyFeeOffline || course.monthlyFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="admissionFeeOffline" value={batch.admissionFeeOffline} changedValue={changes[batch.id]?.admissionFeeOffline} placeholder={dept.admissionFeeOffline || course.admissionFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="sadkaFeeOffline" value={batch.sadkaFeeOffline} changedValue={changes[batch.id]?.sadkaFeeOffline} placeholder={dept.sadkaFeeOffline || course.sadkaFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="examFeeOffline" value={batch.examFeeOffline} changedValue={changes[batch.id]?.examFeeOffline} placeholder={dept.examFeeOffline || course.examFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="registrationFeeOffline" value={batch.registrationFeeOffline} changedValue={changes[batch.id]?.registrationFeeOffline} placeholder={dept.registrationFeeOffline || course.registrationFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                                <TableCell className="bg-orange-50/30 border-r"><FeeInput id={batch.id} field="otherFeeOffline" value={batch.otherFeeOffline} changedValue={changes[batch.id]?.otherFeeOffline} placeholder={dept.otherFeeOffline || course.otherFeeOffline || "0"} onChange={handleFieldChange} /></TableCell>
-                                                            </>
-                                                        )}
+                                    {/* Departments */}
+                                    {isExpanded && course.departments.map((dept: any) => {
+                                        const isDeptExpanded = expanded[dept.id];
+                                        const hasDeptChanges = changes[dept.id] !== undefined;
 
-                                                        <TableCell>
-                                                            <RowAction
-                                                                id={batch.id}
-                                                                savingId={saving}
-                                                                hasChanges={hasBatchChanges}
-                                                                onSave={() => handleSave(batch.id, 'BATCH', batch.name, batch)}
-                                                            />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })}
-                                        </Fragment>
-                                    );
-                                })}
-                            </Fragment>
-                        );
-                    })}
-                </TableBody>
-            </Table>
+                                        return (
+                                            <Fragment key={dept.id}>
+                                                <TableRow className="bg-zinc-50/50 hover:bg-zinc-100 border-b-0">
+                                                    <TableCell className="font-bengali pl-8 flex items-center gap-2 sticky left-0 bg-zinc-50/50 z-10 py-1">
+                                                        <button onClick={() => toggleExpand(dept.id)} className="p-0.5 hover:bg-zinc-200 rounded">
+                                                            {isDeptExpanded ? <ChevronDown className="w-3 h-3 text-zinc-400" /> : <ChevronRight className="w-3 h-3 text-zinc-400" />}
+                                                        </button>
+                                                        <span className="whitespace-nowrap text-sm">{dept.name}</span>
+                                                    </TableCell>
+
+                                                    {renderFeeCells({
+                                                        id: dept.id,
+                                                        data: dept,
+                                                        feeHeads,
+                                                        isOnline,
+                                                        isOffline,
+                                                        changes: changes[dept.id],
+                                                        onChange: handleFieldChange,
+                                                        inheritFrom: course
+                                                    })}
+
+                                                    <TableCell className="sticky right-0 bg-zinc-50/50 z-10 py-1">
+                                                        <RowAction
+                                                            id={dept.id}
+                                                            savingId={saving}
+                                                            hasChanges={hasDeptChanges}
+                                                            onSave={() => handleSave(dept.id, 'DEPARTMENT', dept.name, dept)}
+                                                        />
+                                                    </TableCell>
+                                                </TableRow>
+
+                                                {/* Batches */}
+                                                {isDeptExpanded && dept.batches.map((batch: any) => {
+                                                    const hasBatchChanges = changes[batch.id] !== undefined;
+                                                    return (
+                                                        <TableRow key={batch.id} className="hover:bg-zinc-50 border-b-0">
+                                                            <TableCell className="font-bengali pl-16 flex items-center gap-2 sticky left-0 bg-white/50 backdrop-blur-sm z-10 py-1">
+                                                                <div className="w-3 h-3 border-l border-b border-zinc-300 -mt-2 mr-1"></div>
+                                                                <span className="whitespace-nowrap text-sm">{batch.name}</span>
+                                                            </TableCell>
+
+                                                            {renderFeeCells({
+                                                                id: batch.id,
+                                                                data: batch,
+                                                                feeHeads,
+                                                                isOnline,
+                                                                isOffline,
+                                                                changes: changes[batch.id],
+                                                                onChange: handleFieldChange,
+                                                                inheritFrom: dept, // Batches inherit from Dept (which inherits from Course)
+                                                                inheritRoot: course
+                                                            })}
+
+                                                            <TableCell className="sticky right-0 bg-white/50 backdrop-blur-sm z-10 py-1">
+                                                                <RowAction
+                                                                    id={batch.id}
+                                                                    savingId={saving}
+                                                                    hasChanges={hasBatchChanges}
+                                                                    onSave={() => handleSave(batch.id, 'BATCH', batch.name, batch)}
+                                                                />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </Fragment>
+                                        );
+                                    })}
+                                </Fragment>
+                            );
+                        })}
+                    </TableBody>
+                </Table>
+            </div>
         </div>
     );
 }
 
-// Sub-components moved outside to prevent focus loss during re-renders
+// Fixed Render Function for Consistency
+function renderFeeCells({ id, data, feeHeads, isOnline, isOffline, changes, onChange, inheritFrom, inheritRoot }: any) {
+    const getVal = (field: string) => changes?.[field];
+    const getPlaceholder = (field: string) => {
+        let val = data[field];
+        if (val === null || val === undefined) val = inheritFrom?.[field];
+        if ((val === null || val === undefined) && inheritRoot) val = inheritRoot[field];
+        return val ?? "0";
+    };
+
+    const getDynamicPlaceholder = (feeHeadId: string) => {
+        let val = data.academicFees?.find((f: any) => f.feeHeadId === feeHeadId)?.amount;
+        if (val === undefined) val = inheritFrom?.academicFees?.find((f: any) => f.feeHeadId === feeHeadId)?.amount;
+        if (val === undefined && inheritRoot) val = inheritRoot.academicFees?.find((f: any) => f.feeHeadId === feeHeadId)?.amount;
+        return val ?? "0";
+    };
+
+    return (
+        <>
+            {/* Fixed Columns */}
+            {isOnline && (
+                <>
+                    <TableCell className="border-r p-0.5"><FeeInput id={id} field="monthlyFee" value={data.monthlyFee} changedValue={getVal('monthlyFee')} placeholder={getPlaceholder('monthlyFee')} onChange={onChange} /></TableCell>
+                    <TableCell className="border-r p-0.5"><FeeInput id={id} field="admissionFee" value={data.admissionFee} changedValue={getVal('admissionFee')} placeholder={getPlaceholder('admissionFee')} onChange={onChange} /></TableCell>
+                    <TableCell className="border-r p-0.5"><FeeInput id={id} field="sadkaFee" value={data.sadkaFee} changedValue={getVal('sadkaFee')} placeholder={getPlaceholder('sadkaFee')} onChange={onChange} /></TableCell>
+                </>
+            )}
+            {isOffline && (
+                <>
+                    <TableCell className="border-r p-0.5 bg-orange-50/30"><FeeInput id={id} field="monthlyFeeOffline" value={data.monthlyFeeOffline} changedValue={getVal('monthlyFeeOffline')} placeholder={getPlaceholder('monthlyFeeOffline')} onChange={onChange} /></TableCell>
+                    <TableCell className="border-r p-0.5 bg-orange-50/30"><FeeInput id={id} field="admissionFeeOffline" value={data.admissionFeeOffline} changedValue={getVal('admissionFeeOffline')} placeholder={getPlaceholder('admissionFeeOffline')} onChange={onChange} /></TableCell>
+                </>
+            )}
+
+            {/* Dynamic Columns */}
+            {feeHeads.map((head: any) => {
+                const existingFee = data.academicFees?.find((f: any) => f.feeHeadId === head.id)?.amount;
+                return (
+                    <TableCell key={head.id} className="border-r p-0.5">
+                        <FeeInput
+                            id={id}
+                            field={head.id}
+                            value={existingFee}
+                            changedValue={getVal(head.id)}
+                            placeholder={getDynamicPlaceholder(head.id)}
+                            onChange={onChange}
+                        />
+                    </TableCell>
+                );
+            })}
+
+            {/* Other Fixed Columns */}
+            {isOnline && (
+                <>
+                    <TableCell className="border-r p-0.5"><FeeInput id={id} field="examFee" value={data.examFee} changedValue={getVal('examFee')} placeholder={getPlaceholder('examFee')} onChange={onChange} /></TableCell>
+                    {/* <TableCell className="border-r p-1"><FeeInput id={id} field="registrationFee" value={data.registrationFee} changedValue={getVal('registrationFee')} placeholder={getPlaceholder('registrationFee')} onChange={onChange} /></TableCell> */}
+                    {/* <TableCell className="border-r p-1"><FeeInput id={id} field="otherFee" value={data.otherFee} changedValue={getVal('otherFee')} placeholder={getPlaceholder('otherFee')} onChange={onChange} /></TableCell> */}
+                </>
+            )}
+        </>
+    );
+}
+
 function FeeInput({ id, field, value, changedValue, placeholder, onChange }: any) {
     const displayValue = changedValue !== undefined ? changedValue : (value ?? "");
 
     return (
         <Input
             type="number"
-            className={`h-8 w-24 font-bengali bg-white dark:bg-zinc-900 ${changedValue !== undefined ? 'border-orange-400 ring-1 ring-orange-200' : ''}`}
-            placeholder={placeholder}
+            className={`h-7 w-full min-w-[60px] font-bengali bg-transparent text-center px-1 text-sm ${changedValue !== undefined ? 'border-orange-400 ring-1 ring-orange-200' : 'border-transparent hover:border-zinc-200'}`}
+            placeholder={placeholder?.toString()}
             value={displayValue}
             onChange={(e) => onChange(id, field, e.target.value)}
         />
@@ -359,9 +501,9 @@ function RowAction({ id, savingId, onSave, hasChanges }: any) {
             variant={hasChanges ? "default" : "ghost"}
             onClick={onSave}
             disabled={savingId !== null}
-            className={`h-8 w-8 p-0 ${hasChanges ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'text-teal-600 hover:text-teal-700 hover:bg-teal-50'}`}
+            className={`h-7 w-7 p-0 ${hasChanges ? 'bg-orange-600 hover:bg-orange-700 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
         >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
         </Button>
     );
 }

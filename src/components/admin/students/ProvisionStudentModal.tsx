@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { Loader2, Check, ChevronRight } from "lucide-react";
 import { provisionStudent } from "@/lib/actions/student-actions";
 import { getAcademicStructure } from "@/lib/actions/academic-actions";
-import { getFeeTiers } from "@/lib/actions/tier-actions";
+import { getPlans } from "@/lib/actions/billing-actions";
 import { countries } from "@/lib/constants/countries";
 
 interface ProvisionStudentModalProps {
@@ -38,7 +38,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
 
     // Data States
     const [courses, setCourses] = useState<any[]>([]);
-    const [tiers, setTiers] = useState<any[]>([]);
+    const [plans, setPlans] = useState<any[]>([]);
 
     // Hierarchy Selection State
     const [selectedCourse, setSelectedCourse] = useState("");
@@ -57,7 +57,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
         whatsappNumber: "",
         departmentId: "",
         batchId: "", // Added
-        feeTierId: "",
+        planId: "",
         admissionDate: new Date(),
     });
 
@@ -74,12 +74,12 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
     }, [open]);
 
     const loadData = async () => {
-        const [coursesData, tiersData] = await Promise.all([
+        const [coursesData, plansData] = await Promise.all([
             getAcademicStructure(),
-            getFeeTiers()
+            getPlans()
         ]);
         setCourses(coursesData);
-        setTiers(tiersData);
+        setPlans(plansData);
     };
 
     const handleNext = () => {
@@ -116,7 +116,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden max-h-[85vh] flex flex-col">
+            <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden">
                 <div className="p-6 pb-2">
                     <DialogHeader>
                         <DialogTitle className="text-xl font-bengali">নতুন ছাত্র যোগ করুন</DialogTitle>
@@ -132,7 +132,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                     ))}
                 </div>
 
-                <div className="px-6 pb-6 min-h-[300px] flex-1 overflow-y-auto">
+                <div className="px-6 pb-6 min-h-[300px]">
                     {step === 1 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                             <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider font-bengali">ধাপ ১: প্রাথমিক পরিচয়</h3>
@@ -353,25 +353,25 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                                     )}
                                 </div>
 
-                                {/* Fee Tier Selection */}
+                                {/* Fee Plan Selection */}
                                 <div className="grid gap-2">
-                                    <Label className="font-bengali">ফি টিয়ার</Label>
+                                    <Label className="font-bengali">ফী প্ল্যান (অপশনাল)</Label>
                                     <Select
-                                        value={formData.feeTierId}
-                                        onValueChange={(val) => setFormData({ ...formData, feeTierId: val })}
+                                        value={formData.planId}
+                                        onValueChange={(val) => setFormData({ ...formData, planId: val })}
                                     >
-                                        <SelectTrigger className="font-bengali"><SelectValue placeholder="জেনারেল" /></SelectTrigger>
+                                        <SelectTrigger className="font-bengali"><SelectValue placeholder="সিলেক্ট করুন (ডিফল্ট: জেনারেল)" /></SelectTrigger>
                                         <SelectContent className="font-bengali">
-                                            <SelectItem value="GENERAL">জেনারেল</SelectItem>
-                                            {tiers.map((t: any) => (
-                                                <SelectItem key={t.id} value={t.id}>
-                                                    {t.name}
+                                            <SelectItem value="GENERAL">জেনারেল (একাডেমিক স্ট্রাকচার)</SelectItem>
+                                            {plans.map((p: any) => (
+                                                <SelectItem key={p.id} value={p.id}>
+                                                    {p.name} ({p.monthlyFee}৳)
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    <p className="text-xs text-zinc-500 font-bengali">কোনো প্ল্যান সিলেক্ট না করলে একাডেমিক স্ট্রাকচার অনুযায়ী ফি ধরা হবে।</p>
                                 </div>
-                                <p className="text-xs text-zinc-500 font-bengali">টিয়ার পরিবর্তন করলে ভর্তি, মাসিক ও পরীক্ষা ফী আপডেট হবে।</p>
 
                                 {/* 4. Student ID (Auto-generated) */}
                                 <div className="grid gap-2">
@@ -407,7 +407,7 @@ export function ProvisionStudentModal({ open, onOpenChange, onSuccess }: Provisi
                                 <div className="flex justify-between">
                                     <span className="text-zinc-500 font-bengali">ফি টিয়ার</span>
                                     <span className="font-medium text-teal-600 font-bengali">
-                                        {tiers.find(t => t.id === formData.feeTierId)?.name || "জেনারেল"}
+                                        জেনারেল (ডিফল্ট)
                                     </span>
                                 </div>
                             </div>

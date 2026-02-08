@@ -39,8 +39,7 @@ model StudentProfile {
   photoUrl            String?
   activeStatus        Boolean               @default(true)
   departmentId        String?
-  feeTierId           String?
-  feeTier             FeeTier?              @relation(fields: [feeTierId], references: [id])
+  feeTier             FeeTier               @default(GENERAL)
   attendance          Attendance[]
   enrollments         Enrollment[]
   homeworkSubmissions HomeworkSubmission[]
@@ -57,49 +56,51 @@ model StudentProfile {
 }
 
 model TeacherProfile {
-  id                  String                @id @default(cuid())
-  userId              String                @unique
+  id                  String             @id @default(cuid())
+  userId              String             @unique
   fullName            String
   gender              Gender
   specialization      String?
-  activeStatus        Boolean               @default(true)
+  activeStatus        Boolean            @default(true)
   address             String?
   bankAccountNumber   String?
-  designation         String?               @default("Assistant Teacher")
-  joiningDate         DateTime?             @default(now())
+  designation         String?            @default("Assistant Teacher")
+  joiningDate         DateTime?          @default(now())
   nid                 String?
   phone               String?
   whatsappNumber      String?
-  salary              Float?                @default(0)
+  salary              Float?             @default(0)
   mobileBankingNumber String?
-  paymentMethod       PaymentMethod?        @default(CASH)
+  paymentMethod       PaymentMethod?     @default(CASH)
   homeworks           Homework[]
   lessons             Lesson[]
   liveClasses         MonthlyLiveClass[]
   payments            TeacherPayment[]
   attendance          TeacherAttendance[]
   liveClassAttendance LiveClassAttendance[]
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedBatches     Batch[]               @relation("TeacherBatches")
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedBatches     Batch[]            @relation("TeacherBatches")
   assessments         Assessment[]
 }
 
 model TeacherPayment {
-  id            String          @id @default(cuid())
+  id            String         @id @default(cuid())
   teacherId     String?
   month         Int
   year          Int
   amount        Float
-  paymentDate   DateTime        @default(now())
-  status        PaymentStatus   @default(PAID)
+  paymentDate   DateTime       @default(now())
+  status        PaymentStatus  @default(PAID)
   method        PaymentMethod
   transactionId String?
   note          String?
-  basicSalary   Float           @default(0)
-  bonus         Float?          @default(0)
-  deduction     Float?          @default(0)
+  basicSalary   Float          @default(0)
+  bonus         Float?         @default(0)
+  deduction     Float?         @default(0)
   teacher       TeacherProfile? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 }
+
+
 
 model Assessment {
   id         String   @id @default(cuid())
@@ -110,10 +111,10 @@ model Assessment {
   subjectId  String
   teacherId  String?
   marks      Mark[]
-
-  batch   Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  subject Subject         @relation(fields: [subjectId], references: [id])
-  teacher TeacherProfile? @relation(fields: [teacherId], references: [id])
+  
+  batch      Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  subject    Subject        @relation(fields: [subjectId], references: [id])
+  teacher    TeacherProfile? @relation(fields: [teacherId], references: [id])
 }
 
 model Mark {
@@ -134,69 +135,71 @@ model TeacherAttendance {
   checkIn      DateTime
   checkOut     DateTime?
   status       TeacherAttendanceStatus @default(PRESENT)
-  workingHours Float? // Calculated hours
+  workingHours Float?                  // Calculated hours
   notes        String?
-  markedBy     String? // Admin ID if marked by admin
+  markedBy     String?                 // Admin ID if marked by admin
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
-  teacher      TeacherProfile?         @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacher      TeacherProfile? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 
   @@unique([teacherId, date])
   @@index([date])
   @@index([teacherId, date])
 }
 
-model Course {
-  id              String  @id @default(cuid())
-  name            String  @unique
-  code            String?
-  admissionFee    Float?
-  durationMonths  Int?
-  monthlyFee      Float?
-  sadkaFee        Float?
-  examFee         Float?
-  registrationFee Float?
-  otherFee        Float?
 
-  admissionFeeOffline    Float?
-  monthlyFeeOffline      Float?
-  sadkaFeeOffline        Float?
-  examFeeOffline         Float?
+
+model Course {
+  id                  String       @id @default(cuid())
+  name                String       @unique
+  code                String?
+  admissionFee        Float?
+  durationMonths      Int?
+  monthlyFee          Float?
+  sadkaFee            Float?
+  examFee             Float?
+  registrationFee     Float?
+  otherFee            Float?
+  
+  admissionFeeOffline Float?
+  monthlyFeeOffline   Float?
+  sadkaFeeOffline     Float?
+  examFeeOffline      Float?
   registrationFeeOffline Float?
-  otherFeeOffline        Float?
+  otherFeeOffline     Float?
 
   admissionFeeProbashi Float?
-  monthlyFeeProbashi   Float?
-  departments          Department[]
-  AcademicTierFee      AcademicTierFee[]
+  monthlyFeeProbashi  Float?
+  departments         Department[]
+  academicFees        AcademicFee[]
 }
 
 model Department {
-  id              String  @id @default(cuid())
-  name            String
-  code            String?
-  courseId        String
-  admissionFee    Float?
-  monthlyFee      Float?
-  sadkaFee        Float?
-  examFee         Float?
-  registrationFee Float?
-  otherFee        Float?
+  id                  String           @id @default(cuid())
+  name                String
+  code                String?
+  courseId            String
+  admissionFee        Float?
+  monthlyFee          Float?
+  sadkaFee            Float?
+  examFee             Float?
+  registrationFee     Float?
+  otherFee            Float?
 
-  admissionFeeOffline    Float?
-  monthlyFeeOffline      Float?
-  sadkaFeeOffline        Float?
-  examFeeOffline         Float?
+  admissionFeeOffline Float?
+  monthlyFeeOffline   Float?
+  sadkaFeeOffline     Float?
+  examFeeOffline      Float?
   registrationFeeOffline Float?
-  otherFeeOffline        Float?
+  otherFeeOffline     Float?
 
   admissionFeeProbashi Float?
-  monthlyFeeProbashi   Float?
-  batches              Batch[]
-  course               Course            @relation(fields: [courseId], references: [id])
-  students             StudentProfile[]
-  subjects             Subject[]
-  AcademicTierFee      AcademicTierFee[]
+  monthlyFeeProbashi  Float?
+  batches             Batch[]
+  course              Course           @relation(fields: [courseId], references: [id])
+  students            StudentProfile[]
+  subjects            Subject[]
+  academicFees        AcademicFee[]
 }
 
 model Subject {
@@ -209,41 +212,41 @@ model Subject {
 }
 
 model Batch {
-  id              String      @id @default(cuid())
-  name            String
-  type            BatchType   @default(MONTHLY)
-  departmentId    String
-  allowedGender   Gender
-  allowedMode     StudentMode @default(OFFLINE)
-  startDate       DateTime?
-  endDate         DateTime?
-  active          Boolean     @default(true)
-  admissionFee    Float?
-  monthlyFee      Float?
-  sadkaFee        Float?
-  examFee         Float?
-  registrationFee Float?
-  otherFee        Float?
+  id                  String             @id @default(cuid())
+  name                String
+  type                BatchType          @default(MONTHLY)
+  departmentId        String
+  allowedGender       Gender
+  allowedMode         StudentMode        @default(OFFLINE)
+  startDate           DateTime?
+  endDate             DateTime?
+  active              Boolean            @default(true)
+  admissionFee        Float?
+  monthlyFee          Float?
+  sadkaFee            Float?
+  examFee             Float?
+  registrationFee     Float?
+  otherFee            Float?
 
-  admissionFeeOffline    Float?
-  monthlyFeeOffline      Float?
-  sadkaFeeOffline        Float?
-  examFeeOffline         Float?
+  admissionFeeOffline Float?
+  monthlyFeeOffline   Float?
+  sadkaFeeOffline     Float?
+  examFeeOffline      Float?
   registrationFeeOffline Float?
-  otherFeeOffline        Float?
+  otherFeeOffline     Float?
 
   admissionFeeProbashi Float?
-  monthlyFeeProbashi   Float?
-  department           Department         @relation(fields: [departmentId], references: [id])
-  batchSubjects        BatchSubject[]
-  sessions             ClassSession[]
-  enrollments          Enrollment[]
-  homeworks            Homework[]
-  lessons              Lesson[]
-  liveClasses          MonthlyLiveClass[]
-  teachers             TeacherProfile[]   @relation("TeacherBatches")
-  assessments          Assessment[]
-  AcademicTierFee      AcademicTierFee[]
+  monthlyFeeProbashi  Float?
+  department          Department         @relation(fields: [departmentId], references: [id])
+  batchSubjects       BatchSubject[]
+  sessions            ClassSession[]
+  enrollments         Enrollment[]
+  homeworks           Homework[]
+  lessons             Lesson[]
+  liveClasses         MonthlyLiveClass[]
+  teachers            TeacherProfile[]   @relation("TeacherBatches")
+  assessments         Assessment[]
+  academicFees        AcademicFee[]
 }
 
 model BatchSubject {
@@ -274,13 +277,13 @@ model ClassSession {
 }
 
 model Enrollment {
-  id                 String         @id @default(cuid())
-  studentId          String
-  batchId            String
-  joinedAt           DateTime       @default(now())
-  isAdmissionFeePaid Boolean        @default(false)
-  batch              Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  student            StudentProfile @relation(fields: [studentId], references: [id])
+  id        String         @id @default(cuid())
+  studentId String
+  batchId   String
+  joinedAt  DateTime       @default(now())
+  isAdmissionFeePaid Boolean @default(false)
+  batch     Batch          @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student   StudentProfile @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, batchId])
 }
@@ -366,20 +369,20 @@ model LedgerTransaction {
 }
 
 model Expense {
-  id            String            @id @default(cuid())
-  category      FundType // Expense category
-  amount        Float
-  description   String
-  date          DateTime          @default(now())
-  paymentMethod PaymentMethod? // CASH, BANK, MOBILE_BANKING
-  receiptNumber String?
-  vendor        String? // Who was paid
-  notes         String?
-  createdBy     String? // Admin user ID
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  ledgerEntry   LedgerTransaction @relation(fields: [ledgerEntryId], references: [id])
-  ledgerEntryId String            @unique
+  id              String            @id @default(cuid())
+  category        FundType          // Expense category
+  amount          Float
+  description     String
+  date            DateTime          @default(now())
+  paymentMethod   PaymentMethod?    // CASH, BANK, MOBILE_BANKING
+  receiptNumber   String?
+  vendor          String?           // Who was paid
+  notes           String?
+  createdBy       String?           // Admin user ID
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  ledgerEntry     LedgerTransaction @relation(fields: [ledgerEntryId], references: [id])
+  ledgerEntryId   String            @unique
 }
 
 model Homework {
@@ -417,6 +420,8 @@ model HomeworkSubmission {
   student     StudentProfile @relation(fields: [studentId], references: [id])
 }
 
+
+
 model ResultPublishLog {
   id           String   @id @default(cuid())
   batchId      String
@@ -426,18 +431,18 @@ model ResultPublishLog {
 }
 
 model SiteSettings {
-  id                  Int     @id @default(1)
-  madrasaName         String
-  madrasaAddress      String?
-  madrasaLogo         String?
-  contactEmail        String?
-  contactPhone        String?
-  siteActive          Boolean @default(true)
-  smtpHost            String?
-  smtpPass            String?
-  smtpPort            Int?
-  smtpSecure          Boolean @default(false)
-  smtpUser            String?
+  id             Int     @id @default(1)
+  madrasaName    String
+  madrasaAddress String?
+  madrasaLogo    String?
+  contactEmail   String?
+  contactPhone   String?
+  siteActive     Boolean @default(true)
+  smtpHost       String?
+  smtpPass       String?
+  smtpPort       Int?
+  smtpSecure     Boolean @default(false)
+  smtpUser       String?
   sslIsSandbox        Boolean @default(true)
   sslStoreId          String?
   sslStorePass        String?
@@ -477,7 +482,7 @@ model MonthlyLiveClass {
   sessionKeys String[]              @default([])
   attendance  LiveClassAttendance[]
   batch       Batch                 @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  teacher     TeacherProfile?       @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacher     TeacherProfile?        @relation(fields: [teacherId], references: [id], onDelete: SetNull)
 
   @@index([month, year, gender, active])
 }
@@ -587,12 +592,12 @@ model AiLog {
   question     String
   answer       String
   model        String   @default("gpt-4o-mini")
-  source       String // CMS, GPT, RESTRICTED
+  source       String   // CMS, GPT, RESTRICTED
   tokensUsed   Int      @default(0)
   isRestricted Boolean  @default(false)
   createdAt    DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
 }
 
 enum PaymentMethod {
@@ -678,43 +683,9 @@ enum LiveClassSession {
   NIGHT
 }
 
-model FeeTier {
-  id           String            @id @default(cuid())
-  name         String            @unique // e.g. "GENERAL", "SADKA"
-  description  String?
-  students     StudentProfile[]
-  academicFees AcademicTierFee[]
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-}
-
-model AcademicTierFee {
-  id     String  @id @default(cuid())
-  tierId String
-  tier   FeeTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
-
-  // Polymorphic relations (nullable)
-  courseId     String?
-  course       Course?     @relation(fields: [courseId], references: [id])
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  batchId      String?
-  batch        Batch?      @relation(fields: [batchId], references: [id])
-
-  // Fee Overrides (Online)
-  admissionFee Float? @default(0)
-  monthlyFee   Float? @default(0)
-  examFee      Float? @default(0)
-
-  // Fee Overrides (Offline)
-  admissionFeeOffline Float? @default(0)
-  monthlyFeeOffline   Float? @default(0)
-  examFeeOffline      Float? @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([tierId, courseId, departmentId, batchId], name: "unique_tier_academic_target")
+enum FeeTier {
+  GENERAL
+  SADKA
 }
 
 enum DonationPurpose {
@@ -741,4 +712,34 @@ enum TeacherAttendanceStatus {
   HALF_DAY
   LEAVE
   SICK_LEAVE
+}
+
+model FeeHead {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  
+  values    AcademicFee[]
+}
+
+model AcademicFee {
+  id           String      @id @default(cuid())
+  amount       Float
+  
+  feeHeadId    String
+  feeHead      FeeHead     @relation(fields: [feeHeadId], references: [id], onDelete: Cascade)
+
+  courseId     String?
+  departmentId String?
+  batchId      String?
+
+  course       Course?     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  batch        Batch?      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([feeHeadId, courseId])
+  @@unique([feeHeadId, departmentId])
+  @@unique([feeHeadId, batchId])
 }

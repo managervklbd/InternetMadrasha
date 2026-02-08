@@ -162,19 +162,28 @@ export const getAcademicStructure = cache(async function (mode?: StudentMode) {
                                 batchSubjects: {
                                     include: { subject: true }
                                 },
-                                teachers: true
+                                teachers: true,
+                                academicFees: {
+                                    include: { feeHead: true }
+                                }
                             }
                         },
                         subjects: true,
+                        academicFees: {
+                            include: { feeHead: true }
+                        }
                     },
                 },
+                academicFees: {
+                    include: { feeHead: true }
+                }
             },
         });
 
         // Filter out courses that have no batches matching the mode
         if (mode) {
-            return courses.filter(course =>
-                course.departments.some(dept => dept.batches.length > 0)
+            return courses.filter((course: any) =>
+                course.departments.some((dept: any) => dept.batches.length > 0)
             );
         }
 
