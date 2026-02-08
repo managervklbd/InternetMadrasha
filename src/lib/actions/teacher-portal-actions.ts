@@ -116,3 +116,16 @@ export async function getSessionAttendance(sessionId: string) {
         where: { classSessionId: sessionId }
     });
 }
+
+export async function getBatchSubjects(batchId: string) {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+
+    return prisma.subject.findMany({
+        where: {
+            batchSubjects: {
+                some: { batchId }
+            }
+        }
+    });
+}

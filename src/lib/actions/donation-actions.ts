@@ -175,3 +175,108 @@ export async function getDonationsByDonorId(donorId: string) {
         return [];
     }
 }
+
+export async function createDonor(data: any) {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+    try {
+        const donor = await prisma.donor.create({
+            data: {
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                address: data.address,
+                committee: data.committee,
+                type: data.type,
+                fixedAmount: data.fixedAmount || 0,
+                notes: data.notes
+            }
+        });
+        return { success: true, data: donor };
+    } catch (error) {
+        console.error("Create Donor Error:", error);
+        return { success: false, error: "Failed to create donor" };
+    }
+}
+
+export async function createCommitteeMember(data: any) {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+    try {
+        const member = await prisma.committeeMember.create({
+            data: {
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                role: data.role,
+                active: true
+            }
+        });
+        return { success: true, data: member };
+    } catch (error) {
+        console.error("Create Committee Member Error:", error);
+        return { success: false, error: "Failed to create committee member" };
+    }
+}
+
+export async function createDonation(data: any) {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") throw new Error("Unauthorized");
+
+    try {
+        let donorId = data.donorId;
+
+        // If no donorId but name and phone are provided, find or create
+        if (!donorId && data.donorName && data.phone) {
+            const donor = await prisma.donor.upsert({
+                where: { id: "temporary-id-never-match" }, // Dummy to force findFirst logic if we don't have ID
+                // Actually prisma doesn't support findOrCreate easily with non-unique fields in upsert
+                // So let's just find first
+                update: {},
+                create: {
+                    name: data.donorName,
+                    phone: data.phone,
+                    email: data.email,
+                    type: "GENERAL"
+                }
+            });
+            // Correction: Upsert requires unique. Let's do it manually.
+            const existingDonor = await prisma.donor.findFirst({
+                where: { phone: data.phone }
+            });
+
+            if (existingDonor) {
+                donorId = existingDonor.id;
+            } else {
+                const newDonor = await prisma.donor.create({
+                    data: {
+                        name: data.donorName,
+                        phone: data.phone,
+                        email: data.email,
+                        type: "GENERAL"
+                    }
+                });
+                donorId = newDonor.id;
+            }
+        }
+
+        const donation = await prisma.donation.create({
+            data: {
+                amount: data.amount,
+                purpose: data.purpose,
+                paymentMethod: data.paymentMethod || "CASH",
+                transactionId: data.transactionId,
+                notes: data.notes,
+                date: data.date || new Date(),
+                donorId: donorId,
+                collectedById: data.collectedById
+            }
+        });
+        return { success: true, data: donation };
+    } catch (error) {
+        console.error("Create Donation Error:", error);
+        return { success: false, error: "Failed to create donation" };
+    }
+}

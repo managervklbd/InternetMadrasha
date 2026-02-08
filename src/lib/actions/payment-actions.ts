@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
+import { InvoiceStatus, MonthlyInvoice, FeeHead } from "@prisma/client";
 import { initiateSSLPayment } from "@/lib/payment/sslcommerz";
 import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
@@ -121,7 +122,7 @@ export async function initiateInvoicePayment(invoiceIds: string[]) {
 
 export async function recordManualPayment(data: {
     studentId: string;
-    months: { month: number; year: number }[];
+    months: { month: number; year: number; feeHeadId?: string | null; headName?: string }[];
     amount: number; // User confirmed total amount
     reference?: string;
     description?: string;
@@ -154,18 +155,18 @@ export async function recordManualPayment(data: {
                     studentId: data.studentId,
                     month: m.month,
                     year: m.year,
-                    feeHeadId: (m as any).feeHeadId || null
+                    feeHeadId: m.feeHeadId || null
                 }
             });
 
             if (!invoice) {
                 // Create new
                 let targetAmount = 0;
-                if ((m as any).feeHeadId) {
+                if (m.feeHeadId) {
                     // Fetch amount for this specific head
                     const fee = await prisma.academicFee.findFirst({
                         where: {
-                            feeHeadId: (m as any).feeHeadId,
+                            feeHeadId: m.feeHeadId,
                             OR: [
                                 { batchId: student.enrollments?.[0]?.batchId },
                                 { departmentId: student.departmentId }
@@ -183,7 +184,7 @@ export async function recordManualPayment(data: {
                         studentId: data.studentId,
                         month: m.month,
                         year: m.year,
-                        feeHeadId: (m as any).feeHeadId || null,
+                        feeHeadId: m.feeHeadId || null,
                         amount: targetAmount,
                         status: "UNPAID",
                         dueDate: new Date(m.year, m.month - 1, 10),
@@ -207,7 +208,7 @@ export async function recordManualPayment(data: {
         const invoices = await prisma.monthlyInvoice.findMany({
             where: { id: { in: paidInvoiceIds } },
             include: { feeHead: true }
-        });
+        }) as (MonthlyInvoice & { feeHead: FeeHead | null })[];
 
         for (const invoice of invoices) {
             let fundType: "ADMISSION" | "MONTHLY" | "TUITION_FEE" | "DONATION" | "SADAQAH" | "ZAKAT" = "MONTHLY";

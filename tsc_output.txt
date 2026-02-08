@@ -1,0 +1,7 @@
+src/lib/actions/payment-actions.ts(3,24): error TS2307: Cannot find module '@/lib/db' or its corresponding type declarations.
+src/lib/actions/payment-actions.ts(4,22): error TS2307: Cannot find module '@/auth' or its corresponding type declarations.
+src/lib/actions/payment-actions.ts(6,36): error TS2307: Cannot find module '@/lib/payment/sslcommerz' or its corresponding type declarations.
+src/lib/actions/payment-actions.ts(241,20): error TS2307: Cannot find module '@/lib/mail' or its corresponding type declarations.
+src/lib/actions/payment-actions.ts(253,24): error TS2307: Cannot find module '@/lib/whatsapp' or its corresponding type declarations.
+src/lib/actions/student-portal-actions.ts(3,24): error TS2307: Cannot find module '@/lib/db' or its corresponding type declarations.
+src/lib/actions/student-portal-actions.ts(4,22): error TS2307: Cannot find module '@/auth' or its corresponding type declarations.
